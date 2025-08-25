@@ -144,6 +144,11 @@ body {
     color: #8B4513;
 }
 
+.nav-desktop a.ai-curriculum-link:hover {
+    transform: scale(1.1);
+    color: #6b3410;
+}
+
 .new-tag {
     background-color: #8B4513;
     color: white;
@@ -2182,9 +2187,7 @@ body {
     align-items: center;
     justify-content: center;
     padding: 20px 24px;
-    background: white;
     border-radius: 16px;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
     transition: all 0.4s ease;
     transform: scale(1);
     opacity: 0;
@@ -2214,8 +2217,6 @@ body {
 
 .university:hover {
     transform: scale(1.15);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
-    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
     animation-play-state: paused;
     z-index: 10;
 }
