@@ -151,6 +151,10 @@ body {
     color: #6b3410 !important;
 }
 
+.nav-desktop a.ai-curriculum-link:hover .new-tag {
+    background-color: #6b3410 !important;
+}
+
 .new-tag {
     background-color: #8B4513;
     color: white;
@@ -2198,29 +2202,6 @@ body {
     min-width: 180px;
     min-height: 120px;
     flex-shrink: 0;
-}
-
-.university:nth-child(1) { animation-delay: 1.0s; }
-.university:nth-child(2) { animation-delay: 1.2s; }
-.university:nth-child(3) { animation-delay: 1.4s; }
-.university:nth-child(4) { animation-delay: 1.6s; }
-.university:nth-child(5) { animation-delay: 1.8s; }
-
-@keyframes fadeInScale {
-    from {
-        opacity: 0;
-        transform: scale(0.7) translateY(30px);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
-}
-
-.university:hover {
-    transform: scale(1.15);
-    animation-play-state: paused;
-    z-index: 10;
 }
 
 .university img {
