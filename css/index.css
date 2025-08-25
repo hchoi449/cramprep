@@ -39,7 +39,7 @@ body {
     align-items: center;
     justify-content: space-between;
     padding: 12px 20px;
-    max-width: 1400px;
+    max-width: 1600px;
     margin: 0 auto;
 }
 
@@ -51,7 +51,7 @@ body {
     font-weight: 600;
     color: #1a1a1a;
     text-decoration: none;
-    margin-left: -20px;
+    margin-left: -40px;
 }
 
 .logo img {
@@ -62,9 +62,9 @@ body {
 .nav-desktop {
     display: flex;
     align-items: center;
-    gap: 28px;
+    gap: 32px;
     margin-left: auto;
-    margin-right: 0;
+    margin-right: -40px;
 }
 
 .nav-desktop a {
@@ -119,11 +119,12 @@ body {
 .student-hub-link {
     background: #8B4513;
     color: white !important;
-    padding: 8px 16px !important;
-    border-radius: 6px;
+    padding: 12px 24px !important;
+    border-radius: 8px;
     font-weight: 600;
+    font-size: 15px;
     transition: all 0.3s ease;
-    margin-left: 8px;
+    margin-left: 12px;
 }
 
 .student-hub-link:hover {
@@ -303,7 +304,7 @@ body {
 /* Button Styles - Exact Match */
 .btn {
     display: inline-block;
-    padding: 16px 32px;
+    padding: 18px 36px;
     text-decoration: none;
     border-radius: 8px;
     font-weight: 600;
