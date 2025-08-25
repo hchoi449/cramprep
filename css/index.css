@@ -1814,7 +1814,7 @@ body {
     }
 }
 
-/* Math Notations in Background */
+/* Math Notations in Background - Reduced Set */
 .math-symbol {
     position: absolute;
     font-family: 'Times New Roman', serif;
@@ -1823,7 +1823,26 @@ body {
     z-index: 0;
     pointer-events: none;
     user-select: none;
-    animation: float 8s ease-in-out infinite;
+    animation: float 8s ease-in-out infinite, sparkle 4s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+    0%, 100% {
+        opacity: 0.15;
+        filter: brightness(1) drop-shadow(0 0 0px rgba(139, 69, 19, 0));
+    }
+    25% {
+        opacity: 0.25;
+        filter: brightness(1.2) drop-shadow(0 0 8px rgba(139, 69, 19, 0.3));
+    }
+    50% {
+        opacity: 0.35;
+        filter: brightness(1.4) drop-shadow(0 0 12px rgba(139, 69, 19, 0.5));
+    }
+    75% {
+        opacity: 0.25;
+        filter: brightness(1.2) drop-shadow(0 0 8px rgba(139, 69, 19, 0.3));
+    }
 }
 
 .pi-symbol {
@@ -1831,16 +1850,16 @@ body {
     right: 15%;
     font-size: 8rem;
     transform: rotate(10deg);
-    animation-delay: 0s;
+    animation-delay: 0s, 0s;
 }
 
 .infinity-symbol {
     bottom: 10%;
     left: 10%;
     font-size: 10rem;
-    transform: rotate(5deg);
+    transform: rotate(-20deg);
     opacity: 0.12;
-    animation-delay: 4s;
+    animation-delay: 4s, 1s;
 }
 
 .sigma-symbol {
@@ -1849,7 +1868,7 @@ body {
     font-size: 7rem;
     transform: rotate(5deg);
     opacity: 0.12;
-    animation-delay: 4s;
+    animation-delay: 8s, 2s;
 }
 
 .integral-symbol {
@@ -1858,7 +1877,7 @@ body {
     font-size: 9rem;
     transform: rotate(-15deg);
     opacity: 0.15;
-    animation-delay: 6s;
+    animation-delay: 12s, 3s;
 }
 
 .delta-symbol {
@@ -1867,7 +1886,7 @@ body {
     font-size: 6rem;
     transform: rotate(15deg);
     opacity: 0.12;
-    animation-delay: 1s;
+    animation-delay: 16s, 0.5s;
 }
 
 .theta-symbol {
@@ -1876,31 +1895,116 @@ body {
     font-size: 5rem;
     transform: rotate(-10deg);
     opacity: 0.13;
-    animation-delay: 3s;
+    animation-delay: 20s, 1.5s;
 }
 
-.phi-symbol {
-    bottom: 30%;
-    right: 10%;
-    font-size: 7rem;
-    transform: rotate(25deg);
-    opacity: 0.12;
-    animation-delay: 5s;
-}
-
-.omega-symbol {
-    top: 60%;
-    left: 35%;
-    font-size: 6rem;
+.alpha-symbol {
+    top: 15%;
+    left: 15%;
+    font-size: 5rem;
     transform: rotate(-5deg);
-    opacity: 0.13;
-    animation-delay: 7s;
+    opacity: 0.03;
+    animation-delay: 24s, 2.5s;
 }
 
-@keyframes float {
-    0% { transform: translateY(0px) rotate(0deg); }
-    50% { transform: translateY(-10px) rotate(5deg); }
-    100% { transform: translateY(0px) rotate(0deg); }
+.beta-symbol {
+    top: 80%;
+    right: 20%;
+    font-size: 6rem;
+    transform: rotate(10deg);
+    opacity: 0.03;
+    animation-delay: 28s, 3.5s;
+}
+
+.gamma-symbol {
+    top: 40%;
+    right: 5%;
+    font-size: 4rem;
+    transform: rotate(-15deg);
+    opacity: 0.04;
+    animation-delay: 32s, 0.8s;
+}
+
+.lambda-symbol {
+    bottom: 20%;
+    left: 25%;
+    font-size: 5rem;
+    transform: rotate(20deg);
+    opacity: 0.03;
+    animation-delay: 36s, 1.8s;
+}
+
+.mu-symbol {
+    top: 25%;
+    left: 45%;
+    font-size: 4rem;
+    transform: rotate(-10deg);
+    opacity: 0.04;
+    animation-delay: 40s, 2.8s;
+}
+
+.nu-symbol {
+    bottom: 40%;
+    right: 35%;
+    font-size: 5rem;
+    transform: rotate(15deg);
+    opacity: 0.03;
+    animation-delay: 44s, 3.8s;
+}
+
+/* Additional Sigma, Integral, and Delta notations */
+.sigma-large {
+    top: 60%;
+    left: 10%;
+    font-size: 8rem;
+    transform: rotate(-25deg);
+    opacity: 0.12;
+    animation-delay: 48s, 0.3s;
+}
+
+.integral-large {
+    top: 35%;
+    right: 10%;
+    font-size: 10rem;
+    transform: rotate(20deg);
+    opacity: 0.15;
+    animation-delay: 52s, 1.3s;
+}
+
+.delta-large {
+    bottom: 15%;
+    left: 35%;
+    font-size: 9rem;
+    transform: rotate(-30deg);
+    opacity: 0.12;
+    animation-delay: 56s, 2.3s;
+}
+
+.sigma-small {
+    top: 45%;
+    right: 25%;
+    font-size: 4rem;
+    transform: rotate(15deg);
+    opacity: 0.14;
+    animation-delay: 60s, 3.3s;
+}
+
+.integral-small {
+    top: 75%;
+    right: 15%;
+    font-size: 3.5rem;
+    transform: rotate(-15deg);
+    opacity: 0.12;
+    animation-delay: 64s, 0.7s;
+}
+
+.delta-small {
+    top: 75%;
+    right: 15%;
+    font-size: 3.5rem;
+    transform: rotate(15deg);
+    opacity: 0.12;
+    animation-delay: 6s, 1.7s;
 }
 
 /* Enhanced Animation Keyframes */
