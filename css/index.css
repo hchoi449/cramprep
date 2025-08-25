@@ -404,10 +404,11 @@ body {
     display: flex;
     flex-direction: row;
     align-items: center;
-    justify-content: center;
-    gap: 30px;
+    justify-content: space-between;
+    gap: 20px;
     position: relative;
     padding-top: 20px;
+    width: 100%;
 }
 
 .process-step {
@@ -417,7 +418,7 @@ body {
     flex-direction: column;
     align-items: center;
     flex: 1;
-    max-width: 200px;
+    max-width: 180px;
 }
 
 .process-step:nth-child(1) {
@@ -453,6 +454,7 @@ body {
     color: #1a1a1a;
     margin: 0;
     white-space: nowrap;
+    text-align: center;
 }
 
 .arrow {
@@ -460,7 +462,8 @@ body {
     color: #1a1a1a;
     font-weight: bold;
     align-self: center;
-    margin: 0 10px;
+    margin: 0 5px;
+    flex-shrink: 0;
 }
 
 
