@@ -379,8 +379,7 @@ document.head.appendChild(style);
 document.addEventListener('DOMContentLoaded', function() {
     const heroHighlight = document.querySelector('.hero-highlight');
     if (heroHighlight) {
-        // Create alternating text effect between USAJMO and AIME
-        const texts = ['USAJMO', 'AIME'];
+        const texts = ['Algebra', 'Geometry', 'Chemistry', 'Biology', 'Pre-Calculus', 'Physics', 'Calculus'];
         let currentIndex = 0;
         
         // Function to update the text with fade effect
