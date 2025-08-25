@@ -211,7 +211,13 @@ body {
     display: block;
     margin-bottom: 24px;
     font-family: Georgia, serif;
-    /* Removed animation to prevent text changes */
+    /* Smooth transition for text changes */
+    transition: opacity 0.5s ease-in-out;
+    opacity: 1;
+}
+
+.hero-highlight.fade-out {
+    opacity: 0;
 }
 
 .hero-subtitle {

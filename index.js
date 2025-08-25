@@ -379,7 +379,29 @@ document.head.appendChild(style);
 document.addEventListener('DOMContentLoaded', function() {
     const heroHighlight = document.querySelector('.hero-highlight');
     if (heroHighlight) {
-        // Ensure the text stays as USAJMO
-        heroHighlight.textContent = 'USAJMO';
+        // Create alternating text effect between USAJMO and AIME
+        const texts = ['USAJMO', 'AIME'];
+        let currentIndex = 0;
+        
+        // Function to update the text with fade effect
+        function updateText() {
+            // Fade out
+            heroHighlight.classList.add('fade-out');
+            
+            // Change text after fade out
+            setTimeout(() => {
+                heroHighlight.textContent = texts[currentIndex];
+                currentIndex = (currentIndex + 1) % texts.length;
+                
+                // Fade in
+                heroHighlight.classList.remove('fade-out');
+            }, 250);
+        }
+        
+        // Update text every 3 seconds
+        setInterval(updateText, 3000);
+        
+        // Initial text
+        updateText();
     }
 });
