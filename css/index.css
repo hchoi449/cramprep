@@ -375,7 +375,7 @@ body {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 80px;
-    align-items: start;
+    align-items: center;
     margin-bottom: 50px;
 }
 
@@ -384,7 +384,7 @@ body {
 }
 
 .section-title {
-    font-size: 3.2rem;
+    font-size: 2rem;
     font-weight: 700;
     margin-bottom: 30px;
     color: #8B4513;
