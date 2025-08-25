@@ -335,6 +335,8 @@ body {
     line-height: 1.4;
     white-space: nowrap;
     overflow: visible;
+    text-align: center;
+    display: block;
 }
 
 .hero-buttons {
@@ -2174,8 +2176,8 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 16px;
-    padding: 24px 32px;
+    justify-content: center;
+    padding: 20px 24px;
     background: white;
     border-radius: 16px;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
@@ -2184,7 +2186,8 @@ body {
     opacity: 0;
     animation: fadeInScale 0.8s ease-out forwards;
     position: relative;
-    min-width: 200px;
+    min-width: 180px;
+    min-height: 120px;
     flex-shrink: 0;
 }
 
