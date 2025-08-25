@@ -2027,7 +2027,7 @@ body {
     border-bottom: 1px solid #f0f0f0;
 }
 
-/* Universities Section */
+/* Universities Section - Conveyor Belt Animation */
 .universities {
     display: flex;
     justify-content: center;
@@ -2036,6 +2036,8 @@ body {
     margin: 40px 0;
     flex-wrap: wrap;
     animation: fadeInUp 1s ease-out 0.8s both;
+    overflow: hidden;
+    position: relative;
 }
 
 @keyframes fadeInUp {
@@ -2060,14 +2062,30 @@ body {
     transition: all 0.3s ease;
     transform: scale(1);
     opacity: 0;
-    animation: fadeInScale 0.8s ease-out forwards;
+    animation: fadeInScale 0.8s ease-out forwards, conveyorBelt 20s linear infinite;
+    position: relative;
 }
 
-.university:nth-child(1) { animation-delay: 1.0s; }
-.university:nth-child(2) { animation-delay: 1.2s; }
-.university:nth-child(3) { animation-delay: 1.4s; }
-.university:nth-child(4) { animation-delay: 1.6s; }
-.university:nth-child(5) { animation-delay: 1.8s; }
+.university:nth-child(1) { 
+    animation-delay: 1.0s, 0s; 
+    animation-duration: 0.8s, 20s;
+}
+.university:nth-child(2) { 
+    animation-delay: 1.2s, 0s; 
+    animation-duration: 0.8s, 20s;
+}
+.university:nth-child(3) { 
+    animation-delay: 1.4s, 0s; 
+    animation-duration: 0.8s, 20s;
+}
+.university:nth-child(4) { 
+    animation-delay: 1.6s, 0s; 
+    animation-duration: 0.8s, 20s;
+}
+.university:nth-child(5) { 
+    animation-delay: 1.8s, 0s; 
+    animation-duration: 0.8s, 20s;
+}
 
 @keyframes fadeInScale {
     from {
@@ -2080,20 +2098,45 @@ body {
     }
 }
 
+@keyframes conveyorBelt {
+    0% {
+        transform: translateX(0) scale(1);
+    }
+    20% {
+        transform: translateX(20px) scale(1.05);
+    }
+    40% {
+        transform: translateX(0) scale(1);
+    }
+    60% {
+        transform: translateX(-20px) scale(1.05);
+    }
+    80% {
+        transform: translateX(0) scale(1);
+    }
+    100% {
+        transform: translateX(0) scale(1);
+    }
+}
+
 .university:hover {
-    transform: scale(1.05);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    transform: scale(1.1);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
     background: #f8f9fa;
+    animation-play-state: paused;
+    z-index: 10;
 }
 
 .university img {
-    height: 40px;
+    height: 50px;
     width: auto;
     transition: transform 0.3s ease;
+    filter: grayscale(0%);
 }
 
 .university:hover img {
-    transform: scale(1.1);
+    transform: scale(1.2);
+    filter: grayscale(0%);
 }
 
 .university span {
@@ -2101,8 +2144,10 @@ body {
     color: #1a1a1a;
     font-size: 14px;
     transition: color 0.3s ease;
+    white-space: nowrap;
 }
 
 .university:hover span {
     color: #8B4513;
+    font-weight: 700;
 }
