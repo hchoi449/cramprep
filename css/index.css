@@ -1903,3 +1903,11 @@ body {
         transform: translateY(0);
     }
 }
+
+/* Ensure hero text alternation works on mobile */
+@media (max-width: 768px) {
+    .hero-highlight {
+        font-size: 2.5rem;
+        margin: 0 4px;
+    }
+}
