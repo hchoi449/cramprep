@@ -604,6 +604,169 @@ body {
     animation-delay: 6s;
 }
 
+/* Additional Math Symbols for AMC Academy Style */
+.pi-secondary {
+    top: 25%;
+    right: 20%;
+    font-size: 6rem;
+    transform: rotate(-15deg);
+    opacity: 0.03;
+    animation-delay: 0.8s;
+}
+
+.infinity-secondary {
+    bottom: 15%;
+    left: 15%;
+    font-size: 8rem;
+    transform: rotate(25deg);
+    opacity: 0.02;
+    animation-delay: 1.6s;
+}
+
+.square-root {
+    top: 45%;
+    left: 8%;
+    font-size: 5rem;
+    transform: rotate(-30deg);
+    opacity: 0.04;
+    animation-delay: 2.4s;
+}
+
+.partial {
+    top: 20%;
+    left: 30%;
+    font-size: 4rem;
+    transform: rotate(10deg);
+    opacity: 0.05;
+    animation-delay: 3.2s;
+}
+
+.nabla {
+    bottom: 30%;
+    right: 25%;
+    font-size: 6rem;
+    transform: rotate(-20deg);
+    opacity: 0.03;
+    animation-delay: 4.0s;
+}
+
+.forall {
+    top: 70%;
+    left: 25%;
+    font-size: 3rem;
+    transform: rotate(45deg);
+    opacity: 0.04;
+    animation-delay: 4.8s;
+}
+
+.exists {
+    top: 15%;
+    left: 45%;
+    font-size: 3.5rem;
+    transform: rotate(-25deg);
+    opacity: 0.05;
+    animation-delay: 5.6s;
+}
+
+.subset {
+    bottom: 45%;
+    left: 8%;
+    font-size: 4rem;
+    transform: rotate(15deg);
+    opacity: 0.03;
+    animation-delay: 6.4s;
+}
+
+.union {
+    top: 55%;
+    right: 10%;
+    font-size: 5rem;
+    transform: rotate(-35deg);
+    opacity: 0.04;
+    animation-delay: 7.2s;
+}
+
+.intersection {
+    top: 35%;
+    right: 35%;
+    font-size: 3rem;
+    transform: rotate(20deg);
+    opacity: 0.05;
+    animation-delay: 8.0s;
+}
+
+.element {
+    bottom: 20%;
+    left: 40%;
+    font-size: 3.5rem;
+    transform: rotate(-10deg);
+    opacity: 0.04;
+    animation-delay: 8.8s;
+}
+
+.not-element {
+    top: 80%;
+    right: 30%;
+    font-size: 3rem;
+    transform: rotate(30deg);
+    opacity: 0.05;
+    animation-delay: 9.6s;
+}
+
+.implies {
+    top: 30%;
+    left: 20%;
+    font-size: 4rem;
+    transform: rotate(-40deg);
+    opacity: 0.03;
+    animation-delay: 10.4s;
+}
+
+.iff {
+    bottom: 35%;
+    right: 15%;
+    font-size: 3.5rem;
+    transform: rotate(25deg);
+    opacity: 0.04;
+    animation-delay: 11.2s;
+}
+
+.approximately {
+    top: 65%;
+    left: 35%;
+    font-size: 4rem;
+    transform: rotate(-15deg);
+    opacity: 0.05;
+    animation-delay: 12.0s;
+}
+
+.not-equal {
+    top: 25%;
+    right: 45%;
+    font-size: 3rem;
+    transform: rotate(35deg);
+    opacity: 0.04;
+    animation-delay: 12.8s;
+}
+
+.less-equal {
+    bottom: 25%;
+    left: 25%;
+    font-size: 3.5rem;
+    transform: rotate(-25deg);
+    opacity: 0.05;
+    animation-delay: 13.6s;
+}
+
+.greater-equal {
+    top: 75%;
+    right: 40%;
+    font-size: 3rem;
+    transform: rotate(20deg);
+    opacity: 0.04;
+    animation-delay: 14.4s;
+}
+
 /* Coaches Section - Exact Match */
 .coaches {
     padding: 100px 0;
@@ -1655,4 +1818,61 @@ body {
     0% { transform: translateY(0px) rotate(0deg); }
     50% { transform: translateY(-10px) rotate(5deg); }
     100% { transform: translateY(0px) rotate(0deg); }
+}
+
+/* Enhanced Animation Keyframes */
+@keyframes float {
+    0% { 
+        transform: translateY(0px) rotate(0deg) scale(1);
+        opacity: 0.02;
+    }
+    25% {
+        transform: translateY(-8px) rotate(2deg) scale(1.02);
+        opacity: 0.04;
+    }
+    50% { 
+        transform: translateY(-15px) rotate(5deg) scale(1.05);
+        opacity: 0.06;
+    }
+    75% {
+        transform: translateY(-8px) rotate(2deg) scale(1.02);
+        opacity: 0.04;
+    }
+    100% { 
+        transform: translateY(0px) rotate(0deg) scale(1);
+        opacity: 0.02;
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 0.03;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.06;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInFromTop {
+    from {
+        opacity: 0;
+        transform: translateY(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
