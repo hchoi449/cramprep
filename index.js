@@ -3,12 +3,35 @@
 // Mobile menu toggle functionality
 function toggleMobileMenu() {
     const mobileMenu = document.getElementById('mobile-menu');
-    if (mobileMenu.style.display === 'block') {
+    const mobileToggle = document.querySelector('.mobile-menu-toggle');
+    
+    if (mobileMenu.style.display === 'block' || mobileMenu.classList.contains('active')) {
+        // Close menu
         mobileMenu.style.display = 'none';
+        mobileMenu.classList.remove('active');
+        mobileToggle.classList.remove('active');
     } else {
+        // Open menu
         mobileMenu.style.display = 'block';
+        mobileMenu.classList.add('active');
+        mobileToggle.classList.add('active');
     }
 }
+
+// Initialize mobile menu as closed
+document.addEventListener('DOMContentLoaded', function() {
+    const mobileMenu = document.getElementById('mobile-menu');
+    if (mobileMenu) {
+        mobileMenu.style.display = 'none';
+        mobileMenu.classList.remove('active');
+    }
+    
+    // Add click event to mobile menu toggle
+    const mobileToggle = document.querySelector('.mobile-menu-toggle');
+    if (mobileToggle) {
+        mobileToggle.addEventListener('click', toggleMobileMenu);
+    }
+});
 
 // Smooth scrolling for navigation links
 document.addEventListener('DOMContentLoaded', function() {
@@ -375,12 +398,13 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// Ensure hero text stays stable
+// Ensure hero text alternation works on all devices
 document.addEventListener('DOMContentLoaded', function() {
     const heroHighlight = document.querySelector('.hero-highlight');
     if (heroHighlight) {
         const texts = ['Algebra', 'Geometry', 'Chemistry', 'Biology', 'Pre-Calculus', 'Physics', 'Calculus'];
         let currentIndex = 0;
+        let intervalId = null;
         
         // Function to update the text with fade effect
         function updateText() {
@@ -397,10 +421,45 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 250);
         }
         
-        // Update text every 3 seconds
-        setInterval(updateText, 3000);
+        // Start the interval
+        function startInterval() {
+            if (!intervalId) {
+                intervalId = setInterval(updateText, 3000);
+            }
+        }
         
-        // Initial text
+        // Stop the interval
+        function stopInterval() {
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = null;
+            }
+        }
+        
+        // Initial text update
         updateText();
+        
+        // Start the interval
+        startInterval();
+        
+        // Ensure it works on mobile by restarting on visibility change
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible') {
+                startInterval();
+            } else {
+                stopInterval();
+            }
+        });
+        
+        // Restart on window focus (mobile debugging)
+        window.addEventListener('focus', startInterval);
+        
+        // Force update on touch (mobile debugging)
+        document.addEventListener('touchstart', function() {
+            if (!intervalId) {
+                startInterval();
+            }
+        });
     }
 });
+
