@@ -142,11 +142,13 @@ body {
     align-items: center;
     gap: 4px;
     color: #8B4513;
+    transition: all 0.3s ease;
+    transform: scale(1);
 }
 
 .nav-desktop a.ai-curriculum-link:hover {
-    transform: scale(1.1);
-    color: #6b3410;
+    transform: scale(1.1) !important;
+    color: #6b3410 !important;
 }
 
 .new-tag {
