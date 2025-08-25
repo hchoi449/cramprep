@@ -61,7 +61,7 @@ body {
 .nav-desktop {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 28px;
 }
 
 .nav-desktop a {
@@ -91,6 +91,26 @@ body {
 
 .nav-desktop a:hover::after {
     width: 100%;
+}
+
+.nav-desktop a.ai-curriculum-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #8B4513;
+}
+
+.new-tag {
+    background-color: #8B4513;
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 4px;
+    line-height: 1;
+    text-transform: uppercase;
 }
 
 .student-hub-link {
@@ -347,23 +367,16 @@ body {
     overflow: hidden;
 }
 
-.assessment-card::before {
-    content: 'ℯ';
-    position: absolute;
-    top: 20px;
-    right: 30px;
-    font-size: 3rem;
-    color: rgba(139, 69, 19, 0.1);
-    font-style: italic;
+.assessment-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: start;
+    margin-top: 40px;
 }
 
-.assessment-card::after {
-    content: '≈';
-    position: absolute;
-    top: 60px;
-    right: 30px;
-    font-size: 2rem;
-    color: rgba(139, 69, 19, 0.1);
+.assessment-text {
+    text-align: left;
 }
 
 .section-title {
@@ -373,22 +386,24 @@ body {
     color: #8B4513;
     font-family: Georgia, serif;
     line-height: 1.2;
+    text-align: left;
 }
 
 .section-description {
     font-size: 1.1rem;
     color: #666;
     max-width: 800px;
-    margin: 0 auto 60px;
+    margin: 0 auto 40px;
     line-height: 1.8;
     font-weight: 400;
+    text-align: left;
 }
 
 .math-formulas {
     display: flex;
     justify-content: flex-start;
     gap: 20px;
-    margin-bottom: 60px;
+    margin-bottom: 40px;
     flex-wrap: wrap;
 }
 
@@ -446,6 +461,88 @@ body {
     color: #8B4513;
     font-weight: bold;
     margin: 0 10px;
+}
+
+/* Additional Math Symbols in Card */
+.card-symbol-1 {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    font-size: 2rem;
+    color: rgba(139, 69, 19, 0.1);
+    font-style: italic;
+}
+
+.card-symbol-2 {
+    position: absolute;
+    bottom: 40px;
+    right: 30px;
+    font-size: 1.5rem;
+    color: rgba(139, 69, 19, 0.1);
+}
+
+.card-symbol-3 {
+    position: absolute;
+    top: 40px;
+    right: 60px;
+    font-size: 1.8rem;
+    color: rgba(139, 69, 19, 0.1);
+    font-style: italic;
+}
+
+/* Additional Math Symbols in Hero */
+.alpha-symbol {
+    top: 15%;
+    left: 15%;
+    font-size: 5rem;
+    transform: rotate(-5deg);
+    opacity: 0.03;
+    animation-delay: 0.5s;
+}
+
+.beta-symbol {
+    top: 80%;
+    right: 20%;
+    font-size: 6rem;
+    transform: rotate(10deg);
+    opacity: 0.03;
+    animation-delay: 1.5s;
+}
+
+.gamma-symbol {
+    top: 40%;
+    right: 5%;
+    font-size: 4rem;
+    transform: rotate(-15deg);
+    opacity: 0.04;
+    animation-delay: 2.5s;
+}
+
+.lambda-symbol {
+    bottom: 20%;
+    left: 25%;
+    font-size: 5rem;
+    transform: rotate(20deg);
+    opacity: 0.03;
+    animation-delay: 3.5s;
+}
+
+.mu-symbol {
+    top: 25%;
+    left: 45%;
+    font-size: 4rem;
+    transform: rotate(-10deg);
+    opacity: 0.04;
+    animation-delay: 4.5s;
+}
+
+.nu-symbol {
+    bottom: 40%;
+    right: 35%;
+    font-size: 5rem;
+    transform: rotate(15deg);
+    opacity: 0.03;
+    animation-delay: 5.5s;
 }
 
 /* Coaches Section - Exact Match */
