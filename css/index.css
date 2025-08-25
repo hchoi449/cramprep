@@ -22,22 +22,23 @@ body {
 
 /* Header Styles - Exact Match */
 .header {
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(255, 255, 255, 0.98);
     backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     z-index: 1000;
     transition: all 0.3s ease;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
 .header-container {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 15px 20px;
+    padding: 12px 20px;
     max-width: 1200px;
     margin: 0 auto;
 }
@@ -45,30 +46,32 @@ body {
 .logo {
     display: flex;
     align-items: center;
-    gap: 12px;
-    font-size: 20px;
-    font-weight: 700;
+    gap: 10px;
+    font-size: 18px;
+    font-weight: 600;
     color: #1a1a1a;
+    text-decoration: none;
 }
 
 .logo img {
-    height: 32px;
+    height: 28px;
     width: auto;
 }
 
 .nav-desktop {
     display: flex;
     align-items: center;
-    gap: 32px;
+    gap: 28px;
 }
 
 .nav-desktop a {
     text-decoration: none;
     color: #1a1a1a;
     font-weight: 500;
-    font-size: 15px;
+    font-size: 14px;
     transition: color 0.3s ease;
     position: relative;
+    padding: 8px 0;
 }
 
 .nav-desktop a:hover {
@@ -78,7 +81,7 @@ body {
 .nav-desktop a::after {
     content: '';
     position: absolute;
-    bottom: -4px;
+    bottom: 0;
     left: 0;
     width: 0;
     height: 2px;
@@ -93,15 +96,16 @@ body {
 .student-hub-link {
     background: #8B4513;
     color: white !important;
-    padding: 10px 20px;
-    border-radius: 25px;
+    padding: 8px 16px !important;
+    border-radius: 6px;
     font-weight: 600;
     transition: all 0.3s ease;
+    margin-left: 8px;
 }
 
 .student-hub-link:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(139, 69, 19, 0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(139, 69, 19, 0.3);
 }
 
 .student-hub-link::after {
@@ -110,14 +114,14 @@ body {
 
 .header-contact {
     display: flex;
-    gap: 24px;
+    gap: 20px;
 }
 
 .contact-link {
     text-decoration: none;
     color: #1a1a1a;
     font-weight: 500;
-    font-size: 15px;
+    font-size: 14px;
     transition: color 0.3s ease;
 }
 
@@ -129,26 +133,28 @@ body {
     display: none;
     background: none;
     border: none;
-    font-size: 24px;
+    font-size: 20px;
     cursor: pointer;
     color: #1a1a1a;
+    padding: 4px;
 }
 
 .nav-mobile {
     display: none;
     background: rgba(255, 255, 255, 0.98);
     backdrop-filter: blur(10px);
-    border-top: 1px solid rgba(0, 0, 0, 0.1);
-    padding: 20px;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    padding: 16px 20px;
 }
 
 .nav-mobile a {
     display: block;
-    padding: 12px 0;
+    padding: 10px 0;
     text-decoration: none;
     color: #1a1a1a;
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
     font-weight: 500;
+    font-size: 14px;
 }
 
 /* Hero Section - Exact Match with Clean Design */
