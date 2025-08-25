@@ -1,0 +1,23 @@
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+/*.mp4
+  Cache-Control: public, max-age=31536000
+  Content-Type: video/mp4
+
+/*.png
+  Cache-Control: public, max-age=31536000
+
+/*.jpg
+  Cache-Control: public, max-age=31536000
+
+/*.jpeg
+  Cache-Control: public, max-age=31536000
+
+/*.css
+  Cache-Control: public, max-age=31536000
+
+/*.js
+  Cache-Control: public, max-age=31536000

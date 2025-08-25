@@ -1,0 +1,20 @@
+name = "amc-academy-website"
+main = "index.html"
+compatibility_date = "2024-01-01"
+
+[site]
+bucket = "."
+
+[build]
+command = ""
+
+[[rules]]
+type = "ESModule"
+globs = ["**/*.js"]
+
+[[rules]]
+type = "Data"
+globs = ["**/*.mp4", "**/*.png", "**/*.jpg", "**/*.jpeg", "**/*.gif", "**/*.svg"]
+
+[env.production]
+name = "amc-academy-website"
