@@ -353,7 +353,7 @@ body {
     box-shadow: 0 8px 25px rgba(139, 69, 19, 0.4);
 }
 
-/* Assessment Section - Card Design */
+/* Assessment Section - Exact Match to Reference */
 .assessment {
     padding: 100px 0;
     background: #f8f9fa;
@@ -373,9 +373,9 @@ body {
 .assessment-content {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 60px;
+    gap: 80px;
     align-items: start;
-    margin-bottom: 40px;
+    margin-bottom: 50px;
 }
 
 .assessment-text {
@@ -383,9 +383,9 @@ body {
 }
 
 .section-title {
-    font-size: 2.8rem;
+    font-size: 3.2rem;
     font-weight: 700;
-    margin-bottom: 24px;
+    margin-bottom: 30px;
     color: #8B4513;
     font-family: Georgia, serif;
     line-height: 1.1;
@@ -398,6 +398,76 @@ body {
     line-height: 1.8;
     font-weight: 400;
     text-align: left;
+}
+
+.process-flow {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 30px;
+    position: relative;
+    padding-top: 20px;
+}
+
+.process-step {
+    text-align: center;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.process-step:nth-child(1) {
+    align-self: flex-start;
+}
+
+.process-step:nth-child(3) {
+    align-self: flex-end;
+    margin-left: 60px;
+}
+
+.process-step:nth-child(5) {
+    align-self: center;
+    margin-top: 20px;
+}
+
+.process-icon {
+    width: 70px;
+    height: 70px;
+    background: #8B4513;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    color: white;
+    font-size: 1.8rem;
+    font-weight: bold;
+    border: 2px solid #8B4513;
+}
+
+.process-step h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin: 0;
+    white-space: nowrap;
+}
+
+.arrow {
+    font-size: 1.8rem;
+    color: #1a1a1a;
+    font-weight: bold;
+    align-self: center;
+    margin: 0 20px;
+}
+
+.arrow-down {
+    font-size: 1.8rem;
+    color: #1a1a1a;
+    font-weight: bold;
+    align-self: center;
+    margin: 10px 0;
 }
 
 .math-formulas {
@@ -414,110 +484,42 @@ body {
     color: #8B4513;
     font-weight: 600;
     padding: 16px 24px;
-    background: #f8f9fa;
+    background: #f5f5f5;
     border-radius: 12px;
-    border: 1px solid #e9ecef;
+    border: 1px solid #e0e0e0;
     min-width: 200px;
     text-align: center;
 }
 
-.process-flow {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
-    position: relative;
-}
-
-.process-step {
-    text-align: center;
-    padding: 20px;
-    position: relative;
-}
-
-.process-step:nth-child(1) {
-    align-self: flex-start;
-}
-
-.process-step:nth-child(3) {
-    align-self: flex-end;
-}
-
-.process-step:nth-child(5) {
-    align-self: center;
-}
-
-.process-icon {
-    width: 60px;
-    height: 60px;
-    background: #8B4513;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 16px;
-    color: white;
-    font-size: 1.5rem;
-    font-weight: bold;
-    border: 2px solid #8B4513;
-}
-
-.process-step h3 {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #1a1a1a;
-    margin-bottom: 8px;
-}
-
-.arrow {
-    font-size: 1.5rem;
-    color: #8B4513;
-    font-weight: bold;
-    margin: 0 10px;
-    align-self: center;
-}
-
-.arrow-down {
-    font-size: 1.5rem;
-    color: #8B4513;
-    font-weight: bold;
-    margin: 10px 0;
-    align-self: center;
-}
-
-/* Additional Math Symbols in Card */
-.card-symbol-1 {
+/* Background decorative elements */
+.bg-element {
     position: absolute;
-    bottom: 20px;
-    left: 20px;
-    font-size: 2rem;
-    color: rgba(139, 69, 19, 0.08);
-    font-style: italic;
+    opacity: 0.05;
+    color: #8B4513;
 }
 
-.card-symbol-2 {
-    position: absolute;
+.bg-curve-1 {
     top: 40px;
-    right: 30px;
-    font-size: 1.5rem;
-    color: rgba(139, 69, 19, 0.08);
-}
-
-.card-symbol-3 {
-    position: absolute;
-    bottom: 40px;
-    right: 20px;
-    font-size: 1.8rem;
-    color: rgba(139, 69, 19, 0.08);
-}
-
-.card-symbol-4 {
-    position: absolute;
-    top: 60px;
     right: 60px;
-    font-size: 1.6rem;
-    color: rgba(139, 69, 19, 0.08);
+    font-size: 3rem;
+    transform: rotate(15deg);
 }
+
+.bg-curve-2 {
+    top: 60px;
+    right: 40px;
+    font-size: 2.5rem;
+    transform: rotate(-10deg);
+}
+
+.bg-triangle {
+    bottom: 40px;
+    right: 30px;
+    font-size: 2rem;
+    transform: rotate(45deg);
+}
+
+
 
 /* Additional Math Symbols in Hero */
 .alpha-symbol {
