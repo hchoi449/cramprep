@@ -374,3 +374,12 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// Ensure hero text stays stable
+document.addEventListener('DOMContentLoaded', function() {
+    const heroHighlight = document.querySelector('.hero-highlight');
+    if (heroHighlight) {
+        // Ensure the text stays as USAJMO
+        heroHighlight.textContent = 'USAJMO';
+    }
+});
