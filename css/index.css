@@ -39,7 +39,7 @@ body {
     align-items: center;
     justify-content: space-between;
     padding: 12px 20px;
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
 }
 
@@ -51,6 +51,7 @@ body {
     font-weight: 600;
     color: #1a1a1a;
     text-decoration: none;
+    margin-left: -20px;
 }
 
 .logo img {
@@ -62,6 +63,8 @@ body {
     display: flex;
     align-items: center;
     gap: 28px;
+    margin-left: auto;
+    margin-right: 0;
 }
 
 .nav-desktop a {
@@ -543,6 +546,61 @@ body {
     transform: rotate(15deg);
     opacity: 0.03;
     animation-delay: 5.5s;
+}
+
+/* Additional Sigma, Integral, and Delta notations */
+.sigma-large {
+    top: 10%;
+    left: 8%;
+    font-size: 12rem;
+    transform: rotate(-25deg);
+    opacity: 0.02;
+    animation-delay: 1s;
+}
+
+.integral-large {
+    bottom: 5%;
+    right: 8%;
+    font-size: 14rem;
+    transform: rotate(30deg);
+    opacity: 0.02;
+    animation-delay: 2s;
+}
+
+.delta-large {
+    top: 60%;
+    left: 12%;
+    font-size: 10rem;
+    transform: rotate(-10deg);
+    opacity: 0.03;
+    animation-delay: 3s;
+}
+
+.sigma-small {
+    top: 35%;
+    right: 25%;
+    font-size: 4rem;
+    transform: rotate(45deg);
+    opacity: 0.04;
+    animation-delay: 4s;
+}
+
+.integral-small {
+    bottom: 25%;
+    left: 35%;
+    font-size: 3rem;
+    transform: rotate(-20deg);
+    opacity: 0.05;
+    animation-delay: 5s;
+}
+
+.delta-small {
+    top: 75%;
+    right: 15%;
+    font-size: 3.5rem;
+    transform: rotate(15deg);
+    opacity: 0.04;
+    animation-delay: 6s;
 }
 
 /* Coaches Section - Exact Match */
