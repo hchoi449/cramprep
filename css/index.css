@@ -2027,17 +2027,18 @@ body {
     border-bottom: 1px solid #f0f0f0;
 }
 
-/* Universities Section - Conveyor Belt Animation */
+/* Universities Section - Enhanced Animation like AMC Academy */
 .universities {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 40px;
-    margin: 40px 0;
+    gap: 60px;
+    margin: 60px 0;
     flex-wrap: wrap;
     animation: fadeInUp 1s ease-out 0.8s both;
     overflow: hidden;
     position: relative;
+    padding: 40px 0;
 }
 
 @keyframes fadeInUp {
@@ -2053,44 +2054,46 @@ body {
 
 .university {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 12px;
-    padding: 16px 24px;
+    gap: 16px;
+    padding: 24px 32px;
     background: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-    transition: all 0.3s ease;
+    border-radius: 16px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    transition: all 0.4s ease;
     transform: scale(1);
     opacity: 0;
-    animation: fadeInScale 0.8s ease-out forwards, conveyorBelt 20s linear infinite;
+    animation: fadeInScale 0.8s ease-out forwards, enhancedConveyorBelt 25s linear infinite;
     position: relative;
+    min-width: 200px;
 }
 
 .university:nth-child(1) { 
     animation-delay: 1.0s, 0s; 
-    animation-duration: 0.8s, 20s;
+    animation-duration: 0.8s, 25s;
 }
 .university:nth-child(2) { 
     animation-delay: 1.2s, 0s; 
-    animation-duration: 0.8s, 20s;
+    animation-duration: 0.8s, 25s;
 }
 .university:nth-child(3) { 
     animation-delay: 1.4s, 0s; 
-    animation-duration: 0.8s, 20s;
+    animation-duration: 0.8s, 25s;
 }
 .university:nth-child(4) { 
     animation-delay: 1.6s, 0s; 
-    animation-duration: 0.8s, 20s;
+    animation-duration: 0.8s, 25s;
 }
 .university:nth-child(5) { 
     animation-delay: 1.8s, 0s; 
-    animation-duration: 0.8s, 20s;
+    animation-duration: 0.8s, 25s;
 }
 
 @keyframes fadeInScale {
     from {
         opacity: 0;
-        transform: scale(0.8) translateY(20px);
+        transform: scale(0.7) translateY(30px);
     }
     to {
         opacity: 1;
@@ -2098,56 +2101,75 @@ body {
     }
 }
 
-@keyframes conveyorBelt {
+@keyframes enhancedConveyorBelt {
     0% {
-        transform: translateX(0) scale(1);
+        transform: translateX(0) scale(1) rotateY(0deg);
+    }
+    10% {
+        transform: translateX(15px) scale(1.08) rotateY(5deg);
     }
     20% {
-        transform: translateX(20px) scale(1.05);
+        transform: translateX(0) scale(1) rotateY(0deg);
+    }
+    30% {
+        transform: translateX(-15px) scale(1.08) rotateY(-5deg);
     }
     40% {
-        transform: translateX(0) scale(1);
+        transform: translateX(0) scale(1) rotateY(0deg);
+    }
+    50% {
+        transform: translateX(10px) scale(1.05) rotateY(3deg);
     }
     60% {
-        transform: translateX(-20px) scale(1.05);
+        transform: translateX(-10px) scale(1.05) rotateY(-3deg);
+    }
+    70% {
+        transform: translateX(0) scale(1) rotateY(0deg);
     }
     80% {
-        transform: translateX(0) scale(1);
+        transform: translateX(5px) scale(1.03) rotateY(2deg);
+    }
+    90% {
+        transform: translateX(-5px) scale(1.03) rotateY(-2deg);
     }
     100% {
-        transform: translateX(0) scale(1);
+        transform: translateX(0) scale(1) rotateY(0deg);
     }
 }
 
 .university:hover {
-    transform: scale(1.1);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
-    background: #f8f9fa;
+    transform: scale(1.15);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
     animation-play-state: paused;
     z-index: 10;
 }
 
 .university img {
-    height: 50px;
+    height: 80px;
     width: auto;
-    transition: transform 0.3s ease;
+    transition: all 0.4s ease;
     filter: grayscale(0%);
+    border-radius: 8px;
 }
 
 .university:hover img {
-    transform: scale(1.2);
+    transform: scale(1.3);
     filter: grayscale(0%);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
 }
 
 .university span {
-    font-weight: 600;
+    font-weight: 700;
     color: #1a1a1a;
-    font-size: 14px;
-    transition: color 0.3s ease;
+    font-size: 16px;
+    transition: all 0.3s ease;
     white-space: nowrap;
+    text-align: center;
 }
 
 .university:hover span {
     color: #8B4513;
-    font-weight: 700;
+    font-weight: 800;
+    font-size: 18px;
 }
