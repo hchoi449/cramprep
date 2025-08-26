@@ -1,12 +1,11 @@
-name = "amc-academy-website"
-main = "index.html"
+name = "thinkbigprep-website"
 compatibility_date = "2024-01-01"
-
-[site]
-bucket = "."
 
 [build]
 command = ""
+
+[pages_build_output_dir]
+path = "."
 
 [[rules]]
 type = "ESModule"
@@ -15,6 +14,3 @@ globs = ["**/*.js"]
 [[rules]]
 type = "Data"
 globs = ["**/*.mp4", "**/*.png", "**/*.jpg", "**/*.jpeg", "**/*.gif", "**/*.svg"]
-
-[env.production]
-name = "amc-academy-website"
