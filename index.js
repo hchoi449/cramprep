@@ -1,5 +1,10 @@
 // AMC Academy Website JavaScript
 
+// Debug logging
+console.log('AMC Academy Website JavaScript loaded');
+console.log('Current URL:', window.location.href);
+console.log('CSS loaded:', document.styleSheets.length, 'stylesheets');
+
 // Mobile menu toggle functionality
 function toggleMobileMenu() {
     const mobileMenu = document.getElementById('mobile-menu');
