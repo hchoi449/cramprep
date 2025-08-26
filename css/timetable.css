@@ -2,7 +2,7 @@
 
 /* Timetable Hero Section */
 .timetable-hero {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #8B4513 0%, #6b3410 100%);
     color: white;
     padding: 120px 0 60px;
     text-align: center;
@@ -53,7 +53,7 @@
 
 .toggle-btn.active {
     background: white;
-    color: #667eea;
+    color: #8B4513;
     border-color: white;
 }
 
@@ -82,7 +82,7 @@
 }
 
 .nav-btn {
-    background: #667eea;
+    background: #8B4513;
     color: white;
     border: none;
     padding: 10px 15px;
@@ -93,7 +93,7 @@
 }
 
 .nav-btn:hover {
-    background: #5a6fd8;
+    background: #6b3410;
     transform: translateY(-1px);
 }
 
@@ -113,7 +113,7 @@
 }
 
 .time-header, .day-header {
-    background: #667eea;
+    background: #8B4513;
     color: white;
     padding: 15px 10px;
     text-align: center;
@@ -122,7 +122,7 @@
 }
 
 .day-header {
-    background: #5a6fd8;
+    background: #6b3410;
 }
 
 .time-slots {
@@ -296,7 +296,7 @@
 }
 
 .month-class {
-    background: #667eea;
+    background: #8B4513;
     color: white;
     padding: 4px 6px;
     border-radius: 4px;
@@ -310,12 +310,12 @@
     transform: scale(1.05);
 }
 
-.month-class.algebra { background: #ff6b6b; }
-.month-class.geometry { background: #4ecdc4; }
-.month-class.calculus { background: #45b7d1; }
-.month-class.chemistry { background: #f093fb; }
-.month-class.physics { background: #4facfe; }
-.month-class.biology { background: #43e97b; }
+.month-class.algebra { background: #8B4513; }
+.month-class.geometry { background: #6b3410; }
+.month-class.calculus { background: #a0522d; }
+.month-class.chemistry { background: #a86a3d; }
+.month-class.physics { background: #b07d53; }
+.month-class.biology { background: #c4946b; }
 
 /* Subject Legend */
 .subject-legend {
@@ -354,12 +354,12 @@
     border-radius: 4px;
 }
 
-.legend-color.algebra { background: #ff6b6b; }
-.legend-color.geometry { background: #4ecdc4; }
-.legend-color.calculus { background: #45b7d1; }
-.legend-color.chemistry { background: #f093fb; }
-.legend-color.physics { background: #4facfe; }
-.legend-color.biology { background: #43e97b; }
+.legend-color.algebra { background: #8B4513; }
+.legend-color.geometry { background: #6b3410; }
+.legend-color.calculus { background: #a0522d; }
+.legend-color.chemistry { background: #a86a3d; }
+.legend-color.physics { background: #b07d53; }
+.legend-color.biology { background: #c4946b; }
 
 /* Animations */
 @keyframes fadeInUp {

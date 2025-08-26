@@ -182,28 +182,7 @@ function generateMonthView() {
         dayHeader.textContent = day;
         dayElement.appendChild(dayHeader);
         
-        // Add sample classes for demonstration
-        if (day % 3 === 0) {
-            const classElement = document.createElement('div');
-            classElement.className = 'month-class algebra';
-            classElement.textContent = 'Algebra';
-            dayElement.appendChild(classElement);
-        }
-        
-        if (day % 4 === 0) {
-            const classElement = document.createElement('div');
-            classElement.className = 'month-class geometry';
-            classElement.textContent = 'Geometry';
-            dayElement.appendChild(classElement);
-        }
-        
-        if (day % 5 === 0) {
-            const classElement = document.createElement('div');
-            classElement.className = 'month-class calculus';
-            classElement.textContent = 'Calculus';
-            dayElement.appendChild(classElement);
-        }
-        
+        // No demo classes added; days remain empty by default
         monthGrid.appendChild(dayElement);
     }
     
