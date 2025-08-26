@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <title>Class Timetable - ThinkBigPrep</title>
+        <meta name="description" content="View class schedules and book sessions with ThinkBigPrep tutors" />
+        <link rel="shortcut icon" href="assets/logo/logo.png" type="image/x-icon" />
+        <link rel="stylesheet" href="css/index.css" />
+        <link rel="stylesheet" href="css/timetable.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" />
+    </head>
+    <body>
+        <!-- Header -->
+        <header class="header">
+            <div class="header-container">
+                <div class="logo">
+                    <img src="./assets/logo/ThinkBigPrep-logo-1200w.png" alt="ThinkBigPrep Logo" />
+                </div>
+                
+                <nav class="nav-desktop">
+                    <a href="index.html">Home</a>
+                    <a href="timetable.html" class="active">Timetable</a>
+                    <a href="index.html#courses">Courses</a>
+                    <a href="index.html#coaches">Available Tutors</a>
+                    <a href="index.html#about">About Us</a>
+                    <a href="index.html#ai-curriculum" class="ai-curriculum-link">
+                        AI Curriculum
+                        <span class="new-tag">NEW</span>
+                    </a>
+                    <a href="index.html#student-hub" class="student-hub-link">Enroll Now</a>
+                </nav>
+                
+                <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                    <i class="bi bi-list"></i>
+                </button>
+            </div>
+            
+            <nav class="nav-mobile" id="mobile-menu">
+                <a href="index.html">Home</a>
+                <a href="timetable.html" class="active">Timetable</a>
+                <a href="index.html#courses">Courses</a>
+                <a href="index.html#coaches">Available Engineers</a>
+                <a href="index.html#about">About Us</a>
+                <a href="index.html#ai-curriculum" class="ai-curriculum-link">AI Curriculum<span class="new-tag">NEW</span></a>
+                <a href="index.html#student-hub">Enroll Now</a>
+            </nav>
+        </header>
+
+        <!-- Timetable Hero Section -->
+        <section class="timetable-hero">
+            <div class="container">
+                <h1 class="timetable-title">Class Timetable</h1>
+                <p class="timetable-subtitle">View available sessions and book your preferred time slots</p>
+                
+                <!-- View Toggle -->
+                <div class="view-toggle">
+                    <button class="toggle-btn active" data-view="week">
+                        <i class="bi bi-calendar-week"></i>
+                        Week View
+                    </button>
+                    <button class="toggle-btn" data-view="month">
+                        <i class="bi bi-calendar-month"></i>
+                        Month View
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Timetable Content -->
+        <section class="timetable-content">
+            <div class="container">
+                <!-- Week View -->
+                <div class="timetable-view" id="week-view">
+                    <div class="week-header">
+                        <button class="nav-btn" onclick="previousWeek()">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <h2 class="current-week" id="current-week">August 26 - September 1, 2025</h2>
+                        <button class="nav-btn" onclick="nextWeek()">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="week-grid">
+                        <div class="time-column">
+                            <div class="time-header">Time</div>
+                            <div class="time-slots">
+                                <div class="time-slot">9:00 AM</div>
+                                <div class="time-slot">10:00 AM</div>
+                                <div class="time-slot">11:00 AM</div>
+                                <div class="time-slot">12:00 PM</div>
+                                <div class="time-slot">1:00 PM</div>
+                                <div class="time-slot">2:00 PM</div>
+                                <div class="time-slot">3:00 PM</div>
+                                <div class="time-slot">4:00 PM</div>
+                                <div class="time-slot">5:00 PM</div>
+                                <div class="time-slot">6:00 PM</div>
+                                <div class="time-slot">7:00 PM</div>
+                                <div class="time-slot">8:00 PM</div>
+                            </div>
+                        </div>
+                        
+                        <div class="day-column">
+                            <div class="day-header">Monday</div>
+                            <div class="day-slots">
+                                <div class="class-slot algebra" data-subject="Algebra">
+                                    <div class="class-info">
+                                        <h4>Algebra Fundamentals</h4>
+                                        <p>Kevin Zhao</p>
+                                        <span class="time">10:00 AM - 11:00 AM</span>
+                                    </div>
+                                    <button class="book-btn">Book</button>
+                                </div>
+                                <div class="class-slot geometry" data-subject="Geometry">
+                                    <div class="class-info">
+                                        <h4>Geometry Basics</h4>
+                                        <p>Juan Garcia</p>
+                                        <span class="time">2:00 PM - 3:00 PM</span>
+                                    </div>
+                                    <button class="book-btn">Book</button>
+                                </div>
+                                <div class="class-slot calculus" data-subject="Calculus">
+                                    <div class="class-info">
+                                        <h4>Calculus Intro</h4>
+                                        <p>Luke Greenawalt</p>
+                                        <span class="time">6:00 PM - 7:00 PM</span>
+                                    </div>
+                                    <button class="book-btn">Book</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="day-column">
+                            <div class="day-header">Tuesday</div>
+                            <div class="day-slots">
+                                <div class="class-slot chemistry" data-subject="Chemistry">
+                                    <div class="class-info">
+                                        <h4>Chemistry Lab</h4>
+                                        <p>Kevin Zhao</p>
+                                        <span class="time">11:00 AM - 12:00 PM</span>
+                                    </div>
+                                    <button class="book-btn">Book</button>
+                                </div>
+                                <div class="class-slot physics" data-subject="Physics">
+                                    <div class="class-info">
+                                        <h4>Physics Concepts</h4>
+                                        <p>Juan Garcia</p>
+                                        <span class="time">3:00 PM - 4:00 PM</span>
+                                    </div>
+                                    <button class="book-btn">Book</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="day-column">
+                            <div class="day-header">Wednesday</div>
+                            <div class="day-slots">
+                                <div class="class-slot algebra" data-subject="Algebra">
+                                    <div class="class-info">
+                                        <h4>Advanced Algebra</h4>
+                                        <p>Luke Greenawalt</p>
+                                        <span class="time">9:00 AM - 10:00 AM</span>
+                                    </div>
+                                    <button class="book-btn">Book</button>
+                                </div>
+                                <div class="class-slot biology" data-subject="Biology">
+                                    <div class="class-info">
+                                        <h4>Biology Review</h4>
+                                        <p>Kevin Zhao</p>
+                                        <span class="time">4:00 PM - 5:00 PM</span>
+                                    </div>
+                                    <button class="book-btn">Book</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="day-column">
+                            <div class="day-header">Thursday</div>
+                            <div class="day-slots">
+                                <div class="class-slot geometry" data-subject="Geometry">
+                                    <div class="class-info">
+                                        <h4>Geometry Advanced</h4>
+                                        <p>Juan Garcia</p>
+                                        <span class="time">1:00 PM - 2:00 PM</span>
+                                    </div>
+                                    <button class="book-btn">Book</button>
+                                </div>
+                                <div class="class-slot calculus" data-subject="Calculus">
+                                    <div class="class-info">
+                                        <h4>Calculus Practice</h4>
+                                        <p>Luke Greenawalt</p>
+                                        <span class="time">7:00 PM - 8:00 PM</span>
+                                    </div>
+                                    <button class="book-btn">Book</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="day-column">
+                            <div class="day-header">Friday</div>
+                            <div class="day-slots">
+                                <div class="class-slot physics" data-subject="Physics">
+                                    <div class="class-info">
+                                        <h4>Physics Lab</h4>
+                                        <p>Kevin Zhao</p>
+                                        <span class="time">10:00 AM - 11:00 AM</span>
+                                    </div>
+                                    <button class="book-btn">Book</button>
+                                </div>
+                                <div class="class-slot chemistry" data-subject="Chemistry">
+                                    <div class="class-info">
+                                        <h4>Chemistry Review</h4>
+                                        <p>Juan Garcia</p>
+                                        <span class="time">5:00 PM - 6:00 PM</span>
+                                    </div>
+                                    <button class="book-btn">Book</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="day-column">
+                            <div class="day-header">Saturday</div>
+                            <div class="day-slots">
+                                <div class="class-slot algebra" data-subject="Algebra">
+                                    <div class="class-info">
+                                        <h4>Algebra Workshop</h4>
+                                        <p>Luke Greenawalt</p>
+                                        <span class="time">9:00 AM - 10:00 AM</span>
+                                    </div>
+                                    <button class="book-btn">Book</button>
+                                </div>
+                                <div class="class-slot biology" data-subject="Biology">
+                                    <div class="class-info">
+                                        <h4>Biology Lab</h4>
+                                        <p>Kevin Zhao</p>
+                                        <span class="time">2:00 PM - 3:00 PM</span>
+                                    </div>
+                                    <button class="book-btn">Book</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="day-column">
+                            <div class="day-header">Sunday</div>
+                            <div class="day-slots">
+                                <div class="class-slot geometry" data-subject="Geometry">
+                                    <div class="class-info">
+                                        <h4>Geometry Review</h4>
+                                        <p>Juan Garcia</p>
+                                        <span class="time">11:00 AM - 12:00 PM</span>
+                                    </div>
+                                    <button class="book-btn">Book</button>
+                                </div>
+                                <div class="class-slot calculus" data-subject="Calculus">
+                                    <div class="class-info">
+                                        <h4>Calculus Workshop</h4>
+                                        <p>Luke Greenawalt</p>
+                                        <span class="time">4:00 PM - 5:00 PM</span>
+                                    </div>
+                                    <button class="book-btn">Book</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Month View -->
+                <div class="timetable-view" id="month-view" style="display: none;">
+                    <div class="month-header">
+                        <button class="nav-btn" onclick="previousMonth()">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <h2 class="current-month" id="current-month">August 2025</h2>
+                        <button class="nav-btn" onclick="nextMonth()">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="month-grid" id="month-grid">
+                        <!-- Month grid will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Subject Legend -->
+                <div class="subject-legend">
+                    <h3>Subject Legend</h3>
+                    <div class="legend-items">
+                        <div class="legend-item">
+                            <div class="legend-color algebra"></div>
+                            <span>Algebra</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color geometry"></div>
+                            <span>Geometry</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color calculus"></div>
+                            <span>Calculus</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color chemistry"></div>
+                            <span>Chemistry</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color physics"></div>
+                            <span>Physics</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color biology"></div>
+                            <span>Biology</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="container">
+                <div class="footer-content">
+                    <div class="footer-section">
+                        <div class="footer-logo">
+                            <img src="./assets/logo/ThinkBigPrep-logo-1200w.png" alt="ThinkBigPrep" />
+                            <span>ThinkBigPrep</span>
+                        </div>
+                    </div>
+                    
+                    <div class="footer-section">
+                        <h4>SEE ALSO</h4>
+                        <ul>
+                            <li><a href="index.html">Home</a></li>
+                            <li><a href="timetable.html">Timetable</a></li>
+                            <li><a href="index.html#about">About Us</a></li>
+                            <li><a href="index.html#student-hub">Student Hub</a></li>
+                            <li><a href="index.html#ai-curriculum">AI Curriculum</a></li>
+                            <li><a href="index.html#coaches">Available Tutors</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="footer-section">
+                        <h4>CONTACT US</h4>
+                        <p>Phone: 201-665-0123</p>
+                        <p>Email: info@thinkbigprep.com</p>
+                    </div>
+                </div>
+                
+                <div class="footer-bottom">
+                    <p>ThinkBigPrep © 2025</p>
+                </div>
+            </div>
+        </footer>
+
+        <script src="index.js"></script>
+        <script src="timetable.js"></script>
+    </body>
+</html>
