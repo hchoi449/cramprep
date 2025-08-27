@@ -60,6 +60,35 @@
                         <h3>Generate Your Personalized Curriculum</h3>
                         <form id="curriculumForm">
                             <div class="form-group">
+                                <label for="trackType">Curriculum Type</label>
+                                <select id="trackType" required>
+                                    <option value="stem" selected>STEM Subject</option>
+                                    <option value="sat-act">SAT/ACT Prep</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group" id="stemSubjectGroup">
+                                <label for="stemSubject">Choose STEM Subject</label>
+                                <select id="stemSubject">
+                                    <option value="Algebra">Algebra</option>
+                                    <option value="Geometry">Geometry</option>
+                                    <option value="Pre-Calculus">Pre-Calculus</option>
+                                    <option value="Calculus">Calculus</option>
+                                    <option value="Physics">Physics</option>
+                                    <option value="Chemistry">Chemistry</option>
+                                    <option value="Biology">Biology</option>
+                                    <option value="Computer Science">Computer Science</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group" id="examTypeGroup" style="display: none;">
+                                <label for="examType">Choose Exam</label>
+                                <select id="examType">
+                                    <option value="SAT">SAT</option>
+                                    <option value="ACT">ACT</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
                                 <label for="studentLevel">Current Math Level</label>
                                 <select id="studentLevel" required>
                                     <option value="">Select your level</option>
@@ -70,14 +99,13 @@
                                 </select>
                             </div>
                             
-                            <div class="form-group">
-                                <label for="targetScore">Target AMC Score</label>
-                                <select id="targetScore" required>
-                                    <option value="">Select target score</option>
-                                    <option value="80-100">80-100 (Honor Roll)</option>
-                                    <option value="100-120">100-120 (Distinction)</option>
-                                    <option value="120-150">120-150 (High Distinction)</option>
-                                    <option value="150+">150+ (Perfect Score)</option>
+                            <div class="form-group" id="targetScoreGroup" style="display: none;">
+                                <label for="targetScore">Target Score (SAT/ACT)</label>
+                                <select id="targetScore">
+                                    <option value="">Select target score band</option>
+                                    <option value="SAT-1400+ / ACT-31+">High (SAT 1400+ / ACT 31+)</option>
+                                    <option value="SAT-1500+ / ACT-34+">Very High (SAT 1500+ / ACT 34+)</option>
+                                    <option value="SAT-1550+ / ACT-35+">Elite (SAT 1550+ / ACT 35+)</option>
                                 </select>
                             </div>
                             
