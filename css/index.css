@@ -1154,7 +1154,6 @@ body {
     font-size: 0.8rem;
     font-weight: 600;
     z-index: 1;
-    animation: blink 2s infinite;
 }
 
 /* Floating Book Consultation button */
