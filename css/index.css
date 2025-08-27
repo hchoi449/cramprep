@@ -109,7 +109,7 @@ body.home .logo svg {
 
 /* Play animation once on initial page load (home only) */
 body.home .logo .tbp-star {
-    animation: star-pulse 2s ease-in-out 1;
+    animation: star-pulse-initial 2s ease-in-out 1;
 }
 
 .logo:hover .tbp-star {
@@ -118,6 +118,14 @@ body.home .logo .tbp-star {
 }
 
 @keyframes star-pulse {
+    0% { transform: scale(1) rotate(0deg); }
+    30% { transform: scale(1.15) rotate(8deg); }
+    60% { transform: scale(1.05) rotate(-6deg); }
+    100% { transform: scale(1) rotate(0deg); }
+}
+
+/* Initial load animation uses a distinct name so hover can re-trigger reliably */
+@keyframes star-pulse-initial {
     0% { transform: scale(1) rotate(0deg); }
     30% { transform: scale(1.15) rotate(8deg); }
     60% { transform: scale(1.05) rotate(-6deg); }
