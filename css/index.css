@@ -78,9 +78,15 @@ body {
     }
 }
 
+/* Default logo size */
 .logo img {
     height: 28px;
     width: auto;
+}
+
+/* Larger logo on home landing page */
+body.home .logo img {
+    height: 36px;
 }
 
 .nav-desktop {
