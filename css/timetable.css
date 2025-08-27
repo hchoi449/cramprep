@@ -4,20 +4,20 @@
 .timetable-hero {
     background: linear-gradient(135deg, #8B4513 0%, #6b3410 100%);
     color: white;
-    padding: 120px 0 60px;
+    padding: 80px 0 40px;
     text-align: center;
 }
 
 .timetable-title {
-    font-size: 3.5rem;
+    font-size: 2.75rem;
     font-weight: 700;
     margin-bottom: 20px;
     animation: fadeInUp 0.8s ease-out;
 }
 
 .timetable-subtitle {
-    font-size: 1.2rem;
-    margin-bottom: 40px;
+    font-size: 1rem;
+    margin-bottom: 30px;
     opacity: 0.9;
     animation: fadeInUp 0.8s ease-out 0.2s both;
 }
@@ -35,11 +35,11 @@
     background: rgba(255, 255, 255, 0.2);
     border: 2px solid rgba(255, 255, 255, 0.3);
     color: white;
-    padding: 12px 24px;
+    padding: 10px 18px;
     border-radius: 50px;
     cursor: pointer;
     transition: all 0.3s ease;
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 500;
     display: flex;
     align-items: center;
@@ -354,12 +354,44 @@
     border-radius: 4px;
 }
 
-.legend-color.algebra { background: #8B4513; }
-.legend-color.geometry { background: #6b3410; }
-.legend-color.calculus { background: #a0522d; }
-.legend-color.chemistry { background: #a86a3d; }
-.legend-color.physics { background: #b07d53; }
-.legend-color.biology { background: #c4946b; }
+/* Subtle tones color scheme (legend) */
+.legend-color.algebra { background: #EAD3D1; }
+.legend-color.geometry { background: #EED1D7; }
+.legend-color.calculus { background: #CACDCD; }
+.legend-color.chemistry { background: #E1DCC9; }
+.legend-color.physics { background: #BFD0B0; }
+.legend-color.biology { background: #B7B2A4; }
+
+/* Tinted backgrounds per subject for better color coding */
+.legend-item:has(.legend-color.algebra) {
+    background: rgba(234, 211, 209, 0.35);
+    border-left: 6px solid #EAD3D1;
+}
+
+.legend-item:has(.legend-color.geometry) {
+    background: rgba(238, 209, 215, 0.35);
+    border-left: 6px solid #EED1D7;
+}
+
+.legend-item:has(.legend-color.calculus) {
+    background: rgba(202, 205, 205, 0.35);
+    border-left: 6px solid #CACDCD;
+}
+
+.legend-item:has(.legend-color.chemistry) {
+    background: rgba(225, 220, 201, 0.35);
+    border-left: 6px solid #E1DCC9;
+}
+
+.legend-item:has(.legend-color.physics) {
+    background: rgba(191, 208, 176, 0.35);
+    border-left: 6px solid #BFD0B0;
+}
+
+.legend-item:has(.legend-color.biology) {
+    background: rgba(183, 178, 164, 0.35);
+    border-left: 6px solid #B7B2A4;
+}
 
 /* Animations */
 @keyframes fadeInUp {
