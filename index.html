@@ -14,8 +14,24 @@
         <!-- Header -->
         <header class="header">
             <div class="header-container">
-                <div class="logo">
-                    <img src="./assets/logo/thinkbigprep-logo.svg" alt="ThinkBigPrep Logo" />
+                <div class="logo" aria-label="ThinkBigPrep Logo">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 48" role="img" focusable="false">
+                        <defs>
+                            <linearGradient id="tbpGrad" x1="0" y1="0" x2="1" y2="1">
+                                <stop offset="0%" stop-color="#BFD0B0"/>
+                                <stop offset="100%" stop-color="#E1DCC9"/>
+                            </linearGradient>
+                        </defs>
+                        <g transform="translate(6,6)">
+                            <rect x="0" y="0" width="36" height="36" rx="10" fill="url(#tbpGrad)"/>
+                            <g transform="translate(18,18) rotate(-10)">
+                                <path class="tbp-star" d="M0 -10 L2 -2 L10 0 L2 2 L0 10 L-2 2 L-10 0 L-2 -2 Z" fill="#6b3410" opacity="0.9"/>
+                            </g>
+                        </g>
+                        <g fill="#6b3410" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-weight="700">
+                            <text x="54" y="31" font-size="20">ThinkBigPrep</text>
+                        </g>
+                    </svg>
                 </div>
                 
                 <nav class="nav-desktop">

@@ -86,7 +86,31 @@ body {
 
 /* Larger logo on home landing page */
 body.home .logo img {
-    height: 36px;
+    height: 44px;
+}
+
+/* Inline SVG logo sizing */
+body.home .logo svg {
+    height: 44px;
+    width: auto;
+}
+
+/* Star hover animation */
+.logo .tbp-star {
+    transform-origin: center;
+    transition: transform 0.3s ease, filter 0.3s ease;
+}
+
+.logo:hover .tbp-star {
+    animation: star-pulse 1.2s ease-in-out infinite;
+    filter: drop-shadow(0 2px 6px rgba(107, 52, 16, 0.35));
+}
+
+@keyframes star-pulse {
+    0% { transform: scale(1) rotate(0deg); }
+    30% { transform: scale(1.15) rotate(8deg); }
+    60% { transform: scale(1.05) rotate(-6deg); }
+    100% { transform: scale(1) rotate(0deg); }
 }
 
 .nav-desktop {
