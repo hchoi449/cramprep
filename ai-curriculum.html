@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <title>AI Curriculum - ThinkBigPrep</title>
+        <meta name="description" content="Generate a personalized study curriculum with AI at ThinkBigPrep." />
+        <link rel="shortcut icon" href="assets/logo/logo.png" type="image/x-icon" />
+        <link rel="stylesheet" href="css/index.css?v=1.1" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" />
+    </head>
+    <body>
+        <!-- Header -->
+        <header class="header">
+            <div class="header-container">
+                <div class="logo">
+                    <img src="./assets/logo/ThinkBigPrep-logo-1200w.png" alt="ThinkBigPrep Logo" />
+                </div>
+                
+                <nav class="nav-desktop">
+                    <a href="index.html#home">Home</a>
+                    <a href="timetable.html">Timetable</a>
+                    <a href="index.html#courses">Courses</a>
+                    <a href="index.html#coaches">Available Tutors</a>
+                    <a href="index.html#about">About Us</a>
+                    <a href="ai-curriculum.html" class="ai-curriculum-link">
+                        AI Curriculum
+                        <span class="new-tag">NEW</span>
+                    </a>
+                    <a href="index.html#student-hub" class="student-hub-link">Enroll Now</a>
+                </nav>
+                
+                <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                    <i class="bi bi-list"></i>
+                </button>
+            </div>
+            
+            <nav class="nav-mobile" id="mobile-menu">
+                <a href="index.html#home">Home</a>
+                <a href="timetable.html">Timetable</a>
+                <a href="index.html#courses">Courses</a>
+                <a href="index.html#coaches">Available Engineers</a>
+                <a href="index.html#about">About Us</a>
+                <a href="ai-curriculum.html" class="ai-curriculum-link">AI Curriculum<span class="new-tag">NEW</span></a>
+                <a href="index.html#student-hub">Enroll Now</a>
+            </nav>
+        </header>
+
+        <!-- AI Curriculum Generator Section -->
+        <section class="ai-curriculum">
+            <div class="container">
+                <h1 class="section-title">AI-Powered Curriculum Generator</h1>
+                <p class="section-description">
+                    Our advanced AI analyzes your learning patterns and creates personalized study plans tailored to your specific needs and goals.
+                </p>
+                
+                <div class="curriculum-generator">
+                    <div class="generator-form">
+                        <h3>Generate Your Personalized Curriculum</h3>
+                        <form id="curriculumForm">
+                            <div class="form-group">
+                                <label for="studentLevel">Current Math Level</label>
+                                <select id="studentLevel" required>
+                                    <option value="">Select your level</option>
+                                    <option value="beginner">Beginner (Pre-Algebra)</option>
+                                    <option value="intermediate">Intermediate (Algebra I/II)</option>
+                                    <option value="advanced">Advanced (Geometry/Trigonometry)</option>
+                                    <option value="expert">Expert (Calculus/Pre-Calculus)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="targetScore">Target AMC Score</label>
+                                <select id="targetScore" required>
+                                    <option value="">Select target score</option>
+                                    <option value="80-100">80-100 (Honor Roll)</option>
+                                    <option value="100-120">100-120 (Distinction)</option>
+                                    <option value="120-150">120-150 (High Distinction)</option>
+                                    <option value="150+">150+ (Perfect Score)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="studyTime">Available Study Time (hours/week)</label>
+                                <input type="number" id="studyTime" min="1" max="40" placeholder="e.g., 10" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="weakAreas">Weakest Areas (select all that apply)</label>
+                                <div class="checkbox-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" value="algebra"> Algebra
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" value="geometry"> Geometry
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" value="number-theory"> Number Theory
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" value="combinatorics"> Combinatorics
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" value="probability"> Probability
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" value="trigonometry"> Trigonometry
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">Generate Curriculum</button>
+                        </form>
+                    </div>
+                    
+                    <div class="curriculum-preview" id="curriculumPreview">
+                        <div class="preview-placeholder">
+                            <div class="ai-icon">🤖</div>
+                            <h4>Your AI-Generated Curriculum</h4>
+                            <p>Fill out the form to see your personalized study plan</p>
+                        </div>
+                        
+                        <div class="curriculum-results" id="curriculumResults" style="display: none;">
+                            <h4>Your Personalized Study Plan</h4>
+                            <div class="curriculum-timeline">
+                                <div class="timeline-item">
+                                    <div class="timeline-week">Week 1-2</div>
+                                    <div class="timeline-content">
+                                        <h5>Foundation Building</h5>
+                                        <ul>
+                                            <li>Review core concepts</li>
+                                            <li>Practice basic problem-solving</li>
+                                            <li>Take diagnostic assessment</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-week">Week 3-6</div>
+                                    <div class="timeline-content">
+                                        <h5>Skill Development</h5>
+                                        <ul>
+                                            <li>Focus on weak areas</li>
+                                            <li>Advanced problem types</li>
+                                            <li>Speed training</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-week">Week 7-10</div>
+                                    <div class="timeline-content">
+                                        <h5>Advanced Practice</h5>
+                                        <ul>
+                                            <li>Full-length practice tests</li>
+                                            <li>Time management</li>
+                                            <li>Strategy refinement</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="curriculum-stats">
+                                <div class="stat-item">
+                                    <div class="stat-number">85%</div>
+                                    <div class="stat-label">Success Rate</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-number">12</div>
+                                    <div class="stat-label">Practice Tests</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-number">40</div>
+                                    <div class="stat-label">Hours Total</div>
+                                </div>
+                            </div>
+                            
+                            <button class="btn btn-secondary" onclick="downloadCurriculum()">Download PDF</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ai-features-grid">
+                    <div class="ai-feature-card">
+                        <div class="feature-icon">🎯</div>
+                        <h4>Adaptive Learning</h4>
+                        <p>Our AI continuously adjusts your curriculum based on your progress and performance patterns.</p>
+                    </div>
+                    <div class="ai-feature-card">
+                        <div class="feature-icon">📊</div>
+                        <h4>Progress Analytics</h4>
+                        <p>Track your improvement with detailed analytics and performance insights.</p>
+                    </div>
+                    <div class="ai-feature-card">
+                        <div class="feature-icon">⚡</div>
+                        <h4>Smart Scheduling</h4>
+                        <p>AI optimizes your study schedule to maximize retention and minimize burnout.</p>
+                    </div>
+                    <div class="ai-feature-card">
+                        <div class="feature-icon">🎓</div>
+                        <h4>Expert Validation</h4>
+                        <p>All AI-generated curricula are reviewed and approved by our expert coaches.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="container">
+                <div class="footer-content">
+                    <div class="footer-section">
+                        <div class="footer-logo">
+                            <img src="./assets/logo/ThinkBigPrep-logo-1200w.png" alt="ThinkBigPrep" />
+                            <span>ThinkBigPrep</span>
+                        </div>
+                    </div>
+                    
+                    <div class="footer-section">
+                        <h4>SEE ALSO</h4>
+                        <ul>
+                            <li><a href="index.html#home">Home</a></li>
+                            <li><a href="index.html#about">About Us</a></li>
+                            <li><a href="index.html#student-hub">Student Hub</a></li>
+                            <li><a href="ai-curriculum.html">AI Curriculum</a></li>
+                            <li><a href="index.html#coaches">Available Tutors</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="footer-section">
+                        <h4>CONTACT US</h4>
+                        <p>Phone: 201-665-0123</p>
+                        <p>Email: info@thinkbigprep.com</p>
+                    </div>
+                </div>
+                
+                <div class="footer-bottom">
+                    <p>ThinkBigPrep © 2025</p>
+                </div>
+            </div>
+        </footer>
+
+        <script src="index.js"></script>
+    </body>
+    </html>
+
+
