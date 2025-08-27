@@ -101,6 +101,15 @@ body.home .logo svg {
     width: auto;
 }
 
+/* Match logo size on other key pages */
+body.timetable .logo img,
+body.timetable .logo svg,
+body.ai-curriculum .logo img,
+body.ai-curriculum .logo svg {
+    height: 56px;
+    width: auto;
+}
+
 /* Star hover animation */
 .logo .tbp-star {
     transform-origin: center;
@@ -422,6 +431,12 @@ body.home .logo .tbp-star {
     justify-content: center;
     flex-wrap: wrap;
     animation: fadeInUp 1s ease-out 1.2s both;
+}
+
+/* Ensure hero buttons are visually the same size */
+.hero-buttons .btn {
+    min-width: 260px;
+    text-align: center;
 }
 
 /* Button Styles - Exact Match */
