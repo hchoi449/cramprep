@@ -86,12 +86,12 @@ body {
 
 /* Larger logo on home landing page */
 body.home .logo img {
-    height: 44px;
+    height: 56px;
 }
 
 /* Inline SVG logo sizing */
 body.home .logo svg {
-    height: 44px;
+    height: 56px;
     width: auto;
 }
 
@@ -102,7 +102,7 @@ body.home .logo svg {
 }
 
 .logo:hover .tbp-star {
-    animation: star-pulse 1.2s ease-in-out infinite;
+    animation: star-pulse 2s ease-in-out 1;
     filter: drop-shadow(0 2px 6px rgba(107, 52, 16, 0.35));
 }
 
