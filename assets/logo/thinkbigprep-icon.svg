@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" role="img" aria-label="ThinkBigPrep Icon">
+  <defs>
+    <linearGradient id="tbpGradIcon" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#BFD0B0"/>
+      <stop offset="100%" stop-color="#E1DCC9"/>
+    </linearGradient>
+  </defs>
+  <rect x="6" y="6" width="36" height="36" rx="10" fill="url(#tbpGradIcon)"/>
+  <g transform="translate(24,24) rotate(-10)">
+    <path d="M0 -10 L2 -2 L10 0 L2 2 L0 10 L-2 2 L-10 0 L-2 -2 Z" fill="#6b3410" opacity="0.9"/>
+  </g>
+</svg>
+
+
