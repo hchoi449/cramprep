@@ -1643,9 +1643,10 @@ body.home .logo .tbp-star {
 
 .footer-content {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 60px;
-    margin-bottom: 60px;
+    grid-template-columns: minmax(220px, 1fr) 1fr 1fr;
+    gap: 40px;
+    align-items: start;
+    margin-bottom: 40px;
 }
 
 .footer-logo {
@@ -1658,15 +1659,20 @@ body.home .logo .tbp-star {
 }
 
 .footer-logo img {
-    height: 36px;
+    height: 28px;
     width: auto;
+}
+.footer-logo span {
+    font-size: 1.1rem;
+    color: rgba(255,255,255,0.92);
 }
 
 .footer-section h4 {
-    font-size: 1.2rem;
+    font-size: 1rem;
     font-weight: 700;
-    margin-bottom: 20px;
+    margin-bottom: 12px;
     color: white;
+    letter-spacing: 0.02em;
 }
 
 .footer-section ul {
@@ -1685,7 +1691,8 @@ body.home .logo .tbp-star {
 }
 
 .footer-section a:hover {
-    color: #8B4513;
+    color: #ffffff;
+    text-decoration: underline;
 }
 
 .footer-section p {
@@ -1695,11 +1702,12 @@ body.home .logo .tbp-star {
 }
 
 .footer-bottom {
-    border-top: 1px solid rgba(255,255,255,0.25);
-    padding-top: 30px;
+    border-top: 1px solid rgba(255,255,255,0.18);
+    padding-top: 16px;
     text-align: center;
-    color: #f6efe9;
+    color: rgba(255,255,255,0.8);
     font-weight: 500;
+    font-size: 0.9rem;
 }
 
 /* Animations */
