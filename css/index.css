@@ -84,6 +84,12 @@ body {
     width: auto;
 }
 
+/* Support inline SVG logos on all pages */
+.logo svg {
+    height: 28px;
+    width: auto;
+}
+
 /* Larger logo on home landing page */
 body.home .logo img {
     height: 56px;
