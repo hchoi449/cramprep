@@ -166,6 +166,21 @@ document.addEventListener('DOMContentLoaded', function() {
             this.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
         });
     });
+
+    // Ensure logo star animation replays on every hover
+    const logo = document.querySelector('.logo');
+    const star = document.querySelector('.logo .tbp-star');
+    if (logo && star) {
+        const replayStarAnimation = () => {
+            // Reset any running animation and force reflow
+            star.style.animation = 'none';
+            void star.offsetWidth; // trigger reflow
+            // Play hover animation once
+            star.style.animation = 'star-pulse 2s ease-in-out 1';
+        };
+        logo.addEventListener('mouseenter', replayStarAnimation);
+        logo.addEventListener('touchstart', replayStarAnimation, { passive: true });
+    }
 });
 
 // Initialize body opacity

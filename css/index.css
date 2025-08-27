@@ -1621,7 +1621,7 @@ body.home .logo .tbp-star {
 
 /* Footer - Exact Match */
 .footer {
-    background: #1a1a1a;
+    background: #8B4513;
     color: white;
     padding: 80px 0 30px;
 }
@@ -1663,7 +1663,7 @@ body.home .logo .tbp-star {
 }
 
 .footer-section a {
-    color: #9ca3af;
+    color: #f6efe9;
     text-decoration: none;
     transition: color 0.3s ease;
     font-weight: 500;
@@ -1674,16 +1674,16 @@ body.home .logo .tbp-star {
 }
 
 .footer-section p {
-    color: #9ca3af;
+    color: #f6efe9;
     margin-bottom: 8px;
     font-weight: 500;
 }
 
 .footer-bottom {
-    border-top: 1px solid #374151;
+    border-top: 1px solid rgba(255,255,255,0.25);
     padding-top: 30px;
     text-align: center;
-    color: #9ca3af;
+    color: #f6efe9;
     font-weight: 500;
 }
 
