@@ -1154,7 +1154,34 @@ body {
     font-size: 0.8rem;
     font-weight: 600;
     z-index: 1;
-    animation: blink 2s infinite;
+    animation: blink 5s infinite;
+}
+
+/* Floating Book Consultation button */
+.floating-consult-btn {
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    z-index: 1000;
+    padding: 12px 18px !important;
+    border-radius: 9999px !important;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.floating-consult-btn .bi {
+    font-size: 1rem;
+}
+
+@media (max-width: 480px) {
+    .floating-consult-btn {
+        bottom: 16px;
+        left: 12px;
+        padding: 10px 14px !important;
+        font-size: 14px;
+    }
 }
 
 .course-header {
