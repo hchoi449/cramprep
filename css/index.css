@@ -101,6 +101,11 @@ body.home .logo svg {
     transition: transform 0.3s ease, filter 0.3s ease;
 }
 
+/* Play animation once on initial page load (home only) */
+body.home .logo .tbp-star {
+    animation: star-pulse 2s ease-in-out 1;
+}
+
 .logo:hover .tbp-star {
     animation: star-pulse 2s ease-in-out 1;
     filter: drop-shadow(0 2px 6px rgba(107, 52, 16, 0.35));
