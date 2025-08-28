@@ -132,6 +132,19 @@
     margin-top: 4px;
 }
 
+/* Make header rows equal height and slightly more compact */
+.time-header,
+.day-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 44px;
+}
+.day-header .day-date {
+    margin-top: 2px;
+    font-size: 0.75rem;
+}
+
 .time-slots {
     display: flex;
     flex-direction: column;
@@ -179,7 +192,7 @@
 }
 
 .class-slot.geometry {
-    background: linear-gradient(135deg, #4ecdc4, #44a08d);
+    background: linear-gradient(135deg, #6b3410, #6b3410);
     color: white;
 }
 
@@ -276,6 +289,11 @@
     border-radius: 12px;
     overflow: hidden;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Center month view weekday headers */
+.month-day-header {
+    text-align: center;
 }
 
 .month-day {
