@@ -114,9 +114,12 @@ function nextMonth() {
 
 // Update week display
 function updateWeekDisplay() {
+    // Compute Monday as the first day of the week (ISO week)
     const startOfWeek = new Date(currentWeek);
-    startOfWeek.setDate(currentWeek.getDate() - currentWeek.getDay());
-    
+    const day = startOfWeek.getDay(); // 0 (Sun) .. 6 (Sat)
+    const diffToMonday = (day === 0 ? -6 : 1 - day); // if Sun, go back 6; else 1 - day
+    startOfWeek.setDate(startOfWeek.getDate() + diffToMonday);
+
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 6);
     
@@ -126,14 +129,13 @@ function updateWeekDisplay() {
     
     document.getElementById('current-week').textContent = `${startStr} - ${endStr}`;
 
-    // Populate dates under each day header (Mon..Sun)
+    // Populate dates under each day header (Mon..Sun) based on Monday start
     const dayHeaders = document.querySelectorAll('.week-grid .day-column .day-header');
     const dayNames = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
     if (dayHeaders.length === 7) {
         for (let i = 0; i < 7; i++) {
             const dateForCol = new Date(startOfWeek);
-            const offset = (i + 1) % 7; // Monday=+1 ... Sunday=0
-            dateForCol.setDate(startOfWeek.getDate() + offset);
+            dateForCol.setDate(startOfWeek.getDate() + i);
             const dateStr = dateForCol.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             dayHeaders[i].innerHTML = `${dayNames[i]}<div class="day-date">${dateStr}</div>`;
         }
