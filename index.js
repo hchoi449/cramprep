@@ -45,26 +45,23 @@ document.addEventListener('DOMContentLoaded', function() {
     
     navLinks.forEach(link => {
         link.addEventListener('click', function(e) {
+            const href = this.getAttribute('href') || '';
+            // Skip smooth scroll for enrollment trigger links
+            if (this.classList.contains('student-hub-link') || href.includes('#student-hub')) {
+                return; // let custom handler manage it
+            }
+
             e.preventDefault();
-            
-            const targetId = this.getAttribute('href');
+            const targetId = href;
             const targetSection = document.querySelector(targetId);
-            
             if (targetSection) {
-                // Close mobile menu if open
                 const mobileMenu = document.getElementById('mobile-menu');
-                if (mobileMenu.style.display === 'block') {
+                if (mobileMenu && mobileMenu.style.display === 'block') {
                     mobileMenu.style.display = 'none';
                 }
-                
-                // Smooth scroll to target section
                 const headerHeight = document.querySelector('.header').offsetHeight;
                 const targetPosition = targetSection.offsetTop - headerHeight;
-                
-                window.scrollTo({
-                    top: targetPosition,
-                    behavior: 'smooth'
-                });
+                window.scrollTo({ top: targetPosition, behavior: 'smooth' });
             }
         });
     });
