@@ -104,19 +104,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Course scheduling functionality
-document.addEventListener('DOMContentLoaded', function() {
-    const scheduleButtons = document.querySelectorAll('button');
-    
-    scheduleButtons.forEach(button => {
-        if (button.textContent.includes('Schedule Now')) {
-            button.addEventListener('click', function() {
-                // You can add actual scheduling logic here
-                alert('Thank you for your interest! Please contact us at 778-533-4028 or info@amcacademy.ca to schedule your classes.');
-            });
-        }
-    });
-});
+// Removed legacy alert for "Schedule Now"; handled by enrollment modal wiring below
 
 // Add loading animation
 window.addEventListener('load', function() {
