@@ -612,7 +612,58 @@ function downloadCurriculum() {
 }
 
 function showNotification(message, type, durationMs = 3000) {
-    // Create notification element
+    if (type === 'success') {
+        // Centered success animation with message
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.15);
+            z-index: 10000;
+        `;
+
+        const card = document.createElement('div');
+        card.style.cssText = `
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.22);
+            padding: 16px 24px 20px;
+            text-align: center;
+            max-width: 420px;
+            width: calc(100% - 40px);
+            animation: fadeInUp 0.3s ease-out;
+        `;
+
+        const frame = document.createElement('iframe');
+        frame.src = 'https://lottie.host/embed/ec98cc1e-2757-4a41-8d44-89c08e03e508/kzfEdd8Gfs.lottie';
+        frame.style.cssText = 'width: 180px; height: 180px; border: none; display: block; margin: 6px auto 0;';
+        frame.setAttribute('title', 'Success Animation');
+        frame.setAttribute('aria-hidden', 'true');
+
+        const text = document.createElement('div');
+        text.textContent = message;
+        text.style.cssText = 'margin-top: 8px; color: #1f2937; font-weight: 600;';
+
+        card.appendChild(frame);
+        card.appendChild(text);
+        overlay.appendChild(card);
+        document.body.appendChild(overlay);
+
+        setTimeout(() => {
+            overlay.style.transition = 'opacity 0.3s ease-out';
+            overlay.style.opacity = '0';
+            setTimeout(() => {
+                if (overlay.parentNode) document.body.removeChild(overlay);
+            }, 300);
+        }, durationMs);
+
+        return;
+    }
+
+    // Default top-right toast for non-success
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
     notification.textContent = message;
@@ -628,14 +679,13 @@ function showNotification(message, type, durationMs = 3000) {
         z-index: 10000;
         animation: slideInRight 0.3s ease-out;
     `;
-    
+
     document.body.appendChild(notification);
-    
-    // Remove after duration
+
     setTimeout(() => {
         notification.style.animation = 'slideOutRight 0.3s ease-out';
         setTimeout(() => {
-            document.body.removeChild(notification);
+            if (notification.parentNode) document.body.removeChild(notification);
         }, 300);
     }, durationMs);
 }
