@@ -630,22 +630,22 @@ function showNotification(message, type, durationMs = 3000) {
             background: #ffffff;
             border-radius: 16px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.22);
-            padding: 16px 24px 20px;
+            padding: 18px 28px 22px;
             text-align: center;
-            max-width: 420px;
+            max-width: 560px;
             width: calc(100% - 40px);
             animation: fadeInUp 0.3s ease-out;
         `;
 
         const frame = document.createElement('iframe');
         frame.src = 'https://lottie.host/embed/ec98cc1e-2757-4a41-8d44-89c08e03e508/kzfEdd8Gfs.lottie';
-        frame.style.cssText = 'width: 180px; height: 180px; border: none; display: block; margin: 6px auto 0;';
+        frame.style.cssText = 'width: 260px; height: 260px; border: none; display: block; margin: 6px auto 0;';
         frame.setAttribute('title', 'Success Animation');
         frame.setAttribute('aria-hidden', 'true');
 
         const text = document.createElement('div');
         text.textContent = message;
-        text.style.cssText = 'margin-top: 8px; color: #1f2937; font-weight: 600;';
+        text.style.cssText = 'margin-top: 10px; color: #1f2937; font-weight: 600; font-size: 16px;';
 
         card.appendChild(frame);
         card.appendChild(text);
