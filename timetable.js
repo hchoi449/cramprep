@@ -150,8 +150,8 @@ function updateWeekDisplay() {
         const slot = document.createElement('div');
         slot.className = 'class-slot geometry autogen';
         slot.setAttribute('data-subject', 'Geometry');
-        slot.setAttribute('data-time', '18:00'); // 6 PM positioning
-        slot.style.height = '60px'; // 1.5 hours at 40px/hour
+        slot.setAttribute('data-time', '06:00'); // 6 PM positioning (matches CSS mapping)
+        slot.style.height = '72px'; // 1.5 hours at 48px/hour
         slot.innerHTML = `
             <div class="class-info" style="font-family: inherit;">
                 <h4>Geometry</h4>
