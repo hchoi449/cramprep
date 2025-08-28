@@ -367,14 +367,12 @@ function downloadCurriculum() {
     doc.setTextColor('#ffffff');
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(18);
-    doc.text(title, margin, 40);
+    doc.text('ThinkBigPrep', margin, 40);
+    doc.setFontSize(12);
+    doc.text('Personalized Curriculum Plan', margin, 58);
 
     doc.setTextColor(brand.text);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
-    y += 60;
-    doc.text('Personalized Curriculum Plan', margin, y);
-    y += 20;
+    y = 92;
 
     // Student/Plan info box
     const boxH = 120;
@@ -430,14 +428,28 @@ function downloadCurriculum() {
     section('Executive Summary');
     paragraph(`This plan is designed to ${trackType === 'stem' ? 'master ' + stemSubject : 'excel on the ' + examType} within your timeframe. The curriculum prioritizes your weakest areas while reinforcing strengths, with weekly milestones and measurable outcomes.`, 480);
 
+    // 8-week table
     section('8-Week Strategic Plan');
-    const weeks = [
-        'Weeks 1-2: Foundations and diagnostic drills',
-        'Weeks 3-4: Targeted skill deep-dives',
-        'Weeks 5-6: Mixed sets and speed training',
-        'Weeks 7-8: Full mocks, error logs, and mastery checks'
+    const weeksRows = [
+        ['1-2', trackType === 'stem' ? `Foundations of ${stemSubject}` : 'Baseline diagnostic + strategy', 'Daily drills, error log start'],
+        ['3-4', trackType === 'stem' ? 'Targeted weak-topic deep dives' : 'Math pacing + Reading/Writing rules', 'Timed sets, walkthroughs'],
+        ['5-6', 'Mixed difficulty review', 'Speed training, topic rotations'],
+        ['7-8', 'Full mocks + mastery checks', 'Score analysis, refinement'],
     ];
-    weeks.forEach(w => paragraph(`• ${w}`, 480));
+    if (doc.autoTable) {
+        doc.autoTable({
+            startY: y,
+            head: [['Week', 'Objectives', 'Activities']],
+            body: weeksRows,
+            styles: { font: 'helvetica', fontSize: 9, cellPadding: 6 },
+            headStyles: { fillColor: [139,69,19], textColor: 255 },
+            theme: 'grid',
+            margin: { left: margin, right: margin }
+        });
+        y = doc.lastAutoTable.finalY + 16;
+    } else {
+        weeksRows.forEach(r => paragraph(`• Week ${r[0]} - ${r[1]} (${r[2]})`, 480));
+    }
 
     section('Topic Focus');
     const topicFocus = trackType === 'stem'
@@ -446,7 +458,7 @@ function downloadCurriculum() {
     paragraph(topicFocus, 480);
 
     section('Resources');
-    paragraph('Books and platforms: AoPS, Brilliant, Khan Academy, official practice sets, and instructor-curated handouts. Practice is organized by difficulty and topic tags.', 480);
+    paragraph('Books and platforms: AoPS, Brilliant, Khan Academy, Official SAT/ACT materials, instructor-curated handouts. Practice is organized by difficulty and topic tags.', 480);
 
     section('Milestones & KPIs');
     paragraph('Weekly quizzes, time-to-solve reductions, accuracy thresholds >85% per topic, and periodic full-length mocks with score targets.', 480);
@@ -459,7 +471,7 @@ function downloadCurriculum() {
     doc.setFontSize(8);
     doc.setTextColor('#777');
     doc.text(`Generated: ${new Date().toLocaleDateString()}`, margin, pageH - margin + 16);
-    doc.text('ThinkBigPrep', doc.internal.pageSize.getWidth() / 2 - 30, pageH - margin + 16);
+    doc.text('ThinkBigPrep - Confidential', doc.internal.pageSize.getWidth() / 2 - 60, pageH - margin + 16);
 
     const fileName = `TBP_Curriculum_${trackType === 'stem' ? stemSubject.replace(/\s+/g,'_') : examType}_${new Date().toISOString().slice(0,10)}.pdf`;
     doc.save(fileName);
