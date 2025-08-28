@@ -331,7 +331,7 @@
                             <li>Intensive group study sessions</li>
                             <li>Crash course on key concepts</li>
                             <li>Exam study guide review</li>
-                            <li>No students left behind</li>
+                            <li>No questions unanswered</li>
                         </ul>
                         <button class="btn btn-primary">Schedule Now</button>
                     </div>
@@ -452,5 +452,75 @@
 
         <script src="index.js"></script>
         <a href="#contact" class="btn btn-primary floating-consult-btn"><i class="bi bi-calendar-event"></i> Book Consultation</a>
+        
+        <!-- Enrollment Modal -->
+        <div id="enrollModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="enrollTitle">
+            <div class="modal-overlay" data-close-modal></div>
+            <div class="modal-content">
+                <button class="modal-close" aria-label="Close" data-close-modal>&times;</button>
+                <h3 id="enrollTitle" class="section-title" style="font-size: 1.6rem;">Enrollment Request</h3>
+                <p class="section-description" style="margin-bottom: 18px;">Fill out the form and we’ll reach out shortly.</p>
+                <form id="enrollForm" novalidate>
+                    <div class="enroll-grid">
+                        <div>
+                            <label for="parentName">Parent Name</label>
+                            <input id="parentName" name="parentName" type="text" required>
+                            <div class="field-error">Parent name is required.</div>
+                        </div>
+                        <div>
+                            <label for="studentName">Student Name</label>
+                            <input id="studentName" name="studentName" type="text" required>
+                            <div class="field-error">Student name is required.</div>
+                        </div>
+                        <div>
+                            <label for="studentGrade">Student Grade</label>
+                            <input id="studentGrade" name="studentGrade" type="text" placeholder="e.g., 9th" required>
+                            <div class="field-error">Student grade is required.</div>
+                        </div>
+                        <div>
+                            <label for="school">School</label>
+                            <input id="school" name="school" type="text" required>
+                            <div class="field-error">School is required.</div>
+                        </div>
+                        <div class="full">
+                            <label for="subject">Subject</label>
+                            <select id="subject" name="subject" required>
+                                <option value="">Select a subject</option>
+                                <option>Algebra</option>
+                                <option>Geometry</option>
+                                <option>Pre-Calculus</option>
+                                <option>Calculus</option>
+                                <option>Physics</option>
+                                <option>Chemistry</option>
+                                <option>Biology</option>
+                                <option>Computer Science</option>
+                                <option>SAT</option>
+                                <option>ACT</option>
+                            </select>
+                            <div class="field-error">Subject is required.</div>
+                        </div>
+                        <div>
+                            <label for="email">Email</label>
+                            <input id="email" name="email" type="email" required>
+                            <div class="field-error">Valid email is required.</div>
+                        </div>
+                        <div>
+                            <label for="phone">Phone Number</label>
+                            <input id="phone" name="phone" type="tel" required>
+                            <div class="field-error">Phone number is required.</div>
+                        </div>
+                        <div class="full">
+                            <label for="comments">Additional Comments</label>
+                            <textarea id="comments" name="comments" rows="4" required></textarea>
+                            <div class="field-error">Comments are required.</div>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" data-close-modal>Cancel</button>
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </body>
 </html>

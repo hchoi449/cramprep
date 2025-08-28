@@ -167,6 +167,96 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // Enrollment modal wiring
+    const enrollModal = document.getElementById('enrollModal');
+    const enrollForm = document.getElementById('enrollForm');
+
+    function openModal() {
+        if (!enrollModal) return;
+        enrollModal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+        if (!enrollModal) return;
+        enrollModal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    // Attach to known CTAs
+    document.querySelectorAll('.student-hub-link, .floating-consult-btn').forEach(el => {
+        el.addEventListener('click', function(e) {
+            e.preventDefault();
+            openModal();
+        });
+    });
+    // Hero Free Consultation
+    document.querySelectorAll('.hero-buttons .btn').forEach(el => {
+        if (el.textContent.includes('Free Consultation')) {
+            el.addEventListener('click', function(e) { e.preventDefault(); openModal(); });
+        }
+    });
+    // Course Schedule Now
+    document.querySelectorAll('.course-card .btn').forEach(el => {
+        if (el.textContent.includes('Schedule Now')) {
+            el.addEventListener('click', function(e) { e.preventDefault(); openModal(); });
+        }
+    });
+
+    // Close modal
+    document.querySelectorAll('[data-close-modal]').forEach(el => el.addEventListener('click', closeModal));
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeModal(); });
+
+    // Form validation and submission
+    function markValidity(field, valid) {
+        const wrapper = field.closest('div');
+        if (!wrapper) return;
+        if (valid) wrapper.classList.remove('invalid');
+        else wrapper.classList.add('invalid');
+    }
+
+    async function sendEmail(payload) {
+        const subject = encodeURIComponent('ThinkBigPrep Enrollment Request');
+        const body = encodeURIComponent(
+            `Parent: ${payload.parentName}\n` +
+            `Student: ${payload.studentName} (Grade: ${payload.studentGrade})\n` +
+            `School: ${payload.school}\n` +
+            `Subject: ${payload.subject}\n` +
+            `Email: ${payload.email}\n` +
+            `Phone: ${payload.phone}\n\n` +
+            `Comments:\n${payload.comments}`
+        );
+        window.location.href = `mailto:hchoi449@gmail.com?subject=${subject}&body=${body}`;
+    }
+
+    if (enrollForm) {
+        enrollForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const fields = ['parentName','studentName','studentGrade','school','subject','email','phone','comments']
+                .map(id => document.getElementById(id));
+            let allValid = true;
+            fields.forEach(f => {
+                const valid = !!(f && f.value && f.value.trim().length);
+                markValidity(f, valid);
+                if (f && f.type === 'email' && valid) {
+                    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.value);
+                    markValidity(f, emailOk);
+                    if (!emailOk) allValid = false;
+                }
+                if (!valid) allValid = false;
+            });
+            if (!allValid) {
+                showNotification('Please fill all required fields correctly.', 'error');
+                return;
+            }
+            const payload = Object.fromEntries(new FormData(enrollForm).entries());
+            await sendEmail(payload);
+            showNotification('Form prepared in your email client. Please send it.', 'success');
+            closeModal();
+            enrollForm.reset();
+        });
+    }
+
     // Ensure logo star animation replays on every hover
     const logo = document.querySelector('.logo');
     const star = document.querySelector('.logo .tbp-star');
