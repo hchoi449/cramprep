@@ -1333,9 +1333,9 @@ body.home .logo .tbp-star {
     appearance: none;
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%231a1a1a"><path d="M7 10l5 5 5-5z"/></svg>');
     background-repeat: no-repeat;
-    background-position: right 22px center;
+    background-position: right 14px center;
     background-size: 16px 16px;
-    padding-right: 48px;
+    padding-right: 40px;
 }
 
 .form-actions {
