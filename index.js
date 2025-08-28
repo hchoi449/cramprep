@@ -290,7 +290,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const payload = Object.fromEntries(new FormData(enrollForm).entries());
             const ok = await sendForm(payload);
             if (ok) {
-                showNotification('Enrollment submitted successfully. We will contact you soon.', 'success', 5000);
+                showNotification('🎉 Thank you for enrolling with ThinkBigPrep! We’ll be in touch shortly with next steps.', 'success', 5000);
             } else {
                 showNotification('Submission failed. Please try again or email us directly.', 'error');
             }
