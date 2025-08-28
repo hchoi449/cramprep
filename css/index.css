@@ -1309,6 +1309,10 @@ body.home .logo .tbp-star {
     margin-bottom: 6px;
 }
 
+.required-star {
+    color: #ef4444;
+}
+
 .enroll-grid input,
 .enroll-grid select,
 .enroll-grid textarea {

@@ -167,6 +167,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function closeModal() {
         if (!enrollModal) return;
+        const form = document.getElementById('enrollForm');
+        if (form) {
+            form.reset();
+            // clear validation states
+            form.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
+        }
         enrollModal.classList.remove('active');
         document.body.style.overflow = '';
     }
