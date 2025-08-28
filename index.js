@@ -290,7 +290,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const payload = Object.fromEntries(new FormData(enrollForm).entries());
             const ok = await sendForm(payload);
             if (ok) {
-                showNotification('Enrollment submitted successfully. We will contact you soon.', 'success');
+                showNotification('Enrollment submitted successfully. We will contact you soon.', 'success', 5000);
             } else {
                 showNotification('Submission failed. Please try again or email us directly.', 'error');
             }
@@ -611,7 +611,7 @@ function downloadCurriculum() {
     showNotification('Curriculum PDF generated.', 'success');
 }
 
-function showNotification(message, type) {
+function showNotification(message, type, durationMs = 3000) {
     // Create notification element
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
@@ -631,13 +631,13 @@ function showNotification(message, type) {
     
     document.body.appendChild(notification);
     
-    // Remove after 3 seconds
+    // Remove after duration
     setTimeout(() => {
         notification.style.animation = 'slideOutRight 0.3s ease-out';
         setTimeout(() => {
             document.body.removeChild(notification);
         }, 300);
-    }, 3000);
+    }, durationMs);
 }
 
 // Add CSS animations for notifications
