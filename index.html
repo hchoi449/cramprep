@@ -464,12 +464,12 @@
                     <div class="enroll-grid">
                         <div>
                             <label for="parentName">Parent Name <span class="required-star">*</span></label>
-                            <input id="parentName" name="parentName" type="text" required>
+                            <input id="parentName" name="parentName" type="text" placeholder="e.g., Homer Simpson" required>
                             <div class="field-error">Parent name is required.</div>
                         </div>
                         <div>
                             <label for="studentName">Student Name <span class="required-star">*</span></label>
-                            <input id="studentName" name="studentName" type="text" required>
+                            <input id="studentName" name="studentName" type="text" placeholder="e.g., Bart Simpson" required>
                             <div class="field-error">Student name is required.</div>
                         </div>
                         <div>
@@ -508,6 +508,13 @@
                             <label for="phone">Phone Number <span class="required-star">*</span></label>
                             <input id="phone" name="phone" type="tel" required>
                             <div class="field-error">Phone number is required.</div>
+                        </div>
+                        <div class="full">
+                            <label>Preferred Contact <span class="required-star">*</span></label>
+                            <div>
+                                <label style="margin-right:12px;"><input type="radio" name="contactPreference" value="Email" required> Email</label>
+                                <label><input type="radio" name="contactPreference" value="Phone" required> Phone</label>
+                            </div>
                         </div>
                         <div class="full">
                             <label for="comments">Additional Comments</label>

@@ -209,18 +209,19 @@ document.addEventListener('DOMContentLoaded', function() {
         else wrapper.classList.add('invalid');
     }
 
-    async function sendEmail(payload) {
-        const subject = encodeURIComponent('ThinkBigPrep Enrollment Request');
-        const body = encodeURIComponent(
-            `Parent: ${payload.parentName}\n` +
-            `Student: ${payload.studentName} (Grade: ${payload.studentGrade})\n` +
-            `School: ${payload.school}\n` +
-            `Subject: ${payload.subject}\n` +
-            `Email: ${payload.email}\n` +
-            `Phone: ${payload.phone}\n\n` +
-            `Comments:\n${payload.comments}`
-        );
-        window.location.href = `mailto:hchoi449@gmail.com?subject=${subject}&body=${body}`;
+    async function sendForm(payload) {
+        try {
+            const resp = await fetch('https://formspree.io/f/xpwjwyvw', {
+                method: 'POST',
+                headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!resp.ok) throw new Error('Network response was not ok');
+            return true;
+        } catch (e) {
+            console.error('Form submit failed', e);
+            return false;
+        }
     }
 
     if (enrollForm) {
@@ -271,9 +272,22 @@ document.addEventListener('DOMContentLoaded', function() {
             const normalizedGrade = normalizeGrade(rawGrade);
             if (gradeInput && normalizedGrade) gradeInput.value = normalizedGrade;
 
+            // Format phone as +1 (###) ###-#### if 10 digits
+            const phoneEl = document.getElementById('phone');
+            if (phoneEl) {
+                const digits = (phoneEl.value || '').replace(/\D/g,'');
+                if (digits.length === 10) {
+                    phoneEl.value = `+1 (${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+                }
+            }
+
             const payload = Object.fromEntries(new FormData(enrollForm).entries());
-            await sendEmail(payload);
-            showNotification('Form prepared in your email client. Please send it.', 'success');
+            const ok = await sendForm(payload);
+            if (ok) {
+                showNotification('Enrollment submitted successfully. We will contact you soon.', 'success');
+            } else {
+                showNotification('Submission failed. Please try again or email us directly.', 'error');
+            }
             closeModal();
             enrollForm.reset();
         });
