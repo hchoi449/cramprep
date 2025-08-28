@@ -93,7 +93,6 @@
             <div class="math-symbol theta-symbol">θ</div>
             <div class="math-symbol alpha-symbol">α</div>
             <div class="math-symbol beta-symbol">β</div>
-            <div class="math-symbol gamma-symbol">γ</div>
             <div class="math-symbol lambda-symbol">λ</div>
             <div class="math-symbol mu-symbol">μ</div>
             <div class="math-symbol nu-symbol">ν</div>
@@ -506,15 +505,18 @@
                         </div>
                         <div>
                             <label for="phone">Phone Number <span class="required-star">*</span></label>
-                            <input id="phone" name="phone" type="tel" required>
-                            <div class="field-error">Phone number is required.</div>
+                            <input id="phone" name="phone" type="tel" inputmode="numeric" placeholder="e.g., 2015550123" required>
+                            <div class="field-error">Enter a valid 10-digit phone number.</div>
                         </div>
                         <div class="full">
-                            <label>Preferred Contact <span class="required-star">*</span></label>
-                            <div>
-                                <label style="margin-right:12px;"><input type="radio" name="contactPreference" value="Email" required> Email</label>
-                                <label><input type="radio" name="contactPreference" value="Phone" required> Phone</label>
-                            </div>
+                            <label for="contactPreference">Preferred Contact <span class="required-star">*</span></label>
+                            <select id="contactPreference" name="contactPreference" required>
+                                <option value="">Select preference</option>
+                                <option value="Email">Email</option>
+                                <option value="Phone">Phone</option>
+                                <option value="Both">Both</option>
+                            </select>
+                            <div class="field-error">Please choose a contact preference.</div>
                         </div>
                         <div class="full">
                             <label for="comments">Additional Comments</label>

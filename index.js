@@ -227,7 +227,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (enrollForm) {
         enrollForm.addEventListener('submit', async function(e) {
             e.preventDefault();
-            const fields = ['parentName','studentName','studentGrade','school','subject','email','phone']
+            const fields = ['parentName','studentName','studentGrade','school','subject','email','phone','contactPreference']
                 .map(id => document.getElementById(id));
             let allValid = true;
             fields.forEach(f => {
@@ -237,6 +237,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.value);
                     markValidity(f, emailOk);
                     if (!emailOk) allValid = false;
+                }
+                if (f && f.id === 'phone' && valid) {
+                    const digits = (f.value || '').replace(/\D/g,'');
+                    const phoneOk = /^\d{10}$/.test(digits);
+                    markValidity(f, phoneOk);
+                    if (!phoneOk) allValid = false;
                 }
                 if (!valid) allValid = false;
             });
