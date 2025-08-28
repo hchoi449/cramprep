@@ -193,7 +193,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Course Schedule Now
     document.querySelectorAll('.course-card .btn').forEach(el => {
         if (el.textContent.includes('Schedule Now')) {
-            el.addEventListener('click', function(e) { e.preventDefault(); openModal(); });
+            el.addEventListener('click', function(e) {
+                e.preventDefault();
+                // Preselect Preferred Plan based on card header
+                const card = el.closest('.course-card');
+                const title = card ? (card.querySelector('.course-header h3')?.textContent || '').trim() : '';
+                const plan = (title && title.includes('1-on-1')) ? '1-on-1 Tutoring' : (title && title.includes('Exam Cram')) ? 'Exam Cram Sessions' : '';
+                const planSelect = document.getElementById('preferredPlan');
+                if (planSelect && plan) planSelect.value = plan;
+                openModal();
+            });
         }
     });
 
@@ -679,9 +688,9 @@ function showNotification(message, type, durationMs = 3000) {
         z-index: 10000;
         animation: slideInRight 0.3s ease-out;
     `;
-
+    
     document.body.appendChild(notification);
-
+    
     setTimeout(() => {
         notification.style.animation = 'slideOutRight 0.3s ease-out';
         setTimeout(() => {
