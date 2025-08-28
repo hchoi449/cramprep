@@ -198,6 +198,22 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             generateCurriculum();
         });
+
+        // Toggle fields based on track type
+        const trackType = document.getElementById('trackType');
+        const stemGroup = document.getElementById('stemSubjectGroup');
+        const examGroup = document.getElementById('examTypeGroup');
+        const targetScoreGroup = document.getElementById('targetScoreGroup');
+        if (trackType) {
+            const syncVisibility = () => {
+                const isExam = trackType.value === 'sat-act';
+                stemGroup.style.display = isExam ? 'none' : 'block';
+                examGroup.style.display = isExam ? 'block' : 'none';
+                targetScoreGroup.style.display = isExam ? 'block' : 'none';
+            };
+            trackType.addEventListener('change', syncVisibility);
+            syncVisibility();
+        }
     }
 });
 
@@ -320,31 +336,135 @@ function updateTimelineContent(areas) {
 }
 
 function downloadCurriculum() {
-    // Create a simple PDF-like download
-    const curriculumData = {
-        studentLevel: document.getElementById('studentLevel').value,
-        targetScore: document.getElementById('targetScore').value,
-        studyTime: document.getElementById('studyTime').value,
-        weakAreas: Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))
-                       .map(checkbox => checkbox.value),
-        generatedDate: new Date().toLocaleDateString()
+    const { jsPDF } = window.jspdf || {};
+    if (!jsPDF) {
+        alert('PDF library failed to load. Please try again.');
+        return;
+    }
+
+    const trackType = (document.getElementById('trackType') || { value: 'stem' }).value;
+    const stemSubject = (document.getElementById('stemSubject') || { value: 'Algebra' }).value;
+    const examType = (document.getElementById('examType') || { value: 'SAT' }).value;
+    const studentLevel = (document.getElementById('studentLevel') || { value: 'intermediate' }).value;
+    const targetScore = (document.getElementById('targetScore') || { value: '' }).value;
+    const studyTime = (document.getElementById('studyTime') || { value: '10' }).value;
+    const weakAreas = Array.from(document.querySelectorAll('input[type="checkbox"]:checked')).map(c => c.value);
+
+    const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+
+    const brand = {
+        brown: '#8B4513',
+        text: '#222222',
+        light: '#f7f5f2'
     };
-    
-    // Create download link
-    const dataStr = JSON.stringify(curriculumData, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'amc-curriculum-plan.json';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    // Show success message
-    showNotification('Curriculum downloaded successfully!', 'success');
+
+    const margin = 56;
+    let y = margin;
+
+    const title = 'ThinkBigPrep';
+    doc.setFillColor(139, 69, 19);
+    doc.rect(0, 0, doc.internal.pageSize.getWidth(), 64, 'F');
+    doc.setTextColor('#ffffff');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.text(title, margin, 40);
+
+    doc.setTextColor(brand.text);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    y += 60;
+    doc.text('Personalized Curriculum Plan', margin, y);
+    y += 20;
+
+    // Student/Plan info box
+    const boxH = 120;
+    doc.setFillColor(247, 245, 242);
+    doc.roundedRect(margin, y, doc.internal.pageSize.getWidth() - margin * 2, boxH, 6, 6, 'F');
+    doc.setDrawColor(139, 69, 19);
+    doc.setLineWidth(1.5);
+    doc.roundedRect(margin, y, doc.internal.pageSize.getWidth() - margin * 2, boxH, 6, 6);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(brand.brown);
+    doc.text('PLAN OVERVIEW', margin + 14, y + 22);
+
+    doc.setTextColor(brand.text);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    const info = [
+        `Track: ${trackType === 'stem' ? 'STEM Subject Mastery' : examType + ' Prep'}`,
+        `Focus: ${trackType === 'stem' ? stemSubject + ' — Mastery Goal' : 'Achieve target score ' + (targetScore || '(set)')}`,
+        `Level: ${studentLevel}`,
+        `Study Time: ${studyTime} hrs/week`,
+        `Weak Areas: ${weakAreas.length ? weakAreas.join(', ') : 'N/A'}`
+    ];
+    info.forEach((t, i) => doc.text(t, margin + 14, y + 44 + i * 16));
+    y += boxH + 24;
+
+    // Sections
+    const section = (name) => {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.setTextColor('#3b3b3b');
+        doc.text(name, margin, y);
+        y += 18;
+    };
+
+    const paragraph = (text, width) => {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(brand.text);
+        const lines = doc.splitTextToSize(text, width);
+        lines.forEach(line => {
+            if (y > doc.internal.pageSize.getHeight() - margin) {
+                doc.addPage();
+                y = margin;
+            }
+            doc.text(line, margin, y);
+            y += 14;
+        });
+        y += 6;
+    };
+
+    section('Executive Summary');
+    paragraph(`This plan is designed to ${trackType === 'stem' ? 'master ' + stemSubject : 'excel on the ' + examType} within your timeframe. The curriculum prioritizes your weakest areas while reinforcing strengths, with weekly milestones and measurable outcomes.`, 480);
+
+    section('8-Week Strategic Plan');
+    const weeks = [
+        'Weeks 1-2: Foundations and diagnostic drills',
+        'Weeks 3-4: Targeted skill deep-dives',
+        'Weeks 5-6: Mixed sets and speed training',
+        'Weeks 7-8: Full mocks, error logs, and mastery checks'
+    ];
+    weeks.forEach(w => paragraph(`• ${w}`, 480));
+
+    section('Topic Focus');
+    const topicFocus = trackType === 'stem'
+        ? `${stemSubject}: core theory, problem types, and exam-style applications.`
+        : `${examType}: Math strategy, Reading pacing, and Writing grammar, tuned to target score ${targetScore || ''}.`;
+    paragraph(topicFocus, 480);
+
+    section('Resources');
+    paragraph('Books and platforms: AoPS, Brilliant, Khan Academy, official practice sets, and instructor-curated handouts. Practice is organized by difficulty and topic tags.', 480);
+
+    section('Milestones & KPIs');
+    paragraph('Weekly quizzes, time-to-solve reductions, accuracy thresholds >85% per topic, and periodic full-length mocks with score targets.', 480);
+
+    // Footer
+    const pageH = doc.internal.pageSize.getHeight();
+    doc.setDrawColor(139, 69, 19);
+    doc.setLineWidth(0.8);
+    doc.line(margin, pageH - margin, doc.internal.pageSize.getWidth() - margin, pageH - margin);
+    doc.setFontSize(8);
+    doc.setTextColor('#777');
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, margin, pageH - margin + 16);
+    doc.text('ThinkBigPrep', doc.internal.pageSize.getWidth() / 2 - 30, pageH - margin + 16);
+
+    const fileName = `TBP_Curriculum_${trackType === 'stem' ? stemSubject.replace(/\s+/g,'_') : examType}_${new Date().toISOString().slice(0,10)}.pdf`;
+    doc.save(fileName);
+
+    showNotification('Curriculum PDF generated.', 'success');
 }
 
 function showNotification(message, type) {
