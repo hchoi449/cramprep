@@ -151,9 +151,11 @@ function updateWeekDisplay() {
         slot.setAttribute('data-time', '18:00'); // 6 PM positioning
         slot.style.height = '60px'; // 1.5 hours at 40px/hour
         slot.innerHTML = `
-            <div class="class-info">
+            <div class="class-info" style="font-family: inherit;">
                 <h4>Geometry</h4>
-                <p>Group Session</p>
+                <p><strong>School:</strong> NVD</p>
+                <p><strong>Title:</strong> Algebra Review Quiz</p>
+                <p><strong>Tutor:</strong> Henry C.</p>
                 <div class="time">6:00 PM - 7:30 PM</div>
                 <button class="book-btn">Book</button>
             </div>
