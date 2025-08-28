@@ -125,6 +125,48 @@ function updateWeekDisplay() {
     const endStr = endOfWeek.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     
     document.getElementById('current-week').textContent = `${startStr} - ${endStr}`;
+
+    // Populate dates under each day header (Mon..Sun)
+    const dayHeaders = document.querySelectorAll('.week-grid .day-column .day-header');
+    const dayNames = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    if (dayHeaders.length === 7) {
+        for (let i = 0; i < 7; i++) {
+            const dateForCol = new Date(startOfWeek);
+            const offset = (i + 1) % 7; // Monday=+1 ... Sunday=0
+            dateForCol.setDate(startOfWeek.getDate() + offset);
+            const dateStr = dateForCol.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            dayHeaders[i].innerHTML = `${dayNames[i]}<div class="day-date">${dateStr}</div>`;
+        }
+    }
+
+    // Add a Geometry meeting on Tuesday 6:00–7:30 PM (auto-generated)
+    // First remove any prior auto-generated entries to avoid duplicates
+    document.querySelectorAll('.class-slot.geometry.autogen').forEach(n => n.parentNode.removeChild(n));
+    const daySlots = document.querySelectorAll('.week-grid .day-column .day-slots');
+    if (daySlots.length >= 2) {
+        const tuesdaySlots = daySlots[1]; // Monday=0, Tuesday=1
+        const slot = document.createElement('div');
+        slot.className = 'class-slot geometry autogen';
+        slot.setAttribute('data-subject', 'Geometry');
+        slot.setAttribute('data-time', '18:00'); // 6 PM positioning
+        slot.style.height = '60px'; // 1.5 hours at 40px/hour
+        slot.innerHTML = `
+            <div class="class-info">
+                <h4>Geometry</h4>
+                <p>Group Session</p>
+                <div class="time">6:00 PM - 7:30 PM</div>
+                <button class="book-btn">Book</button>
+            </div>
+        `;
+        tuesdaySlots.appendChild(slot);
+        const bookBtn = slot.querySelector('.book-btn');
+        if (bookBtn) {
+            bookBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                bookClass('Geometry', 'Geometry Group Session', 'ThinkBigPrep Tutor', '6:00 PM - 7:30 PM');
+            });
+        }
+    }
 }
 
 // Update month display
