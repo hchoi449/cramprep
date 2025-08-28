@@ -220,7 +220,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (enrollForm) {
         enrollForm.addEventListener('submit', async function(e) {
             e.preventDefault();
-            const fields = ['parentName','studentName','studentGrade','school','subject','email','phone','comments']
+            const fields = ['parentName','studentName','studentGrade','school','subject','email','phone']
                 .map(id => document.getElementById(id));
             let allValid = true;
             fields.forEach(f => {
@@ -237,6 +237,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 showNotification('Please fill all required fields correctly.', 'error');
                 return;
             }
+            // Normalize/auto-populate student grade to closest option
+            const gradeInput = document.getElementById('studentGrade');
+            const rawGrade = (gradeInput && gradeInput.value || '').trim();
+            const gradeMap = [
+                '5th Grade','6th Grade','7th Grade','8th Grade','9th Grade','10th Grade','11th Grade','12th Grade',
+                'Freshman','Sophomore','Junior','Senior'
+            ];
+            function normalizeGrade(input) {
+                if (!input) return '';
+                const g = input.toLowerCase();
+                // numeric grades
+                const num = parseInt(g.replace(/[^0-9]/g,''), 10);
+                if (!isNaN(num)) {
+                    if (num <= 5) return '5th Grade';
+                    if (num >= 12) return '12th Grade';
+                    return `${num}th Grade`;
+                }
+                if (g.includes('fresh')) return 'Freshman';
+                if (g.includes('soph')) return 'Sophomore';
+                if (g.includes('jun')) return 'Junior';
+                if (g.includes('sen')) return 'Senior';
+                // try partial match
+                const found = gradeMap.find(opt => opt.toLowerCase().startsWith(g));
+                return found || input;
+            }
+            const normalizedGrade = normalizeGrade(rawGrade);
+            if (gradeInput && normalizedGrade) gradeInput.value = normalizedGrade;
+
             const payload = Object.fromEntries(new FormData(enrollForm).entries());
             await sendEmail(payload);
             showNotification('Form prepared in your email client. Please send it.', 'success');
