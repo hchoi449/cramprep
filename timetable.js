@@ -5,11 +5,131 @@ let currentDate = new Date();
 let currentWeek = new Date(currentDate);
 let currentMonth = new Date(currentDate);
 
+// Types (JSDoc for type-safety in JS)
+/** @typedef {('Algebra II'|'Geometry'|'Calculus'|'Chemistry'|'Physics'|'Biology')} Subject */
+/** @typedef {{ id:string, title:string, school:string, tutorName:string, subject:Subject, start:string, end:string, meetLink?:string, comments?:string, createdBy:'owner'|'system' }} CalendarEvent */
+
+// Color map (single source of truth)
+const SUBJECT_COLOR_MAP = {
+    'Algebra II': { bg: getComputedStyle(document.documentElement).getPropertyValue('--subject-algebra-bg').trim() || '#8B4513', text:'#ffffff' },
+    'Geometry': { bg: getComputedStyle(document.documentElement).getPropertyValue('--subject-geometry-bg').trim() || '#6b3410', text:'#ffffff' },
+    'Calculus': { bg: getComputedStyle(document.documentElement).getPropertyValue('--subject-calculus-bg').trim() || '#a0522d', text:'#ffffff' },
+    'Chemistry': { bg: getComputedStyle(document.documentElement).getPropertyValue('--subject-chemistry-bg').trim() || '#a86a3d', text:'#ffffff' },
+    'Physics': { bg: getComputedStyle(document.documentElement).getPropertyValue('--subject-physics-bg').trim() || '#b07d53', text:'#ffffff' },
+    'Biology': { bg: getComputedStyle(document.documentElement).getPropertyValue('--subject-biology-bg').trim() || '#c4946b', text:'#ffffff' }
+};
+
+// RBAC (client hint only; server is source of truth)
+const CURRENT_ROLE = 'user'; // change to 'owner' to expose owner-only controls
+
+// Lightweight cache for events
+let EVENTS_CACHE = { data: /** @type {CalendarEvent[]} */([]), fetchedAt: 0 };
+
+async function fetchEvents() {
+    if (Date.now() - EVENTS_CACHE.fetchedAt < 60_000 && EVENTS_CACHE.data.length) return EVENTS_CACHE.data;
+    try {
+        const res = await fetch('/api/events', { headers: { Accept: 'application/json' } });
+        if (!res.ok) throw new Error('Failed');
+        const data = await res.json();
+        EVENTS_CACHE = { data, fetchedAt: Date.now() };
+        return data;
+    } catch {
+        // Fallback sample for current week
+        const monday = getMonday(new Date());
+        const tuesday = new Date(monday); tuesday.setDate(monday.getDate() + 1);
+        const start = new Date(tuesday); start.setHours(18, 0, 0, 0); // 6 PM EST
+        const end = new Date(tuesday); end.setHours(19, 30, 0, 0);
+        const sample = [{
+            id: 'sample-1',
+            title: 'Algebra Review Quiz',
+            school: 'NVD',
+            tutorName: 'Henry C.',
+            subject: 'Geometry',
+            start: start.toISOString(),
+            end: end.toISOString(),
+            meetLink: 'https://meet.google.com/abc-defg-hij',
+            comments: 'Bring a calculator.',
+            createdBy: 'system'
+        }];
+        EVENTS_CACHE = { data: sample, fetchedAt: Date.now() };
+        return sample;
+    }
+}
+
+function getMonday(date){
+    const d = new Date(date);
+    const day = d.getDay();
+    const diffToMonday = (day === 0 ? -6 : 1 - day);
+    d.setDate(d.getDate() + diffToMonday);
+    d.setHours(0,0,0,0);
+    return d;
+}
+
+function toEst(date){
+    // Convert to America/New_York components
+    const fmt = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', hour:'2-digit', minute:'2-digit', hour12:false, year:'numeric', month:'2-digit', day:'2-digit' });
+    const parts = fmt.formatToParts(date).reduce((a,p)=> (a[p.type]=p.value, a), {});
+    const est = new Date(`${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:00`);
+    return est;
+}
+
+function hourToSlotLabel(h24){
+    if (h24 === 0) return '00:00';
+    if (h24 === 12) return '12:00';
+    const h = h24 % 12;
+    return `${String(h).padStart(2,'0')}:00`;
+}
+
+function renderWeekEvents(startOfWeek){
+    // Clear previous autogen entries
+    document.querySelectorAll('.class-slot.autogen').forEach(n => n.parentNode.removeChild(n));
+    const daySlots = Array.from(document.querySelectorAll('.week-grid .day-column .day-slots'));
+    if (daySlots.length !== 7) return;
+    EVENTS_CACHE.data.forEach(ev => {
+        // Convert to EST and filter to current week and time window (12:00..24:00)
+        const s = toEst(new Date(ev.start));
+        const e = toEst(new Date(ev.end));
+        const weekStart = new Date(startOfWeek);
+        const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate()+7);
+        if (!(s >= weekStart && s < weekEnd)) return;
+        const dayIndex = (s.getDay() + 6) % 7; // Mon=0..Sun=6
+        const hour = s.getHours();
+        if (hour < 12 && hour !== 0) return; // restrict to 12PM..12AM
+        const targetCol = daySlots[dayIndex];
+        const slot = document.createElement('div');
+        slot.className = `class-slot autogen ${ev.subject.toLowerCase().replace(/\s+/g,'-')}`;
+        slot.setAttribute('data-subject', ev.subject);
+        slot.setAttribute('tabindex','0');
+        slot.setAttribute('role','button');
+        const label = hourToSlotLabel(hour);
+        slot.setAttribute('data-time', label);
+        // Height based on duration (56px/hr)
+        const durMin = Math.max(30, Math.round((e - s) / 60000));
+        slot.style.height = `${(durMin/60)*56}px`;
+        // Compact view
+        slot.innerHTML = `<div class="class-info" style="font-family: inherit;">
+            <h4 title="${ev.title}">${ev.title}</h4>
+            <p title="${ev.school}">${ev.school}</p>
+            <div class="time" title="${ev.tutorName}">${ev.tutorName}</div>
+        </div>`;
+        const c = SUBJECT_COLOR_MAP[ev.subject];
+        if (c) { slot.style.background = c.bg; slot.style.color = c.text; }
+        const open = (e_)=>{ e_ && e_.preventDefault(); showEventDetails(ev); };
+        slot.addEventListener('click', open);
+        slot.addEventListener('keydown', function(e_){ if(e_.key==='Enter'||e_.key===' '){ open(e_);} });
+        targetCol.appendChild(slot);
+    });
+}
+
 // Initialize the page
 document.addEventListener('DOMContentLoaded', function() {
     initializeTimetable();
     setupEventListeners();
     updateWeekDisplay();
+    fetchEvents().then(()=>{
+        const monday = getMonday(currentWeek);
+        renderWeekEvents(monday);
+    });
     updateMonthDisplay();
 });
 
@@ -141,36 +261,41 @@ function updateWeekDisplay() {
         }
     }
 
-    // Add a Geometry meeting on Tuesday 6:00–7:30 PM (auto-generated)
-    // First remove any prior auto-generated entries to avoid duplicates
-    document.querySelectorAll('.class-slot.geometry.autogen').forEach(n => n.parentNode.removeChild(n));
-    const daySlots = document.querySelectorAll('.week-grid .day-column .day-slots');
-    if (daySlots.length >= 2) {
-        const tuesdaySlots = daySlots[1]; // Monday=0, Tuesday=1
-        const slot = document.createElement('div');
-        slot.className = 'class-slot geometry autogen';
-        slot.setAttribute('data-subject', 'Geometry');
-        slot.setAttribute('data-time', '06:00'); // 6 PM positioning (matches CSS mapping)
-        slot.style.height = '84px'; // 1.5 hours at 56px/hour
-        slot.innerHTML = `
-            <div class="class-info" style="font-family: inherit;">
-                <h4>Geometry</h4>
-                <p><strong>School:</strong> NVD</p>
-                <p><strong>Title:</strong> Algebra Review Quiz</p>
-                <p><strong>Tutor:</strong> Henry C.</p>
-                <div class="time">6:00 PM - 7:30 PM</div>
-                <button class="book-btn">Book</button>
-            </div>
-        `;
-        tuesdaySlots.appendChild(slot);
-        const bookBtn = slot.querySelector('.book-btn');
-        if (bookBtn) {
-            bookBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                bookClass('Geometry', 'Geometry Group Session', 'ThinkBigPrep Tutor', '6:00 PM - 7:30 PM');
-            });
-        }
-    }
+    // Events render from cache in renderWeekEvents
+}
+
+// Accessible event modal (basic)
+function showEventDetails(/** @type {CalendarEvent} */event){
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:10000;display:flex;align-items:center;justify-content:center;';
+    overlay.setAttribute('role','dialog');
+    overlay.setAttribute('aria-modal','true');
+    overlay.setAttribute('aria-label','Event details');
+    const card = document.createElement('div');
+    card.style.cssText = 'background:#fff;border-radius:12px;max-width:520px;width:calc(100% - 40px);padding:20px;box-shadow:0 20px 60px rgba(0,0,0,0.2);';
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = 'Close';
+    closeBtn.className = 'btn btn-secondary';
+    closeBtn.style.cssText = 'float:right;margin-bottom:8px;';
+    closeBtn.addEventListener('click', ()=>document.body.removeChild(overlay));
+    overlay.addEventListener('click', (e)=>{ if(e.target===overlay) document.body.removeChild(overlay); });
+    document.addEventListener('keydown', escHandler);
+    function escHandler(e){ if(e.key==='Escape'){ document.removeEventListener('keydown', escHandler); if(overlay.parentNode) document.body.removeChild(overlay);} }
+    const fmt = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', month:'short', day:'numeric', hour:'numeric', minute:'2-digit', hour12:true });
+    const timeStr = `${fmt.format(new Date(event.start))} – ${fmt.format(new Date(event.end))} (EST)`;
+    card.innerHTML = `
+        <h3 style="margin-top:0;">${event.title}</h3>
+        <p><strong>School:</strong> ${event.school}</p>
+        <p><strong>Tutor:</strong> ${event.tutorName}</p>
+        <p><strong>Subject:</strong> ${event.subject}</p>
+        <p><strong>When:</strong> ${timeStr}</p>
+        ${event.meetLink ? `<p><strong>Google Meet:</strong> <a href="${event.meetLink}" target="_blank" rel="noreferrer">Join</a></p>`: ''}
+        ${event.comments ? `<p><strong>Comments:</strong><br>${event.comments}</p>`: ''}
+    `;
+    card.insertBefore(closeBtn, card.firstChild);
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+    closeBtn.focus();
 }
 
 // Update month display

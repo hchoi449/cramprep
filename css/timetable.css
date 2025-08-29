@@ -187,35 +187,26 @@
 }
 
 /* Subject Colors */
-.class-slot.algebra {
-    background: linear-gradient(135deg, #ff6b6b, #ee5a52);
-    color: white;
+/* Unified subject palettes (match legend) */
+:root {
+    --subject-algebra-bg: #8B4513;
+    --subject-geometry-bg: #6b3410;
+    --subject-calculus-bg: #a0522d;
+    --subject-chemistry-bg: #a86a3d;
+    --subject-physics-bg: #b07d53;
+    --subject-biology-bg: #c4946b;
 }
 
-.class-slot.geometry {
-    background: linear-gradient(135deg, #6b3410, #6b3410);
-    color: white;
-}
+.class-slot { border: 1px solid rgba(0,0,0,0.05); }
 
-.class-slot.calculus {
-    background: linear-gradient(135deg, #45b7d1, #96c93d);
-    color: white;
-}
+.class-slot.algebra { background: var(--subject-algebra-bg); color: #fff; }
+.class-slot.geometry { background: var(--subject-geometry-bg); color: #fff; }
+.class-slot.calculus { background: var(--subject-calculus-bg); color: #fff; }
+.class-slot.chemistry { background: var(--subject-chemistry-bg); color: #fff; }
+.class-slot.physics { background: var(--subject-physics-bg); color: #fff; }
+.class-slot.biology { background: var(--subject-biology-bg); color: #fff; }
 
-.class-slot.chemistry {
-    background: linear-gradient(135deg, #f093fb, #f5576c);
-    color: white;
-}
-
-.class-slot.physics {
-    background: linear-gradient(135deg, #4facfe, #00f2fe);
-    color: white;
-}
-
-.class-slot.biology {
-    background: linear-gradient(135deg, #43e97b, #38f9d7);
-    color: white;
-}
+.class-slot:focus, .class-slot:hover { outline: 2px solid rgba(255,255,255,0.9); outline-offset: 0; }
 
 .class-info h4 {
     font-size: 0.9rem;
