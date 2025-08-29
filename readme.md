@@ -1,3 +1,26 @@
+## Local Development (Cloudflare Pages Functions)
+
+This project serves calendar events from a Pages Function at `/api/events`.
+
+### Seed Data
+- File: `data/events.json`
+- Shape:
+  - Subject: `"Algebra II" | "Geometry" | "Calculus" | "Chemistry" | "Physics" | "Biology"`
+  - CalendarEvent fields: `id, title, school, tutorName, subject, start, end, meetLink?, comments?, createdBy`.
+
+To add events, edit `data/events.json` and push. Pages deploy will serve the new data.
+
+### Run locally
+1. Install Wrangler if needed: `npm i -g wrangler`
+2. From the project root, run:
+   ```bash
+   wrangler dev
+   ```
+3. Open the local URL; the timetable page will fetch `/api/events`.
+
+Notes:
+- Response headers: `Content-Type: application/json`, `Cache-Control: private, max-age=0`.
+- Errors return 5xx with `{ "error": "message" }`.
 # AMC Academy Website Replica
 
 A modern, responsive website replica of [AMC Academy](https://www.amcacademy.org/) built with HTML, CSS, and JavaScript. This project showcases a professional math tutoring academy website with all the key features and functionality of the original site.

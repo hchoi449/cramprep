@@ -27,34 +27,35 @@ let EVENTS_CACHE = { data: /** @type {CalendarEvent[]} */([]), fetchedAt: 0 };
 
 async function fetchEvents() {
     if (Date.now() - EVENTS_CACHE.fetchedAt < 60_000 && EVENTS_CACHE.data.length) return EVENTS_CACHE.data;
+    const banner = ensureBanner();
     try {
         const res = await fetch('/api/events', { headers: { Accept: 'application/json' } });
         if (!res.ok) throw new Error('Failed');
-        const data = await res.json();
-        EVENTS_CACHE = { data, fetchedAt: Date.now() };
-        return data;
+        const { events } = await res.json();
+        EVENTS_CACHE = { data: events, fetchedAt: Date.now() };
+        hideBanner(banner);
+        return events;
     } catch {
-        // Fallback sample for current week
-        const monday = getMonday(new Date());
-        const tuesday = new Date(monday); tuesday.setDate(monday.getDate() + 1);
-        const start = new Date(tuesday); start.setHours(18, 0, 0, 0); // 6 PM EST
-        const end = new Date(tuesday); end.setHours(19, 30, 0, 0);
-        const sample = [{
-            id: 'sample-1',
-            title: 'Algebra Review Quiz',
-            school: 'NVD',
-            tutorName: 'Henry C.',
-            subject: 'Geometry',
-            start: start.toISOString(),
-            end: end.toISOString(),
-            meetLink: 'https://meet.google.com/abc-defg-hij',
-            comments: 'Bring a calculator.',
-            createdBy: 'system'
-        }];
-        EVENTS_CACHE = { data: sample, fetchedAt: Date.now() };
-        return sample;
+        showBanner(banner, 'Unable to load events');
+        EVENTS_CACHE = { data: [], fetchedAt: Date.now() };
+        return [];
     }
 }
+
+function ensureBanner(){
+    let b = document.getElementById('events-banner');
+    if (!b) {
+        b = document.createElement('div');
+        b.id = 'events-banner';
+        b.style.cssText = 'position:sticky;top:0;z-index:50;background:#fff3cd;color:#92400e;padding:8px 12px;border:1px solid #fde68a;border-radius:8px;margin:8px auto;max-width:960px;display:none;';
+        b.setAttribute('role','status');
+        const container = document.querySelector('.timetable-content .container') || document.body;
+        container.insertBefore(b, container.firstChild);
+    }
+    return b;
+}
+function showBanner(b, msg){ b.textContent = msg; b.style.display = 'block'; }
+function hideBanner(b){ if(b){ b.style.display = 'none'; } }
 
 function getMonday(date){
     const d = new Date(date);
