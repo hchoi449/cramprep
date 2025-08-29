@@ -1,0 +1,26 @@
+[
+  {
+    "id": "evt-geo-001",
+    "title": "Algebra Review Quiz",
+    "school": "NVD",
+    "tutorName": "Henry C.",
+    "subject": "Geometry",
+    "start": "2025-08-26T22:00:00.000Z",
+    "end": "2025-08-26T23:30:00.000Z",
+    "meetLink": "https://meet.google.com/abc-defg-hij",
+    "comments": "Bring a calculator.",
+    "createdBy": "system"
+  },
+  {
+    "id": "evt-cal-002",
+    "title": "Derivatives Bootcamp",
+    "school": "THS",
+    "tutorName": "Kevin Z.",
+    "subject": "Calculus",
+    "start": "2025-08-28T23:00:00.000Z",
+    "end": "2025-08-29T00:00:00.000Z",
+    "meetLink": "https://meet.google.com/xyz-stuv-wyz",
+    "comments": "Review Chapter 3 notes.",
+    "createdBy": "owner"
+  }
+]
