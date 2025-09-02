@@ -258,9 +258,18 @@
                 </div>
             </div>
             <form id="ai-chat-form" class="ai-chat-input" novalidate>
-                <label id="ai-chat-prompt" for="ai-chat-field" class="sr-only">Response</label>
-                <div id="ai-chat-field-container"></div>
-                <button type="submit" class="btn btn-primary" id="ai-chat-next-btn">Next</button>
+                <button type="button" id="ai-emoji-btn" class="ai-icon-btn" aria-label="Insert emoji"><i class="bi bi-emoji-smile"></i></button>
+                <input id="ai-text" name="text" type="text" placeholder="Type a message..." autocomplete="off" />
+                <input id="ai-image" name="image" type="file" accept="image/*" style="display:none" />
+                <label for="ai-image" class="ai-icon-btn" id="ai-image-btn" aria-label="Upload image"><i class="bi bi-image"></i></label>
+                <button type="submit" class="btn btn-primary" id="ai-send-btn" aria-label="Send"><i class="bi bi-send"></i></button>
+                <div id="ai-emoji-panel" class="ai-emoji-panel" role="menu" aria-hidden="true" style="display:none">
+                    <button type="button" class="ai-emoji">😊</button>
+                    <button type="button" class="ai-emoji">👍</button>
+                    <button type="button" class="ai-emoji">🎉</button>
+                    <button type="button" class="ai-emoji">🤔</button>
+                    <button type="button" class="ai-emoji">🔥</button>
+                </div>
             </form>
         </div>
     </body>

@@ -179,6 +179,12 @@ document.addEventListener('DOMContentLoaded', function() {
             input.required = !!s.required;
             fieldContainer.appendChild(input);
             input.focus();
+            // typing indicator
+            const typing = document.createElement('div');
+            typing.className = 'ai-typing';
+            typing.innerHTML = '<span></span>';
+            if (body) body.appendChild(typing);
+            setTimeout(()=>{ if (typing && typing.parentNode) typing.parentNode.removeChild(typing); }, 600);
         }
 
         function openChat() {
@@ -197,7 +203,7 @@ document.addEventListener('DOMContentLoaded', function() {
         closeBtn.addEventListener('click', closeChat);
         chatbox.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeChat(); });
         if (overlayEl) overlayEl.addEventListener('click', closeChat);
-        form.addEventListener('submit', function(e){
+        form.addEventListener('submit', async function(e){
             e.preventDefault();
             const s = steps[step];
             const field = document.getElementById('ai-chat-field');
@@ -206,10 +212,21 @@ document.addEventListener('DOMContentLoaded', function() {
             answers[s.id] = val;
             step += 1;
             if (step >= steps.length) {
-                if (body) body.textContent = 'Thanks! We will match you with a tutor and reach out.';
+                // Send to mock AI chat endpoint
+                const text = `${answers.name || ''} | ${answers.school || ''} | ${answers.grade || ''} | ${answers.help || ''} | ${answers.desc || ''} | ${answers.day || ''}`.trim();
+                try {
+                    const res = await fetch('/api/chat', { method:'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ text }) });
+                    const data = await res.json();
+                    if (body) {
+                        const p = document.createElement('p');
+                        p.style.margin = '12px';
+                        p.textContent = data.reply || 'Thanks! We will match you with a tutor and reach out.';
+                        body.appendChild(p);
+                    }
+                } catch {}
                 fieldContainer.innerHTML = '';
                 nextBtn.disabled = true;
-                setTimeout(closeChat, 1500);
+                setTimeout(closeChat, 2000);
                 return;
             }
             renderStep();
