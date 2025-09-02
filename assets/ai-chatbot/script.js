@@ -40,6 +40,14 @@
   </div>`;
 
   function mount(){
+    // overlay for outside click to close
+    let overlay = document.querySelector('.tbp-chat-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'tbp-chat-overlay';
+      document.body.appendChild(overlay);
+      overlay.addEventListener('click', ()=> document.body.classList.remove('show-chatbot'));
+    }
     document.body.appendChild(root);
     // initial bot greeting
     const chatBody = root.querySelector('.chat-body');
