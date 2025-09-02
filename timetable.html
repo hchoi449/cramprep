@@ -238,39 +238,9 @@
 
         <script src="index.js"></script>
         <script src="timetable.js"></script>
-        <button id="ai-chat-open" class="btn btn-primary floating-ai-btn" aria-controls="ai-chatbox" aria-expanded="false">
+        <button id="ai-chat-open" class="btn btn-primary floating-ai-btn">
             <i class="bi bi-chat-dots"></i> Schedule AI
         </button>
-        
-        <!-- AI Chat overlay -->
-        <div id="ai-chat-overlay" class="ai-chat-overlay" style="display: none;"></div>
-
-        <!-- AI Chatbox -->
-        <div id="ai-chatbox" class="ai-chatbox" role="dialog" aria-modal="true" aria-labelledby="ai-chat-title" style="display: none;">
-            <div class="ai-chat-header">
-                <h4 id="ai-chat-title">ThinkBigPrep AI</h4>
-                <button id="ai-chat-close" class="ai-chat-close" aria-label="Close chat"><i class="bi bi-x"></i></button>
-            </div>
-            <div class="ai-chat-body" id="ai-chat-body" tabindex="0" aria-live="polite">
-                <div class="ai-hero">
-                    <div class="ai-hero-icon">✦</div>
-                    <div class="ai-hero-title">Ask our AI anything</div>
-                </div>
-            </div>
-            <form id="ai-chat-form" class="ai-chat-input" novalidate>
-                <button type="button" id="ai-emoji-btn" class="ai-icon-btn" aria-label="Insert emoji"><i class="bi bi-emoji-smile"></i></button>
-                <input id="ai-text" name="text" type="text" placeholder="Type a message..." autocomplete="off" />
-                <input id="ai-image" name="image" type="file" accept="image/*" style="display:none" />
-                <label for="ai-image" class="ai-icon-btn" id="ai-image-btn" aria-label="Upload image"><i class="bi bi-image"></i></label>
-                <button type="submit" class="btn btn-primary" id="ai-send-btn" aria-label="Send"><i class="bi bi-send"></i></button>
-                <div id="ai-emoji-panel" class="ai-emoji-panel" role="menu" aria-hidden="true" style="display:none">
-                    <button type="button" class="ai-emoji">😊</button>
-                    <button type="button" class="ai-emoji">👍</button>
-                    <button type="button" class="ai-emoji">🎉</button>
-                    <button type="button" class="ai-emoji">🤔</button>
-                    <button type="button" class="ai-emoji">🔥</button>
-                </div>
-            </form>
-        </div>
+        <!-- External AI Chatbox integration placeholder -->
     </body>
 </html>
