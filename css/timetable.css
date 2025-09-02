@@ -192,7 +192,7 @@
     --subject-biology-bg: #c4946b;
 }
 
-.class-slot { border: 1px solid rgba(0,0,0,0.05); }
+.class-slot { position: absolute; left: 6px; right: 6px; border: 1px solid rgba(0,0,0,0.05); border-radius: 8px; padding: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
 .class-slot.algebra { background: var(--subject-algebra-bg); color: #fff; }
 .class-slot.geometry { background: var(--subject-geometry-bg); color: #fff; }
 .class-slot.calculus { background: var(--subject-calculus-bg); color: #fff; }

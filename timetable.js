@@ -102,8 +102,10 @@ function renderWeekEvents(startOfWeek){
         slot.setAttribute('data-subject', ev.subject);
         slot.setAttribute('tabindex','0');
         slot.setAttribute('role','button');
-        const label = hourToSlotLabel(hour);
-        slot.setAttribute('data-time', label);
+        // Position mapping: 12:00 => 0px, each hour => +56px
+        const offsetHours = (hour === 0 ? 12 : hour) - 12; // 12->0, 13->1 ... 23->11, 0->12 handled separately
+        const topPx = (hour === 0 ? 12 : offsetHours) * 56;
+        slot.style.top = `${topPx}px`;
         // Height based on duration (56px/hr)
         const durMin = Math.max(30, Math.round((e - s) / 60000));
         slot.style.height = `${(durMin/60)*56}px`;
