@@ -349,25 +349,21 @@ function generateMonthView() {
         monthGrid.appendChild(emptyDay);
     }
     
-    // Add days of the month
+    // Keep references to day cells to append events later
+    const dayCells = [];
     for (let day = 1; day <= daysInMonth; day++) {
         const dayElement = document.createElement('div');
         dayElement.className = 'month-day';
-        
-        // Check if it's today
         const today = new Date();
         if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
             dayElement.classList.add('today');
         }
-        
-        // Add day number
         const dayHeader = document.createElement('div');
         dayHeader.className = 'month-day-header';
         dayHeader.textContent = day;
         dayElement.appendChild(dayHeader);
-        
-        // No demo classes added; days remain empty by default
         monthGrid.appendChild(dayElement);
+        dayCells.push(dayElement);
     }
     
     // Add empty cells for days after month ends
@@ -378,6 +374,25 @@ function generateMonthView() {
         emptyDay.className = 'month-day other-month';
         monthGrid.appendChild(emptyDay);
     }
+    // Render events for the currentMonth
+    try {
+        const tz = 'America/New_York';
+        const fmt = new Intl.DateTimeFormat('en-US', { timeZone: tz, year:'numeric', month:'numeric', day:'numeric' });
+        EVENTS_CACHE.data.forEach(ev => {
+            const s = toEst(new Date(ev.start));
+            if (s.getFullYear() !== year || s.getMonth() !== month) return;
+            const day = s.getDate();
+            const cell = dayCells[day - 1];
+            if (!cell) return;
+            const pill = document.createElement('div');
+            const subjSlug = String(ev.subject || '').toLowerCase().replace(/\s+/g,'-');
+            pill.className = `month-class ${subjSlug}`;
+            const startStr = s.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
+            pill.textContent = `${ev.title || ev.subject || 'Class'} • ${startStr}`;
+            pill.title = `${ev.subject} with ${ev.tutorName}`;
+            cell.appendChild(pill);
+        });
+    } catch {}
 }
 
 // Book class function

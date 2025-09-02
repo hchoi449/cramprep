@@ -17,16 +17,11 @@
  * }
  */
 
-export const onRequestGet: PagesFunction = async (context) => {
-  try {
-    // Read seed data from the repo (bundled with Pages deploy)
-    // Note: new Request URL build ensures relative path resolution under Pages
-    const url = new URL('../../data/events.json', context.request.url);
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Failed to read events.json (${res.status})`);
-    const json = await res.json();
+import eventsData from '../../data/events.json';
 
-    return new Response(JSON.stringify({ events: json }), {
+export const onRequestGet: PagesFunction = async () => {
+  try {
+    return new Response(JSON.stringify({ events: eventsData }), {
       status: 200,
       headers: {
         'Content-Type': 'application/json; charset=utf-8',
