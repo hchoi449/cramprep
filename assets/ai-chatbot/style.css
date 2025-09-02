@@ -19,7 +19,7 @@ body.show-chatbot .chatbot-popup { opacity: 1; pointer-events: auto; transform: 
 .chat-header #close-chatbot:hover { background: #6b3410; }
 
 .chat-body { padding: 25px 22px; gap: 20px; display: flex; height: 560px; overflow-y: auto; margin-bottom: 82px; flex-direction: column; scrollbar-width: thin; scrollbar-color: #e2d4c7 transparent; font-family: inherit; position: relative; }
-.chat-body::before { content: ""; position: absolute; inset: 0; background: url('/assets/logo/thinkbigprep-icon.svg') center center / 280px 280px no-repeat; opacity: 0.15; pointer-events: none; }
+.chat-body::before { content: ""; position: absolute; inset: 0; background: url('/assets/logo/thinkbigprep-icon.svg') center center / 280px 280px no-repeat; opacity: 0.15; pointer-events: none; will-change: transform; transform: translateY(calc(-1 * var(--tbp-chat-scroll, 0px))); }
 .chat-body > * { position: relative; z-index: 1; }
 .chat-body, .chat-form .message-input:hover { scrollbar-color: #e2d4c7 transparent; }
 .chat-body .message { display: flex; gap: 11px; align-items: center; }

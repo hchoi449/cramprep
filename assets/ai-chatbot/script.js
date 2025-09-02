@@ -136,6 +136,12 @@
     fileInput.addEventListener('change', ()=>{ const file = fileInput.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = (ev)=>{ fileInput.value=''; fileUploadWrapper.querySelector('img').src = ev.target.result; fileUploadWrapper.classList.add('file-uploaded'); const b64 = String(ev.target.result).split(',')[1]; userData.file = { data: b64, mime_type: file.type }; }; reader.readAsDataURL(file); });
     fileCancelButton.addEventListener('click', ()=>{ userData.file = {}; fileUploadWrapper.classList.remove('file-uploaded'); });
 
+    // Scroll-linked logo parallax: update CSS var based on scroll position
+    chatBody.addEventListener('scroll', ()=>{
+      const y = chatBody.scrollTop || 0;
+      document.documentElement.style.setProperty('--tbp-chat-scroll', y + 'px');
+    });
+
     function initEmoji(){
       if (!window.EmojiMart || !window.EmojiMart.Picker) { setTimeout(initEmoji, 100); return; }
       const picker = new EmojiMart.Picker({ theme:'light', skinTonePosition:'none', previewPosition:'none', onEmojiSelect: (emoji)=>{ const { selectionStart: start, selectionEnd: end } = messageInput; messageInput.setRangeText(emoji.native, start, end, 'end'); messageInput.focus(); }, onClickOutside: (e)=>{ if (e.target.id === 'emoji-picker') { document.body.classList.toggle('show-emoji-picker'); } else { document.body.classList.remove('show-emoji-picker'); } } });
