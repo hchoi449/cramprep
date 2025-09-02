@@ -76,6 +76,13 @@
 
     const userData = { message: null, file: { data:null, mime_type:null } };
     const chatHistory = [];
+    // Seed assistant role and constraints
+    chatHistory.push({
+      role: 'model',
+      parts: [{
+        text: "You are ThinkBigPrep's scheduling assistant. Help students book sessions. Keep every reply within 300 characters. Ask concise follow-ups (name, school, grade, subject, help type, preferred day/time). Be friendly and professional."
+      }]
+    });
     const initialInputHeight = messageInput.scrollHeight;
 
     const createMessageElement = (content, ...classes) => { const div = document.createElement('div'); div.classList.add('message', ...classes); div.innerHTML = content; return div; };
@@ -89,8 +96,9 @@
         const data = await response.json();
         if (!response.ok) throw new Error((data && data.error && data.error.message) || 'API error');
         const apiResponseText = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text || '').replace(/\*\*(.*?)\*\*/g,'$1').trim();
-        messageElement.innerText = apiResponseText || '...';
-        chatHistory.push({ role:'model', parts:[{ text: apiResponseText }] });
+        const constrained = apiResponseText ? apiResponseText.slice(0, 300) : '';
+        messageElement.innerText = constrained || '...';
+        chatHistory.push({ role:'model', parts:[{ text: constrained }] });
       } catch (err) {
         messageElement.innerText = (err && err.message) || 'Request failed';
         messageElement.style.color = '#ff0000';
