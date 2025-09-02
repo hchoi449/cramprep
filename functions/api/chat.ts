@@ -1,33 +1,50 @@
 /**
  * Cloudflare Pages Function: POST /api/chat
- * Minimal mock that echoes back guidance and a short reply.
+ * Calls OpenAI Chat Completions (or Vision if image provided) and returns the assistant reply.
+ * Requires OPENAI_API_KEY in Pages env.
  */
 export const onRequestPost: PagesFunction = async (context) => {
   try {
-    const req = context.request;
-    const contentType = req.headers.get('content-type') || '';
-
-    /** @type {{ text?: string; imageName?: string }} */
-    let payload = {};
-
-    if (contentType.includes('application/json')) {
-      payload = await req.json();
-    } else if (contentType.includes('multipart/form-data')) {
-      const formData = await req.formData();
-      payload.text = String(formData.get('text') || '');
-      const file = formData.get('image');
-      if (file && typeof file === 'object' && 'name' in file) {
-        payload.imageName = (file as File).name;
-      }
-    } else {
-      return new Response(JSON.stringify({ error: 'Unsupported content type' }), { status: 400, headers: jsonHeaders() });
+    const apiKey = (context.env as any)?.OPENAI_API_KEY as string | undefined;
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: 'Missing OPENAI_API_KEY' }), { status: 500, headers: jsonHeaders() });
     }
 
-    const text = (payload.text || '').trim();
+    const req = context.request;
+    if (!(req.headers.get('content-type') || '').includes('application/json')) {
+      return new Response(JSON.stringify({ error: 'Expected application/json' }), { status: 400, headers: jsonHeaders() });
+    }
 
-    const reply = `Thanks for the details${payload.imageName ? ` (received ${payload.imageName})` : ''}.` +
-      (text ? ` You said: "${text}". Our tutor-matching AI will suggest a plan and time.` : ' Tell me what you need help with to get started.');
+    /** @type {{ text?: string; imageDataURL?: string }} */
+    const { text = '', imageDataURL } = await req.json();
 
+    const userContent: any[] = [];
+    if (text) userContent.push({ type: 'text', text });
+    if (imageDataURL) userContent.push({ type: 'image_url', image_url: { url: imageDataURL } });
+
+    const body = {
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'You are a helpful academic assistant for ThinkBigPrep.' },
+        { role: 'user', content: userContent.length ? userContent : [{ type: 'text', text: 'Hello' }] }
+      ],
+      temperature: 0.3
+    };
+
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      return new Response(JSON.stringify({ error: `Upstream error ${res.status}: ${errText}` }), { status: 502, headers: jsonHeaders() });
+    }
+    const data = await res.json();
+    const reply = data?.choices?.[0]?.message?.content ?? 'Sorry, I could not generate a response.';
     return new Response(JSON.stringify({ reply }), { status: 200, headers: jsonHeaders() });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';

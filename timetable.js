@@ -215,7 +215,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Send to mock AI chat endpoint
                 const text = `${answers.name || ''} | ${answers.school || ''} | ${answers.grade || ''} | ${answers.help || ''} | ${answers.desc || ''} | ${answers.day || ''}`.trim();
                 try {
-                    const res = await fetch('/api/chat', { method:'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ text }) });
+                    // If user selected an image file, convert to DataURL
+                    const imgInput = document.getElementById('ai-image');
+                    let imageDataURL = '';
+                    if (imgInput && imgInput.files && imgInput.files[0]) {
+                        imageDataURL = await fileToDataURL(imgInput.files[0]);
+                    }
+                    const res = await fetch('/api/chat', { method:'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ text, imageDataURL }) });
                     const data = await res.json();
                     if (body) {
                         const p = document.createElement('p');
@@ -231,6 +237,25 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             renderStep();
         });
+
+        // emoji picker
+        const emojiBtn = document.getElementById('ai-emoji-btn');
+        const emojiPanel = document.getElementById('ai-emoji-panel');
+        const textInput = document.getElementById('ai-text');
+        if (emojiBtn && emojiPanel && textInput) {
+            emojiBtn.addEventListener('click', function(){
+                const visible = emojiPanel.style.display !== 'none';
+                emojiPanel.style.display = visible ? 'none' : 'grid';
+            });
+            emojiPanel.querySelectorAll('.ai-emoji').forEach(function(btn){
+                btn.addEventListener('click', function(){
+                    var em = this.textContent || '';
+                    textInput.value = (textInput.value || '') + em;
+                    emojiPanel.style.display = 'none';
+                    textInput.focus();
+                });
+            });
+        }
     }
 });
 
@@ -397,6 +422,16 @@ function showEventDetails(/** @type {CalendarEvent} */event){
     overlay.appendChild(card);
     document.body.appendChild(overlay);
     closeBtn.focus();
+}
+
+// utils
+async function fileToDataURL(file){
+    return new Promise((resolve, reject)=>{
+        const reader = new FileReader();
+        reader.onload = ()=> resolve(String(reader.result||''));
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
 }
 
 // Update month display
