@@ -1,11 +1,17 @@
+.ai-chat-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 1000;
+}
 /* Floating AI button */
 .floating-ai-btn {
     position: fixed;
     bottom: 24px;
     right: 24px;
     z-index: 1000;
-    padding: 12px 24px !important; /* match .btn sizing */
-    border-radius: 8px !important; /* match buttons */
+    padding: 12px 18px !important; /* match Book Consultation */
+    border-radius: 9999px !important; /* pill shape */
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
     display: inline-flex;
     align-items: center;
@@ -15,17 +21,19 @@
 /* AI Chatbox */
 .ai-chatbox {
     position: fixed;
-    bottom: 100px;
-    right: 24px;
-    width: min(400px, 92vw);
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: min(760px, 92vw);
     background: #ffffff;
     border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    border-radius: 16px;
+    box-shadow: 0 25px 80px rgba(0,0,0,0.25);
     z-index: 1001;
     display: flex;
     flex-direction: column;
-    max-height: 70vh;
+    max-height: 80vh;
+    overflow: hidden;
 }
 .ai-chat-header {
     display: flex;
@@ -38,7 +46,10 @@
     border-top-right-radius: 12px;
 }
 .ai-chat-close { background: transparent; border: none; color: #fff; font-size: 18px; cursor: pointer; }
-.ai-chat-body { padding: 12px; overflow: auto; min-height: 160px; }
+.ai-chat-body { padding: 0; overflow: auto; min-height: 240px; background: radial-gradient(900px 420px at 30% 80%, rgba(203, 146, 104, 0.15), transparent 60%), radial-gradient(900px 420px at 70% 80%, rgba(107, 52, 16, 0.15), transparent 60%); }
+.ai-hero { text-align: center; padding: 48px 24px 16px; }
+.ai-hero-icon { font-size: 26px; color: #6b3410; margin-bottom: 8px; }
+.ai-hero-title { font-weight: 600; color: #1f2937; }
 .ai-chat-input { padding: 10px 12px; border-top: 1px solid #e5e7eb; display: flex; gap: 8px; }
 .ai-chat-input input, .ai-chat-input select, .ai-chat-input textarea { flex: 1; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; font-size: 14px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }

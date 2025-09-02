@@ -136,6 +136,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // AI Chatbox wiring (timetable only)
     const openBtn = document.getElementById('ai-chat-open');
     const chatbox = document.getElementById('ai-chatbox');
+    const overlayEl = document.getElementById('ai-chat-overlay');
     const closeBtn = document.getElementById('ai-chat-close');
     if (openBtn && chatbox && closeBtn) {
         const body = document.getElementById('ai-chat-body');
@@ -182,17 +183,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
         function openChat() {
             chatbox.style.display = 'flex';
+            if (overlayEl) overlayEl.style.display = 'block';
             openBtn.setAttribute('aria-expanded','true');
             step = 0; Object.keys(answers).forEach(k=>delete answers[k]);
             renderStep();
         }
         function closeChat() {
             chatbox.style.display = 'none';
+            if (overlayEl) overlayEl.style.display = 'none';
             openBtn.setAttribute('aria-expanded','false');
         }
         openBtn.addEventListener('click', openChat);
         closeBtn.addEventListener('click', closeChat);
         chatbox.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeChat(); });
+        if (overlayEl) overlayEl.addEventListener('click', closeChat);
         form.addEventListener('submit', function(e){
             e.preventDefault();
             const s = steps[step];

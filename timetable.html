@@ -242,13 +242,21 @@
             <i class="bi bi-chat-dots"></i> Schedule AI
         </button>
         
+        <!-- AI Chat overlay -->
+        <div id="ai-chat-overlay" class="ai-chat-overlay" style="display: none;"></div>
+
         <!-- AI Chatbox -->
         <div id="ai-chatbox" class="ai-chatbox" role="dialog" aria-modal="true" aria-labelledby="ai-chat-title" style="display: none;">
             <div class="ai-chat-header">
                 <h4 id="ai-chat-title">ThinkBigPrep AI</h4>
                 <button id="ai-chat-close" class="ai-chat-close" aria-label="Close chat"><i class="bi bi-x"></i></button>
             </div>
-            <div class="ai-chat-body" id="ai-chat-body" tabindex="0" aria-live="polite"></div>
+            <div class="ai-chat-body" id="ai-chat-body" tabindex="0" aria-live="polite">
+                <div class="ai-hero">
+                    <div class="ai-hero-icon">✦</div>
+                    <div class="ai-hero-title">Ask our AI anything</div>
+                </div>
+            </div>
             <form id="ai-chat-form" class="ai-chat-input" novalidate>
                 <label id="ai-chat-prompt" for="ai-chat-field" class="sr-only">Response</label>
                 <div id="ai-chat-field-container"></div>
