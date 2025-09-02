@@ -376,20 +376,22 @@ function generateMonthView() {
         emptyDay.className = 'month-day other-month';
         monthGrid.appendChild(emptyDay);
     }
-    // Render events for the currentMonth
+    // Render events for the currentMonth (EST-aware)
     try {
         const tz = 'America/New_York';
-        const fmt = new Intl.DateTimeFormat('en-US', { timeZone: tz, year:'numeric', month:'numeric', day:'numeric' });
         EVENTS_CACHE.data.forEach(ev => {
-            const s = toEst(new Date(ev.start));
-            if (s.getFullYear() !== year || s.getMonth() !== month) return;
-            const day = s.getDate();
-            const cell = dayCells[day - 1];
+            const d0 = new Date(ev.start);
+            const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12: true }).formatToParts(d0).reduce((a,p)=> (a[p.type]=p.value,a), {});
+            const y = Number(parts.year);
+            const m = Number(parts.month) - 1; // 0-based
+            const dayNum = Number(parts.day);
+            if (y !== year || m !== month) return;
+            const cell = dayCells[dayNum - 1];
             if (!cell) return;
             const pill = document.createElement('div');
             const subjSlug = String(ev.subject || '').toLowerCase().replace(/\s+/g,'-');
             pill.className = `month-class ${subjSlug}`;
-            const startStr = s.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
+            const startStr = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour:'numeric', minute:'2-digit' }).format(d0);
             pill.textContent = `${ev.title || ev.subject || 'Class'} • ${startStr}`;
             pill.title = `${ev.subject} with ${ev.tutorName}`;
             cell.appendChild(pill);
