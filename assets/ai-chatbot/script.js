@@ -1,19 +1,18 @@
-/* Minimal wrapper to mount CodingNepal chatbot into our page */
+/* Ported CodingNepal chatbot with Gemini API flow; adapted to our Schedule AI button */
 (function(){
-  const cssHref = '/assets/ai-chatbot/style.css';
-  if (!document.querySelector(`link[href="${cssHref}"]`)) {
-    const l = document.createElement('link');
-    l.rel = 'stylesheet';
-    l.href = cssHref;
-    document.head.appendChild(l);
+  // Load required icon fonts
+  const iconHref = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@48,400,0,0&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@48,400,1,0';
+  if (!document.querySelector(`link[href^="${iconHref}"]`)) {
+    const lf = document.createElement('link'); lf.rel='stylesheet'; lf.href=iconHref; document.head.appendChild(lf);
+  }
+  // Emoji picker
+  if (!window.EmojiMart) {
+    const es = document.createElement('script'); es.src='https://cdn.jsdelivr.net/npm/emoji-mart@latest/dist/browser.js'; document.head.appendChild(es);
   }
 
-  const emojiScript = document.createElement('script');
-  emojiScript.src = 'https://cdn.jsdelivr.net/npm/emoji-mart@latest/dist/browser.js';
-  document.head.appendChild(emojiScript);
-
-  const container = document.createElement('div');
-  container.innerHTML = `
+  // Inject DOM
+  const root = document.createElement('div');
+  root.innerHTML = `
   <div class="chatbot-popup">
     <div class="chat-header">
       <div class="header-info">
@@ -22,9 +21,7 @@
       </div>
       <button id="close-chatbot" class="material-symbols-rounded">keyboard_arrow_down</button>
     </div>
-    <div class="chat-body">
-      <div class="message bot-message"><svg class="bot-avatar" xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 1024 1024"><path d="M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z"/></svg><div class="message-text"> Hey there 👋 <br /> How can I help you today? </div></div>
-    </div>
+    <div class="chat-body"></div>
     <div class="chat-footer">
       <form action="#" class="chat-form">
         <textarea placeholder="Message..." class="message-input" required></textarea>
@@ -43,20 +40,105 @@
   </div>`;
 
   function mount(){
-    document.body.appendChild(container);
-    // Load original logic from external file if needed later
+    document.body.appendChild(root);
+    // initial bot greeting
+    const chatBody = root.querySelector('.chat-body');
+    const greet = document.createElement('div');
+    greet.className = 'message bot-message';
+    greet.innerHTML = `<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/> </svg><div class=\"message-text\"> Hey there 👋 <br /> How can I help you today? </div>`;
+    chatBody.appendChild(greet);
+
+    wireLogic(root);
   }
 
-  // Wire our existing floating button
-  document.addEventListener('DOMContentLoaded', function(){
-    const btn = document.getElementById('ai-chat-open');
-    if (btn) {
-      btn.addEventListener('click', function(){
-        document.body.classList.toggle('show-chatbot');
-      });
+  function wireLogic(root){
+    const chatBody = root.querySelector('.chat-body');
+    const messageInput = root.querySelector('.message-input');
+    const sendMessage = root.querySelector('#send-message');
+    const fileInput = root.querySelector('#file-input');
+    const fileUploadWrapper = root.querySelector('.file-upload-wrapper');
+    const fileCancelButton = fileUploadWrapper.querySelector('#file-cancel');
+    const chatbotToggler = document.getElementById('ai-chat-open');
+    const closeChatbot = root.querySelector('#close-chatbot');
+
+    // API
+    const API_KEY_PLACEHOLDER = 'PASTE-YOUR-API-KEY';
+    const API_KEY = window.TBP_GEMINI_API_KEY || API_KEY_PLACEHOLDER;
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+
+    const userData = { message: null, file: { data:null, mime_type:null } };
+    const chatHistory = [];
+    const initialInputHeight = messageInput.scrollHeight;
+
+    const createMessageElement = (content, ...classes) => { const div = document.createElement('div'); div.classList.add('message', ...classes); div.innerHTML = content; return div; };
+
+    async function generateBotResponse(incomingMessageDiv){
+      const messageElement = incomingMessageDiv.querySelector('.message-text');
+      chatHistory.push({ role:'user', parts:[{ text: userData.message }, ...(userData.file.data ? [{ inline_data: userData.file }] : [])] });
+      const requestOptions = { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ contents: chatHistory }) };
+      try {
+        const response = await fetch(API_URL, requestOptions);
+        const data = await response.json();
+        if (!response.ok) throw new Error((data && data.error && data.error.message) || 'API error');
+        const apiResponseText = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text || '').replace(/\*\*(.*?)\*\*/g,'$1').trim();
+        messageElement.innerText = apiResponseText || '...';
+        chatHistory.push({ role:'model', parts:[{ text: apiResponseText }] });
+      } catch (err) {
+        messageElement.innerText = (err && err.message) || 'Request failed';
+        messageElement.style.color = '#ff0000';
+      } finally {
+        userData.file = {};
+        incomingMessageDiv.classList.remove('thinking');
+        chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+      }
     }
-    mount();
-  });
+
+    function handleOutgoingMessage(e){
+      e.preventDefault();
+      userData.message = messageInput.value.trim();
+      if (!userData.message) return;
+      messageInput.value = '';
+      messageInput.dispatchEvent(new Event('input'));
+      fileUploadWrapper.classList.remove('file-uploaded');
+      const messageContent = `<div class=\"message-text\"></div>${userData.file.data ? `<img src=\"data:${userData.file.mime_type};base64,${userData.file.data}\" class=\"attachment\" />` : ''}`;
+      const outgoingMessageDiv = createMessageElement(messageContent, 'user-message');
+      outgoingMessageDiv.querySelector('.message-text').innerText = userData.message;
+      chatBody.appendChild(outgoingMessageDiv);
+      chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+      setTimeout(()=>{
+        const messageContent = `<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\"><div class=\"thinking-indicator\"><div class=\"dot\"></div><div class=\"dot\"></div><div class=\"dot\"></div></div></div>`;
+        const incomingMessageDiv = createMessageElement(messageContent, 'bot-message', 'thinking');
+        chatBody.appendChild(incomingMessageDiv);
+        chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+        generateBotResponse(incomingMessageDiv);
+      }, 600);
+    }
+
+    messageInput.addEventListener('input', ()=>{ messageInput.style.height = `${initialInputHeight}px`; messageInput.style.height = `${messageInput.scrollHeight}px`; root.querySelector('.chat-form').style.borderRadius = messageInput.scrollHeight > initialInputHeight ? '15px' : '32px'; });
+    messageInput.addEventListener('keydown', (e)=>{ const userMessage = e.target.value.trim(); if (e.key==='Enter' && !e.shiftKey && userMessage && window.innerWidth > 768) { handleOutgoingMessage(e); } });
+
+    fileInput.addEventListener('change', ()=>{ const file = fileInput.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = (ev)=>{ fileInput.value=''; fileUploadWrapper.querySelector('img').src = ev.target.result; fileUploadWrapper.classList.add('file-uploaded'); const b64 = String(ev.target.result).split(',')[1]; userData.file = { data: b64, mime_type: file.type }; }; reader.readAsDataURL(file); });
+    fileCancelButton.addEventListener('click', ()=>{ userData.file = {}; fileUploadWrapper.classList.remove('file-uploaded'); });
+
+    function initEmoji(){
+      if (!window.EmojiMart || !window.EmojiMart.Picker) { setTimeout(initEmoji, 100); return; }
+      const picker = new EmojiMart.Picker({ theme:'light', skinTonePosition:'none', previewPosition:'none', onEmojiSelect: (emoji)=>{ const { selectionStart: start, selectionEnd: end } = messageInput; messageInput.setRangeText(emoji.native, start, end, 'end'); messageInput.focus(); }, onClickOutside: (e)=>{ if (e.target.id === 'emoji-picker') { document.body.classList.toggle('show-emoji-picker'); } else { document.body.classList.remove('show-emoji-picker'); } } });
+      root.querySelector('.chat-form').appendChild(picker);
+    }
+    initEmoji();
+
+    sendMessage.addEventListener('click', (e)=> handleOutgoingMessage(e));
+    root.querySelector('#file-upload').addEventListener('click', ()=> fileInput.click());
+    closeChatbot.addEventListener('click', ()=> document.body.classList.remove('show-chatbot'));
+    if (chatbotToggler) chatbotToggler.addEventListener('click', ()=> document.body.classList.toggle('show-chatbot'));
+
+    // Warn if missing API key
+    if (API_KEY === API_KEY_PLACEHOLDER && !window.TBP_GEMINI_API_KEY) {
+      console.warn('Gemini API key missing. Set window.TBP_GEMINI_API_KEY = "<key>" to enable responses.');
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', mount);
 })();
 
 
