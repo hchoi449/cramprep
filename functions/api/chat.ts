@@ -28,7 +28,8 @@ export const onRequestPost: PagesFunction = async (context) => {
         { role: 'system', content: 'You are a helpful academic assistant for ThinkBigPrep.' },
         { role: 'user', content: userContent.length ? userContent : [{ type: 'text', text: 'Hello' }] }
       ],
-      temperature: 0.3
+      temperature: 0.3,
+      stream: true
     };
 
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -43,9 +44,15 @@ export const onRequestPost: PagesFunction = async (context) => {
       const errText = await res.text();
       return new Response(JSON.stringify({ error: `Upstream error ${res.status}: ${errText}` }), { status: 502, headers: jsonHeaders() });
     }
-    const data = await res.json();
-    const reply = data?.choices?.[0]?.message?.content ?? 'Sorry, I could not generate a response.';
-    return new Response(JSON.stringify({ reply }), { status: 200, headers: jsonHeaders() });
+    // Proxy OpenAI SSE stream directly to client
+    return new Response(res.body, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+      }
+    });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     return new Response(JSON.stringify({ error: message }), { status: 500, headers: jsonHeaders() });

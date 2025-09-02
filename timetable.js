@@ -203,6 +203,16 @@ document.addEventListener('DOMContentLoaded', function() {
         closeBtn.addEventListener('click', closeChat);
         chatbox.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeChat(); });
         if (overlayEl) overlayEl.addEventListener('click', closeChat);
+        // submit on Enter inside text input
+        if (textInput) {
+            textInput.addEventListener('keydown', function(e){
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                }
+            });
+        }
+
         form.addEventListener('submit', async function(e){
             e.preventDefault();
             const s = steps[step];
@@ -215,21 +225,48 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Send to mock AI chat endpoint
                 const text = `${answers.name || ''} | ${answers.school || ''} | ${answers.grade || ''} | ${answers.help || ''} | ${answers.desc || ''} | ${answers.day || ''}`.trim();
                 try {
-                    // If user selected an image file, convert to DataURL
                     const imgInput = document.getElementById('ai-image');
                     let imageDataURL = '';
                     if (imgInput && imgInput.files && imgInput.files[0]) {
                         imageDataURL = await fileToDataURL(imgInput.files[0]);
                     }
                     const res = await fetch('/api/chat', { method:'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ text, imageDataURL }) });
-                    const data = await res.json();
+                    if (!res.ok || !res.body) throw new Error('stream failed');
+                    const reader = res.body.getReader();
+                    const decoder = new TextDecoder('utf-8');
+                    // streaming area
+                    const streamP = document.createElement('p');
+                    streamP.style.margin = '12px';
+                    streamP.textContent = '';
+                    if (body) body.appendChild(streamP);
+                    let buffer = '';
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        buffer += decoder.decode(value, { stream: true });
+                        // parse SSE lines: data: {json}\n
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop() || '';
+                        for (const line of lines) {
+                            const trimmed = line.trim();
+                            if (!trimmed.startsWith('data:')) continue;
+                            const dataStr = trimmed.slice(5).trim();
+                            if (dataStr === '[DONE]') { buffer=''; break; }
+                            try {
+                                const json = JSON.parse(dataStr);
+                                const delta = json?.choices?.[0]?.delta?.content || '';
+                                if (delta) streamP.textContent += delta;
+                            } catch {}
+                        }
+                    }
+                } catch (err) {
                     if (body) {
                         const p = document.createElement('p');
                         p.style.margin = '12px';
-                        p.textContent = data.reply || 'Thanks! We will match you with a tutor and reach out.';
+                        p.textContent = 'Sorry, the AI response failed.';
                         body.appendChild(p);
                     }
-                } catch {}
+                }
                 fieldContainer.innerHTML = '';
                 nextBtn.disabled = true;
                 setTimeout(closeChat, 2000);
