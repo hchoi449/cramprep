@@ -87,9 +87,39 @@
 
     const createMessageElement = (content, ...classes) => { const div = document.createElement('div'); div.classList.add('message', ...classes); div.innerHTML = content; return div; };
 
+    async function fetchAvailability(days=7, dayStart=12, dayEnd=24){
+      try {
+        const res = await fetch('/api/events', { headers: { Accept:'application/json' } });
+        if (!res.ok) return [];
+        const { events } = await res.json();
+        const tz = 'America/New_York';
+        const now = new Date();
+        const busy = events.map(ev=>({ s:new Date(ev.start), e:new Date(ev.end) }));
+        const freeSlots = [];
+        for(let i=0;i<days;i++){
+          const base = new Date(now); base.setDate(now.getDate()+i);
+          const parts = new Intl.DateTimeFormat('en-US',{ timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit'}).formatToParts(base).reduce((a,p)=> (a[p.type]=p.value,a),{});
+          for (let h=dayStart; h<dayEnd; h++){
+            const hour = String(h%24).padStart(2,'0');
+            const start = new Date(`${parts.year}-${parts.month}-${parts.day}T${hour}:00:00-05:00`);
+            const end = new Date(`${parts.year}-${parts.month}-${parts.day}T${hour}:59:59-05:00`);
+            const overlaps = busy.some(b=> !(b.e<=start || b.s>=end));
+            if (!overlaps) freeSlots.push(start);
+          }
+        }
+        const fmt = new Intl.DateTimeFormat('en-US',{ timeZone: tz, weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit'});
+        return freeSlots.slice(0,8).map(d0=> fmt.format(d0));
+      } catch { return []; }
+    }
+
     async function generateBotResponse(incomingMessageDiv){
       const messageElement = incomingMessageDiv.querySelector('.message-text');
       chatHistory.push({ role:'user', parts:[{ text: userData.message }, ...(userData.file.data ? [{ inline_data: userData.file }] : [])] });
+      // Prepend availability context
+      const avail = await fetchAvailability(7, 12, 24);
+      if (avail.length) {
+        chatHistory.push({ role:'user', parts:[{ text: `Availability context (EST): ${avail.join(', ')}` }] });
+      }
       const requestOptions = { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ contents: chatHistory }) };
       try {
         const response = await fetch(API_URL, requestOptions);
