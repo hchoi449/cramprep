@@ -4,8 +4,8 @@
     bottom: 24px;
     right: 24px;
     z-index: 1000;
-    padding: 12px 18px !important;
-    border-radius: 9999px !important;
+    padding: 12px 24px !important; /* match .btn sizing */
+    border-radius: 8px !important; /* match buttons */
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
     display: inline-flex;
     align-items: center;
