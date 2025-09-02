@@ -86,15 +86,24 @@ function renderWeekEvents(startOfWeek){
     document.querySelectorAll('.class-slot.autogen').forEach(n => n.parentNode.removeChild(n));
     const daySlots = Array.from(document.querySelectorAll('.week-grid .day-column .day-slots'));
     if (daySlots.length !== 7) return;
+    const tz = 'America/New_York';
+    // Build EST date keys for each displayed day (Mon..Sun)
+    const weekDaysYmd = [];
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(startOfWeek);
+        d.setDate(startOfWeek.getDate() + i);
+        const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(d).reduce((a,p)=> (a[p.type]=p.value, a), {});
+        weekDaysYmd.push(`${parts.year}-${parts.month}-${parts.day}`);
+    }
     EVENTS_CACHE.data.forEach(ev => {
-        // Convert to EST and filter to current week and time window (12:00..24:00)
-        const s = toEst(new Date(ev.start));
-        const e = toEst(new Date(ev.end));
-        const weekStart = new Date(startOfWeek);
-        const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate()+7);
-        if (!(s >= weekStart && s < weekEnd)) return;
-        const dayIndex = (s.getDay() + 6) % 7; // Mon=0..Sun=6
-        const hour = s.getHours();
+        // Compute event start/end components in EST
+        const s0 = new Date(ev.start);
+        const e0 = new Date(ev.end);
+        const sp = new Intl.DateTimeFormat('en-US', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false }).formatToParts(s0).reduce((a,p)=> (a[p.type]=p.value, a), {});
+        const evYmd = `${sp.year}-${sp.month}-${sp.day}`;
+        const dayIndex = weekDaysYmd.indexOf(evYmd);
+        if (dayIndex < 0) return; // Not in displayed week (EST)
+        const hour = Number(sp.hour);
         if (hour < 12 && hour !== 0) return; // restrict to 12PM..12AM
         const targetCol = daySlots[dayIndex];
         const slot = document.createElement('div');
@@ -102,12 +111,12 @@ function renderWeekEvents(startOfWeek){
         slot.setAttribute('data-subject', ev.subject);
         slot.setAttribute('tabindex','0');
         slot.setAttribute('role','button');
-        // Position mapping: 12:00 => 0px, each hour => +56px
-        const offsetHours = (hour === 0 ? 12 : hour) - 12; // 12->0, 13->1 ... 23->11, 0->12 handled separately
+        // Position mapping (EST): 12:00 => 0px, each hour => +56px
+        const offsetHours = (hour === 0 ? 12 : hour) - 12; // 12->0, 13->1 ... 23->11, 0->12
         const topPx = (hour === 0 ? 12 : offsetHours) * 56;
         slot.style.top = `${topPx}px`;
         // Height based on duration (56px/hr)
-        const durMin = Math.max(30, Math.round((e - s) / 60000));
+        const durMin = Math.max(30, Math.round((e0 - s0) / 60000));
         slot.style.height = `${(durMin/60)*56}px`;
         // Compact view
         slot.innerHTML = `<div class="class-info" style="font-family: inherit;">
