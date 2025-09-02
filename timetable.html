@@ -238,6 +238,22 @@
 
         <script src="index.js"></script>
         <script src="timetable.js"></script>
-        <a href="index.html#contact" class="btn btn-primary floating-consult-btn"><i class="bi bi-calendar-event"></i> Book Consultation</a>
+        <button id="ai-chat-open" class="btn btn-primary floating-ai-btn" aria-controls="ai-chatbox" aria-expanded="false">
+            <i class="bi bi-chat-dots"></i> AI Chatbox
+        </button>
+        
+        <!-- AI Chatbox -->
+        <div id="ai-chatbox" class="ai-chatbox" role="dialog" aria-modal="true" aria-labelledby="ai-chat-title" style="display: none;">
+            <div class="ai-chat-header">
+                <h4 id="ai-chat-title">ThinkBigPrep AI</h4>
+                <button id="ai-chat-close" class="ai-chat-close" aria-label="Close chat"><i class="bi bi-x"></i></button>
+            </div>
+            <div class="ai-chat-body" id="ai-chat-body" tabindex="0" aria-live="polite"></div>
+            <form id="ai-chat-form" class="ai-chat-input" novalidate>
+                <label id="ai-chat-prompt" for="ai-chat-field" class="sr-only">Response</label>
+                <div id="ai-chat-field-container"></div>
+                <button type="submit" class="btn btn-primary" id="ai-chat-next-btn">Next</button>
+            </form>
+        </div>
     </body>
 </html>

@@ -132,6 +132,85 @@ document.addEventListener('DOMContentLoaded', function() {
         renderWeekEvents(monday);
     });
     updateMonthDisplay();
+
+    // AI Chatbox wiring (timetable only)
+    const openBtn = document.getElementById('ai-chat-open');
+    const chatbox = document.getElementById('ai-chatbox');
+    const closeBtn = document.getElementById('ai-chat-close');
+    if (openBtn && chatbox && closeBtn) {
+        const body = document.getElementById('ai-chat-body');
+        const form = document.getElementById('ai-chat-form');
+        const fieldContainer = document.getElementById('ai-chat-field-container');
+        const nextBtn = document.getElementById('ai-chat-next-btn');
+        const steps = [
+            { id:'name', label:'What is your name?', type:'text', required:true },
+            { id:'school', label:'Which school do you attend?', type:'text', required:true },
+            { id:'grade', label:'What grade are you in?', type:'text', required:true },
+            { id:'help', label:'What help are you looking for?', type:'select', options:['Homework','Quiz','Test'], required:true },
+            { id:'desc', label:'Describe what you need help with', type:'textarea', required:true },
+            { id:'day', label:'Which day would you like to meet?', type:'select', options:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'], required:true }
+        ];
+        const answers = {};
+        let step = 0;
+
+        function renderStep() {
+            const s = steps[step];
+            if (!s) return;
+            if (body) body.textContent = s.label;
+            fieldContainer.innerHTML = '';
+            let input;
+            if (s.type === 'text') {
+                input = document.createElement('input');
+                input.type = 'text';
+            } else if (s.type === 'textarea') {
+                input = document.createElement('textarea');
+                input.rows = 3;
+            } else if (s.type === 'select') {
+                input = document.createElement('select');
+                const placeholder = document.createElement('option');
+                placeholder.value = '';
+                placeholder.textContent = 'Select...';
+                input.appendChild(placeholder);
+                s.options.forEach(opt => { const o = document.createElement('option'); o.value = opt; o.textContent = opt; input.appendChild(o); });
+            }
+            input.id = 'ai-chat-field';
+            input.name = s.id;
+            input.required = !!s.required;
+            fieldContainer.appendChild(input);
+            input.focus();
+        }
+
+        function openChat() {
+            chatbox.style.display = 'flex';
+            openBtn.setAttribute('aria-expanded','true');
+            step = 0; Object.keys(answers).forEach(k=>delete answers[k]);
+            renderStep();
+        }
+        function closeChat() {
+            chatbox.style.display = 'none';
+            openBtn.setAttribute('aria-expanded','false');
+        }
+        openBtn.addEventListener('click', openChat);
+        closeBtn.addEventListener('click', closeChat);
+        chatbox.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeChat(); });
+        form.addEventListener('submit', function(e){
+            e.preventDefault();
+            const s = steps[step];
+            const field = document.getElementById('ai-chat-field');
+            const val = field && 'value' in field ? field.value.trim() : '';
+            if (s.required && !val) return; // simple guard
+            answers[s.id] = val;
+            step += 1;
+            if (step >= steps.length) {
+                if (body) body.textContent = 'Thanks! We will match you with a tutor and reach out.';
+                fieldContainer.innerHTML = '';
+                nextBtn.disabled = true;
+                setTimeout(closeChat, 1500);
+                return;
+            }
+            renderStep();
+        });
+    }
 });
 
 // Initialize timetable functionality
