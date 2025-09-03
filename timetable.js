@@ -314,7 +314,7 @@ function showEventDetails(/** @type {CalendarEvent} */event){
         <p><strong>Tutor:</strong> ${event.tutorName}</p>
         <p><strong>Subject:</strong> ${event.subject}</p>
         <p><strong>When:</strong> ${timeStr}</p>
-        ${event.meetLink ? `<p><strong>Google Meet:</strong> <a href="${event.meetLink}" target="_blank" rel="noreferrer">Join</a></p>`: ''}
+        
         ${event.comments ? `<p><strong>Comments:</strong><br>${event.comments}</p>`: ''}
     `;
     card.insertBefore(closeBtn, card.firstChild);
