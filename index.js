@@ -189,13 +189,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Login modal wiring
-    const loginModal = document.getElementById('loginModal');
-    const openLogin = ()=>{ if (loginModal){ loginModal.classList.add('active'); document.body.style.overflow='hidden'; } };
-    const closeLogin = ()=>{ if (loginModal){ loginModal.classList.remove('active'); document.body.style.overflow=''; } };
-    document.getElementById('login-trigger-desktop')?.addEventListener('click', function(e){ e.preventDefault(); openLogin(); });
-    document.getElementById('login-trigger-mobile')?.addEventListener('click', function(e){ e.preventDefault(); openLogin(); });
-    document.querySelector('[data-login-close]')?.addEventListener('click', closeLogin);
+    // (Login modal removed)
     // Course Schedule Now
     document.querySelectorAll('.course-card .btn').forEach(el => {
         if (el.textContent.includes('Schedule Now')) {
