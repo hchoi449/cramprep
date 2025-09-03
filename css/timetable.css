@@ -224,6 +224,19 @@
     z-index: 0;
 }
 
+/* Ensure the last hour line (11 PM) renders visibly */
+.day-slots::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(75px * 11);
+    height: 1px;
+    background: #ececec;
+    pointer-events: none;
+    z-index: 0;
+}
+
 /* Ensure events render above grid lines */
 .class-slot { z-index: 1; }
 
