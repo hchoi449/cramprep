@@ -205,7 +205,8 @@
 
 .day-slots {
     position: relative;
-    min-height: 900px; /* 12 hours * 75px */
+    height: 900px; /* 12 hours * 75px exact so last line lands inside */
+    border-bottom: 1px solid #ececec; /* visible bottom line */
 }
 
 /* Hour grid lines across weekday columns (align to 75px per hour) */
