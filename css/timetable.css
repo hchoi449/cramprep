@@ -189,6 +189,12 @@
     background: #ececec;
 }
 
+/* Pin the text exactly on the horizontal line */
+.time-slot .time-label {
+    position: absolute;
+    top: -9px; /* nudge up so baseline sits on the line */
+}
+
 .day-slots {
     position: relative;
     min-height: 672px;
