@@ -163,6 +163,23 @@
 .time-slots {
     display: flex;
     flex-direction: column;
+    position: relative; /* enable overlay gridlines */
+}
+
+/* Hour grid lines inside the Time (EST) column (75px per hour) */
+.time-slots::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        to bottom,
+        #ececec 0,
+        #ececec 1px,
+        transparent 1px,
+        transparent 75px
+    );
+    pointer-events: none;
+    z-index: 0;
 }
 
 .time-slot {
@@ -176,6 +193,7 @@
     align-items: center;
     justify-content: flex-start;
     position: relative;
+    z-index: 1; /* above the overlay lines */
 }
 
 /* Grid line in time column to match weekday grid */
