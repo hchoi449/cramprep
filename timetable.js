@@ -118,11 +118,12 @@ function renderWeekEvents(startOfWeek){
         // Height based on duration (56px/hr)
         const durMin = Math.max(30, Math.round((e0 - s0) / 60000));
         slot.style.height = `${(durMin/60)*56}px`;
-        // Compact view
+        // Compact view: title + time range
+        const tf = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit' });
+        const timeRange = `${tf.format(s0)} 01 ${tf.format(e0)}`.replace('  ', ' ');
         slot.innerHTML = `<div class="class-info" style="font-family: inherit;">
             <h4 title="${ev.title}">${ev.title}</h4>
-            <p title="${ev.school}">${ev.school}</p>
-            <div class="time" title="${ev.tutorName}">${ev.tutorName}</div>
+            <div class="time">${timeRange}</div>
         </div>`;
         const c = SUBJECT_COLOR_MAP[ev.subject];
         if (c) { slot.style.background = c.bg; slot.style.color = c.text; }
