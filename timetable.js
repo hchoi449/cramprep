@@ -111,13 +111,15 @@ function renderWeekEvents(startOfWeek){
         slot.setAttribute('data-subject', ev.subject);
         slot.setAttribute('tabindex','0');
         slot.setAttribute('role','button');
-        // Position mapping (EST): 12:00 => 0px, each hour => +56px
+        // Position mapping (EST): 12:00 => 0px, each hour => +75px (with minute precision)
+        const SCALE_PX_PER_HOUR = 75;
+        const minutes = Number(sp.minute || 0);
         const offsetHours = (hour === 0 ? 12 : hour) - 12; // 12->0, 13->1 ... 23->11, 0->12
-        const topPx = (hour === 0 ? 12 : offsetHours) * 56;
+        const topPx = (hour === 0 ? 12 : offsetHours) * SCALE_PX_PER_HOUR + (minutes/60)*SCALE_PX_PER_HOUR;
         slot.style.top = `${topPx}px`;
-        // Height based on duration (56px/hr)
-        const durMin = Math.max(30, Math.round((e0 - s0) / 60000));
-        slot.style.height = `${(durMin/60)*56}px`;
+        // Height based on duration (75px/hr)
+        const durMin = Math.max(15, Math.round((e0 - s0) / 60000));
+        slot.style.height = `${(durMin/60)*SCALE_PX_PER_HOUR}px`;
         // Compact view: title + time range
         const tf = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit' });
         const timeRange = `${tf.format(s0)} 01 ${tf.format(e0)}`.replace('  ', ' ');
