@@ -127,12 +127,12 @@ function renderWeekEvents(startOfWeek){
             <h4 title="${ev.title}">${ev.title}</h4>
             <div class="time">${timeRange}</div>
         </div>`;
-        // Ensure clean time text and explicit "to" separator
+        // Ensure clean time text and explicit hyphen separator
         try {
             const fixedFmt = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit' });
-            const fixed = `${fixedFmt.format(s0)} to ${fixedFmt.format(e0)}`;
+            const fixed = `${fixedFmt.format(s0)} - ${fixedFmt.format(e0)}`;
             const t = slot.querySelector('.time');
-            if (t) t.textContent = fixed.replace(/[^APM\d: \-to]/gi, '');
+            if (t) t.textContent = fixed.replace(/[^APM\d: \-]/gi, '');
         } catch {}
         const c = SUBJECT_COLOR_MAP[ev.subject];
         if (c) { slot.style.background = c.bg; slot.style.color = c.text; }
