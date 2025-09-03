@@ -166,15 +166,27 @@
 }
 
 .time-slot {
-    padding: 10px 12px;
-    text-align: center;
-    font-size: 1.05rem;
-    color: #666;
-    border-bottom: 1px solid #f0f0f0;
+    padding: 0 0 0 18px;
+    text-align: left;
+    font-size: 1rem;
+    color: #4b4b4b;
+    border-bottom: 1px solid transparent; /* grid handled by overlays */
     height: 56px;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
+    position: relative;
+}
+
+/* Grid line in time column to match weekday grid */
+.time-slot::after {
+    content: "";
+    position: absolute;
+    right: -6px;
+    left: 0;
+    height: 1px;
+    bottom: -1px;
+    background: #ececec;
 }
 
 .day-slots {
