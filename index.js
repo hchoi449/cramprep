@@ -181,9 +181,10 @@ document.addEventListener('DOMContentLoaded', function() {
             openModal();
         });
     });
-    // Hero Free Consultation
+    // Hero CTAs: Free Consultation or Start Enrollment
     document.querySelectorAll('.hero-buttons .btn').forEach(el => {
-        if (el.textContent.includes('Free Consultation')) {
+        const label = (el.textContent || '').trim().toLowerCase();
+        if (label.includes('free consultation') || label.includes('start enrollment')) {
             el.addEventListener('click', function(e) { e.preventDefault(); openModal(); });
         }
     });
