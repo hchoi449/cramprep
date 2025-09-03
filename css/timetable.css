@@ -236,18 +236,18 @@
 
 /* Position classes based on time (12:00 PM -> 12:00 AM), 56px per hour */
 .class-slot[data-time="12:00"] { top: 0px; }
-.class-slot[data-time="01:00"] { top: 56px; }
-.class-slot[data-time="02:00"] { top: 112px; }
-.class-slot[data-time="03:00"] { top: 168px; }
-.class-slot[data-time="04:00"] { top: 224px; }
-.class-slot[data-time="05:00"] { top: 280px; }
-.class-slot[data-time="06:00"] { top: 336px; }
-.class-slot[data-time="07:00"] { top: 392px; }
-.class-slot[data-time="08:00"] { top: 448px; }
-.class-slot[data-time="09:00"] { top: 504px; }
-.class-slot[data-time="10:00"] { top: 560px; }
-.class-slot[data-time="11:00"] { top: 616px; }
-.class-slot[data-time="00:00"] { top: 672px; }
+.class-slot[data-time="01:00"] { top: 75px; }
+.class-slot[data-time="02:00"] { top: 150px; }
+.class-slot[data-time="03:00"] { top: 225px; }
+.class-slot[data-time="04:00"] { top: 300px; }
+.class-slot[data-time="05:00"] { top: 375px; }
+.class-slot[data-time="06:00"] { top: 450px; }
+.class-slot[data-time="07:00"] { top: 525px; }
+.class-slot[data-time="08:00"] { top: 600px; }
+.class-slot[data-time="09:00"] { top: 675px; }
+.class-slot[data-time="10:00"] { top: 750px; }
+.class-slot[data-time="11:00"] { top: 825px; }
+.class-slot[data-time="00:00"] { top: 900px; }
 
 /* Month View */
 .month-header {

@@ -275,7 +275,8 @@ function updateWeekDisplay() {
         }
     }
 
-    // Events render from cache in renderWeekEvents
+    // Re-render events for the newly displayed week (EST-aware)
+    renderWeekEvents(startOfWeek);
 }
 
 // Accessible event modal (basic)
