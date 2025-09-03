@@ -115,17 +115,25 @@
 .week-grid {
     display: grid;
     grid-template-columns: 100px repeat(7, 1fr);
-    gap: 0;
+    gap: 1px;
+    background: #e0e0e0;
     border-radius: 12px;
     overflow: hidden;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
-.time-column, .day-column { background: white; }
-.time-column { border-right: 1px solid #dadce0; }
-.day-column { border-right: 1px solid #dadce0; }
+.time-column, .day-column {
+    background: white;
+}
 
-.time-header, .day-header { background: #8B4513; color: white; padding: 15px 10px; text-align: center; font-weight: 600; font-size: 0.9rem; border-bottom: 2px solid #dadce0; }
+.time-header, .day-header {
+    background: #8B4513;
+    color: white;
+    padding: 15px 10px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
 
 .day-header {
     background: #6b3410;
@@ -178,14 +186,11 @@
     left: 0;
     height: 1px;
     bottom: -1px;
-    background: #dadce0;
+    background: #ececec;
 }
 
 /* Pin the text exactly on the horizontal line */
-.time-slot .time-label {
-    position: absolute;
-    top: -9px; /* nudge up so baseline sits on the line */
-}
+.time-slot .time-label { position: static; }
 
 .day-slots {
     position: relative;
@@ -199,8 +204,8 @@
     inset: 0;
     background: repeating-linear-gradient(
         to bottom,
-        #dadce0 0,
-        #dadce0 1px,
+        #ececec 0,
+        #ececec 1px,
         transparent 1px,
         transparent 56px
     );
