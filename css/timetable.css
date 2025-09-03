@@ -182,6 +182,25 @@
     min-height: 672px;
 }
 
+/* Hour grid lines across weekday columns (align to 56px per hour) */
+.day-slots::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        to bottom,
+        #ececec 0,
+        #ececec 1px,
+        transparent 1px,
+        transparent 56px
+    );
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Ensure events render above grid lines */
+.class-slot { z-index: 1; }
+
 /* Subject palettes */
 :root {
     --subject-algebra-bg: #8B4513;
