@@ -125,6 +125,13 @@ function renderWeekEvents(startOfWeek){
             <h4 title="${ev.title}">${ev.title}</h4>
             <div class="time">${timeRange}</div>
         </div>`;
+        // Ensure clean time text and explicit "to" separator
+        try {
+            const fixedFmt = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit' });
+            const fixed = `${fixedFmt.format(s0)} to ${fixedFmt.format(e0)}`;
+            const t = slot.querySelector('.time');
+            if (t) t.textContent = fixed.replace(/[^APM\d: \-to]/gi, '');
+        } catch {}
         const c = SUBJECT_COLOR_MAP[ev.subject];
         if (c) { slot.style.background = c.bg; slot.style.color = c.text; }
         const open = (e_)=>{ e_ && e_.preventDefault(); showEventDetails(ev); };
