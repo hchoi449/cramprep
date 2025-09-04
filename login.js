@@ -108,8 +108,21 @@
         return /.+@.+\..+/.test(email);
     }
 
+    async function postJson(url, data) {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            throw new Error(json.error || 'Request failed');
+        }
+        return json;
+    }
+
     if (loginForm) {
-        loginForm.addEventListener('submit', function(e) {
+        loginForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             const email = /** @type {HTMLInputElement} */(document.getElementById('loginEmail')).value.trim();
             const password = /** @type {HTMLInputElement} */(document.getElementById('loginPassword')).value.trim();
@@ -118,14 +131,18 @@
                 alert('Enter a valid email and password (min 6 chars).');
                 return;
             }
-            // Placeholder: integrate real auth later
-            alert('Logged in successfully (demo).');
-            closeOverlay();
+            try {
+                const resp = await postJson('/api/auth/login', { email, password });
+                alert('Logged in successfully.');
+                closeOverlay();
+            } catch (err) {
+                alert((err && err.message) || 'Login failed');
+            }
         });
     }
 
     if (registerForm) {
-        registerForm.addEventListener('submit', function(e) {
+        registerForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             const username = /** @type {HTMLInputElement} */(document.getElementById('regUsername')).value.trim();
             const email = /** @type {HTMLInputElement} */(document.getElementById('regEmail')).value.trim();
@@ -136,9 +153,14 @@
                 alert('Complete all fields, valid email, password >= 6, and accept terms.');
                 return;
             }
-            alert('Registered successfully (demo).');
-            wrapper.classList.remove('active');
-            closeOverlay();
+            try {
+                const resp = await postJson('/api/auth/signup', { email, password, username });
+                alert('Registered successfully.');
+                wrapper.classList.remove('active');
+                closeOverlay();
+            } catch (err) {
+                alert((err && err.message) || 'Registration failed');
+            }
         });
     }
 

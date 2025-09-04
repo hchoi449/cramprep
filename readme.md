@@ -2,6 +2,27 @@
 
 This project serves calendar events from a Pages Function at `/api/events`.
 
+### Authentication (MongoDB Atlas Data API)
+
+Signup/Login is implemented via Cloudflare Pages Functions:
+
+- `functions/api/auth/signup.ts` — POST email/password to create user
+- `functions/api/auth/login.ts` — POST email/password to login
+- `functions/api/auth/me.ts` — GET current session from cookie
+
+Passwords are hashed using PBKDF2-SHA256. A JWT is set as an HttpOnly cookie `tbp_session` (7 days).
+
+Required Cloudflare Pages environment variables:
+
+- `MONGODB_DATA_API_URL` (e.g., https://data.mongodb-api.com/app/<app-id>/endpoint/data/v1/action)
+- `MONGODB_DATA_API_KEY`
+- `MONGODB_DATA_SOURCE` (e.g., Cluster0)
+- `MONGODB_DATABASE` (e.g., thinkbigprep)
+- `MONGODB_COLLECTION_USERS` (e.g., users)
+- `JWT_SECRET` (strong random string)
+
+Enable Atlas Data API for your project/app in MongoDB Atlas.
+
 ### Seed Data
 - File: `data/events.json`
 - Shape:
@@ -17,6 +38,15 @@ To add events, edit `data/events.json` and push. Pages deploy will serve the new
    wrangler dev
    ```
 3. Open the local URL; the timetable page will fetch `/api/events`.
+4. For auth endpoints locally with wrangler, define vars in a `.dev.vars` file:
+   ```
+   MONGODB_DATA_API_URL=...
+   MONGODB_DATA_API_KEY=...
+   MONGODB_DATA_SOURCE=...
+   MONGODB_DATABASE=...
+   MONGODB_COLLECTION_USERS=users
+   JWT_SECRET=replace-with-strong-secret
+   ```
 
 Notes:
 - Response headers: `Content-Type: application/json`, `Cache-Control: private, max-age=0`.
