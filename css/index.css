@@ -238,7 +238,8 @@ body.home .logo .tbp-star {
     }
 }
 
-.student-hub-link {
+.student-hub-link,
+.student-login-link {
     background: #8B4513;
     color: white !important;
     padding: 12px 24px !important;
@@ -251,13 +252,15 @@ body.home .logo .tbp-star {
     animation: fadeInRight 1s ease-out 0.7s both;
 }
 
-.student-hub-link:hover {
+.student-hub-link:hover,
+.student-login-link:hover {
     background: #6b3410;
     transform: scale(1.05);
     box-shadow: 0 4px 12px rgba(139, 69, 19, 0.3);
 }
 
-.student-hub-link::after {
+.student-hub-link::after,
+.student-login-link::after {
     display: none;
 }
 
