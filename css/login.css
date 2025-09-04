@@ -1,5 +1,21 @@
 /* Login Dashboard Styles (scoped to avoid collisions) */
 
+/* Fullscreen overlay for modal usage on any page */
+.lgn-overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 10000;
+    padding: 24px 16px;
+}
+
+.lgn-overlay.active {
+    display: flex;
+}
+
 /* Page background section behind the glass wrapper */
 .login-hero {
     position: relative;
