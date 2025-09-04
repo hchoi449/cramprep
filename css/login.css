@@ -1,0 +1,183 @@
+/* Login Dashboard Styles (scoped to avoid collisions) */
+
+/* Page background section behind the glass wrapper */
+.login-hero {
+    position: relative;
+    min-height: 100vh;
+    padding: 140px 16px 40px; /* account for fixed header */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: url('../assets/images/home/sample.jpg') no-repeat center / cover;
+}
+
+/* Glass morphic wrapper */
+.lgn-wrapper {
+    position: relative;
+    width: 400px;
+    height: 460px;
+    background: rgba(255, 255, 255, 0.6);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 20px;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    transition: height .2s ease;
+}
+
+.lgn-wrapper.active {
+    height: 540px;
+}
+
+.lgn-icon-close {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 45px;
+    height: 45px;
+    background: #162938;
+    color: #fff;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom-left-radius: 20px;
+    cursor: pointer;
+    z-index: 1;
+}
+
+.lgn-form-box {
+    width: 100%;
+    padding: 40px;
+}
+
+.lgn-form-box h2 {
+    font-size: 1.8rem;
+    color: #162938;
+    text-align: center;
+}
+
+.lgn-form-box.lgn-login {
+    transition: transform .18s ease;
+    transform: translateX(0);
+}
+
+.lgn-wrapper.active .lgn-form-box.lgn-login {
+    transition: none;
+    transform: translateX(-400px);
+}
+
+.lgn-form-box.lgn-register {
+    position: absolute;
+    transition: none;
+    transform: translateX(400px);
+}
+
+.lgn-wrapper.active .lgn-form-box.lgn-register {
+    transition: transform .18s ease;
+    transform: translateX(0);
+}
+
+.lgn-input-box {
+    position: relative;
+    width: 100%;
+    height: 50px;
+    border-bottom: 2px solid #162938;
+    margin: 26px 0;
+}
+
+.lgn-input-box label {
+    position: absolute;
+    top: 50%;
+    left: 5px;
+    transform: translateY(-50%);
+    font-size: 1rem;
+    color: #162938;
+    font-weight: 600;
+    pointer-events: none;
+    transition: .3s;
+}
+
+.lgn-input-box input:focus ~ label,
+.lgn-input-box input:valid ~ label {
+    top: -6px;
+}
+
+.lgn-input-box input {
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 1rem;
+    color: #162938;
+    font-weight: 600;
+    padding: 0 36px 0 5px;
+}
+
+.lgn-input-box .lgn-icon {
+    position: absolute;
+    right: 8px;
+    font-size: 1.1rem;
+    color: #162938;
+    line-height: 54px;
+}
+
+.lgn-remember-forgot {
+    font-size: .9rem;
+    color: #162938;
+    font-weight: 600;
+    margin: -10px 0 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.lgn-remember-forgot a {
+    color: #162938;
+    text-decoration: none;
+}
+
+.lgn-remember-forgot a:hover { text-decoration: underline; }
+
+.lgn-btn {
+    width: 100%;
+    height: 45px;
+    background: #162938;
+    color: #fff;
+    border: none;
+    outline: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.lgn-login-register {
+    font-size: .95rem;
+    color: #162938;
+    text-align: center;
+    font-weight: 600;
+    margin: 22px 0 8px;
+}
+
+.lgn-login-register a {
+    color: #162938;
+    text-decoration: none;
+}
+
+.lgn-login-register a:hover { text-decoration: underline; }
+
+@media (max-width: 480px) {
+    .lgn-wrapper {
+        width: 92vw;
+        height: auto;
+        padding-bottom: 16px;
+    }
+}
+
+

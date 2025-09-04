@@ -6,6 +6,7 @@
     <title>ThinkBigPrep — Student Login</title>
     <link rel="shortcut icon" href="assets/logo/thinkbigprep-icon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="css/index.css?v=1.1" />
+    <link rel="stylesheet" href="css/login.css?v=1.0" />
 </head>
 <body class="ai-curriculum">
     <header class="header">
@@ -27,13 +28,60 @@
         </div>
     </header>
 
-    <main style="min-height:60vh;display:flex;align-items:center;justify-content:center;padding:40px 16px;">
-        <div style="max-width:520px;width:100%;background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.08);padding:24px 20px;">
-            <h1 class="section-title" style="margin-bottom:8px;">Student Login</h1>
-            <p class="section-description" style="margin-bottom:16px;">This is a placeholder page. Please upload your login dashboard code and I will integrate it here.</p>
-            <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                <a href="index.html#contact" class="btn btn-primary">Contact Us</a>
-                <a href="index.html#home" class="btn btn-secondary">Back to Home</a>
+    <main class="login-hero">
+        <div class="lgn-wrapper" aria-live="polite">
+            <button class="lgn-icon-close" aria-label="Close login">×</button>
+
+            <div class="lgn-form-box lgn-login" role="region" aria-labelledby="loginTitle">
+                <h2 id="loginTitle">Login</h2>
+                <form id="loginForm" novalidate>
+                    <div class="lgn-input-box">
+                        <span class="lgn-icon">✉️</span>
+                        <input type="email" id="loginEmail" name="email" required aria-required="true" />
+                        <label for="loginEmail">Email</label>
+                    </div>
+                    <div class="lgn-input-box">
+                        <span class="lgn-icon">🔒</span>
+                        <input type="password" id="loginPassword" name="password" required aria-required="true" />
+                        <label for="loginPassword">Password</label>
+                    </div>
+                    <div class="lgn-remember-forgot">
+                        <label><input type="checkbox" id="rememberMe" /> Remember me</label>
+                        <a href="#" aria-label="Forgot password">Forgot Password?</a>
+                    </div>
+                    <button type="submit" class="lgn-btn">Login</button>
+                    <div class="lgn-login-register">
+                        <p>Don't have an account? <a href="#" class="lgn-register-link">Register</a></p>
+                    </div>
+                </form>
+            </div>
+
+            <div class="lgn-form-box lgn-register" role="region" aria-labelledby="registerTitle">
+                <h2 id="registerTitle">Registration</h2>
+                <form id="registerForm" novalidate>
+                    <div class="lgn-input-box">
+                        <span class="lgn-icon">👤</span>
+                        <input type="text" id="regUsername" name="username" required aria-required="true" />
+                        <label for="regUsername">Username</label>
+                    </div>
+                    <div class="lgn-input-box">
+                        <span class="lgn-icon">✉️</span>
+                        <input type="email" id="regEmail" name="email" required aria-required="true" />
+                        <label for="regEmail">Email</label>
+                    </div>
+                    <div class="lgn-input-box">
+                        <span class="lgn-icon">🔒</span>
+                        <input type="password" id="regPassword" name="password" required aria-required="true" />
+                        <label for="regPassword">Password</label>
+                    </div>
+                    <div class="lgn-remember-forgot">
+                        <label><input type="checkbox" id="terms" required aria-required="true" /> I agree to the terms & conditions</label>
+                    </div>
+                    <button type="submit" class="lgn-btn">Register</button>
+                    <div class="lgn-login-register">
+                        <p>Already have an account? <a href="#" class="lgn-login-link">Login</a></p>
+                    </div>
+                </form>
             </div>
         </div>
     </main>
@@ -45,5 +93,6 @@
             </div>
         </div>
     </footer>
+    <script src="login.js?v=1.0"></script>
 </body>
 </html>
