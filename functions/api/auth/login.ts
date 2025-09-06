@@ -96,7 +96,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const token = await signJwt({ sub: user._id || user.email, email: user.email, iat, exp }, env.JWT_SECRET);
     const headers = new Headers({ 'Content-Type': 'application/json; charset=utf-8' });
     headers.append('Set-Cookie', `tbp_session=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`);
-    return new Response(JSON.stringify({ ok: true, user: { id: user._id || user.email, email: user.email, username: user.username || null } }), { status: 200, headers });
+    return new Response(JSON.stringify({ ok: true, user: { id: user._id || user.email, email: user.email, fullName: user.fullName || null } }), { status: 200, headers });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     return new Response(JSON.stringify({ error: message }), { status: 500, headers: { 'Content-Type': 'application/json; charset=utf-8' } });

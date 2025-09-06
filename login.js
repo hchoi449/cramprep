@@ -13,12 +13,12 @@
                     <form id="loginForm" novalidate>
                         <div class="lgn-input-box">
                             <span class="lgn-icon">✉️</span>
-                            <input type="email" id="loginEmail" name="email" required aria-required="true" />
+                            <input type="email" id="loginEmail" name="email" required aria-required="true" placeholder=" " />
                             <label for="loginEmail">Email</label>
                         </div>
                         <div class="lgn-input-box">
                             <span class="lgn-icon">🔒</span>
-                            <input type="password" id="loginPassword" name="password" required aria-required="true" />
+                            <input type="password" id="loginPassword" name="password" required aria-required="true" placeholder=" " />
                             <label for="loginPassword">Password</label>
                         </div>
                         <div class="lgn-remember-forgot">
@@ -36,17 +36,17 @@
                     <form id="registerForm" novalidate>
                         <div class="lgn-input-box">
                             <span class="lgn-icon">👤</span>
-                            <input type="text" id="regUsername" name="username" required aria-required="true" />
-                            <label for="regUsername">Username</label>
+                            <input type="text" id="regFullName" name="fullName" required aria-required="true" placeholder=" " />
+                            <label for="regFullName">Full Name</label>
                         </div>
                         <div class="lgn-input-box">
                             <span class="lgn-icon">✉️</span>
-                            <input type="email" id="regEmail" name="email" required aria-required="true" />
+                            <input type="email" id="regEmail" name="email" required aria-required="true" placeholder=" " />
                             <label for="regEmail">Email</label>
                         </div>
                         <div class="lgn-input-box">
                             <span class="lgn-icon">🔒</span>
-                            <input type="password" id="regPassword" name="password" required aria-required="true" />
+                            <input type="password" id="regPassword" name="password" required aria-required="true" placeholder=" " />
                             <label for="regPassword">Password</label>
                         </div>
                         <div class="lgn-remember-forgot">
@@ -144,17 +144,17 @@
     if (registerForm) {
         registerForm.addEventListener('submit', async function(e) {
             e.preventDefault();
-            const username = /** @type {HTMLInputElement} */(document.getElementById('regUsername')).value.trim();
+            const fullName = /** @type {HTMLInputElement} */(document.getElementById('regFullName')).value.trim();
             const email = /** @type {HTMLInputElement} */(document.getElementById('regEmail')).value.trim();
             const password = /** @type {HTMLInputElement} */(document.getElementById('regPassword')).value.trim();
             const terms = /** @type {HTMLInputElement} */(document.getElementById('terms')).checked;
 
-            if (!username || !validateEmail(email) || password.length < 6 || !terms) {
+            if (!fullName || !validateEmail(email) || password.length < 6 || !terms) {
                 alert('Complete all fields, valid email, password >= 6, and accept terms.');
                 return;
             }
             try {
-                const resp = await postJson('/api/auth/signup', { email, password, username });
+                const resp = await postJson('/api/auth/signup', { email, password, fullName });
                 alert('Registered successfully.');
                 wrapper.classList.remove('active');
                 closeOverlay();

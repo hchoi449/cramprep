@@ -17,7 +17,7 @@ type Env = {
 interface SignupBody {
   email?: string;
   password?: string;
-  username?: string;
+  fullName?: string;
 }
 
 async function pbkdf2Hash(password: string, saltBytes: Uint8Array, iterations: number): Promise<string> {
@@ -78,7 +78,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const body = (await request.json().catch(() => ({}))) as SignupBody;
     const email = (body.email || '').toLowerCase().trim();
     const password = body.password || '';
-    const username = (body.username || '').trim();
+    const fullName = (body.fullName || '').trim();
 
     if (!email || !password) {
       return new Response(JSON.stringify({ error: 'Email and password are required.' }), { status: 400 });
@@ -108,7 +108,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       collection: env.MONGODB_COLLECTION_USERS,
       document: {
         email,
-        username: username || null,
+        fullName: fullName || null,
         password: { algo: 'pbkdf2-sha256', iterations, salt: saltB64, hash },
         createdAt: nowIso,
         updatedAt: nowIso,
@@ -123,7 +123,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const headers = new Headers({ 'Content-Type': 'application/json; charset=utf-8' });
     const cookie = `tbp_session=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`;
     headers.append('Set-Cookie', cookie);
-    return new Response(JSON.stringify({ ok: true, user: { id: userId, email, username } }), { status: 201, headers });
+    return new Response(JSON.stringify({ ok: true, user: { id: userId, email, fullName } }), { status: 201, headers });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     return new Response(JSON.stringify({ error: message }), { status: 500, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
