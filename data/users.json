@@ -1,0 +1,32 @@
+[
+  {
+    "fullName": "Jane Doe",
+    "email": "jane.doe@example.com",
+    "password": "TempPass123!",
+    "groupSessionTokens": 5,
+    "privateSessionTokens": 2,
+    "parentFullName": "John Doe",
+    "parentEmail": "john.doe@example.com",
+    "parentPhone": "+1 (201) 555-0123"
+  },
+  {
+    "fullName": "Alex Kim",
+    "email": "alex.kim@example.com",
+    "password": "Welcome2025$",
+    "groupSessionTokens": 10,
+    "privateSessionTokens": 0,
+    "parentFullName": "Mina Kim",
+    "parentEmail": "mina.kim@example.com",
+    "parentPhone": "+1 (415) 555-0199"
+  },
+  {
+    "fullName": "Priya Patel",
+    "email": "priya.patel@example.com",
+    "password": "StudyStrong#9",
+    "groupSessionTokens": 3,
+    "privateSessionTokens": 4,
+    "parentFullName": "Arun Patel",
+    "parentEmail": "arun.patel@example.com",
+    "parentPhone": "+1 (617) 555-0142"
+  }
+]
