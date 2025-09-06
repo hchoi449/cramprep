@@ -88,6 +88,15 @@
         });
     }
 
+    function resetAuthForms() {
+        if (loginForm) {
+            loginForm.reset();
+        }
+        if (registerForm) {
+            registerForm.reset();
+        }
+    }
+
     function openOverlay() {
         if (!overlay) return;
         overlay.classList.add('active');
@@ -96,6 +105,8 @@
 
     function closeOverlay() {
         if (!overlay || !wrapper) return;
+        // Reset forms so next open starts fresh
+        resetAuthForms();
         overlay.classList.remove('active');
         wrapper.classList.remove('active');
         document.body.style.overflow = '';
