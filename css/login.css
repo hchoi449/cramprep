@@ -64,7 +64,12 @@
     border-bottom-left-radius: 20px;
     cursor: pointer;
     z-index: 1;
+    border: none;
+    outline: none;
+    box-shadow: none;
 }
+
+.lgn-icon-close:focus { outline: none; box-shadow: none; }
 
 .lgn-form-box {
     width: 100%;
@@ -206,6 +211,15 @@
 }
 
 .lgn-form-box.lgn-login .lgn-btn:hover {
+    background: #6b3410;
+}
+
+/* Brand the Register form button as well */
+.lgn-form-box.lgn-register .lgn-btn {
+    background: #8B4513;
+}
+
+.lgn-form-box.lgn-register .lgn-btn:hover {
     background: #6b3410;
 }
 
