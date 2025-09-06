@@ -66,6 +66,20 @@ async function dataApiFetch(env: Env, action: string, body: unknown): Promise<an
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     const { request, env } = context;
+    // Validate required environment variables
+    const required: (keyof Env)[] = [
+      'MONGODB_DATA_API_URL',
+      'MONGODB_DATA_API_KEY',
+      'MONGODB_DATA_SOURCE',
+      'MONGODB_DATABASE',
+      'MONGODB_COLLECTION_USERS',
+      'JWT_SECRET',
+    ];
+    for (const k of required) {
+      if (!env[k]) {
+        return new Response(JSON.stringify({ error: `Missing env var: ${k}` }), { status: 500, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
+      }
+    }
     const body = (await request.json().catch(() => ({}))) as LoginBody;
     const email = (body.email || '').toLowerCase().trim();
     const password = body.password || '';
