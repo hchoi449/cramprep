@@ -126,7 +126,7 @@
 
     async function postJson(url, data) {
         const full = url.startsWith('http') ? url : `${getAuthBase()}${url}`;
-        const res = await fetch(url, {
+        const res = await fetch(full, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
