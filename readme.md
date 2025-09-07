@@ -23,6 +23,23 @@ Required Cloudflare Pages environment variables:
 
 Enable Atlas Data API for your project/app in MongoDB Atlas.
 
+### Alternate Auth via Vercel (MongoDB URI)
+
+If Atlas Data API is unavailable, deploy a small API on Vercel using the MongoDB driver:
+
+- Directory: `vercel-api/`
+- Endpoints:
+  - `api/auth/signup.js` — POST { fullName, email, password }
+  - `api/auth/login.js` — POST { email, password }
+  - `api/auth/me.js` — GET with `Authorization: Bearer <jwt>`
+- Env vars on Vercel:
+  - `MONGODB_URI` (your SRV)
+  - `MONGODB_DATABASE` (e.g., thinkbigprep)
+  - `MONGODB_COLLECTION_USERS` (users)
+  - `JWT_SECRET` (strong random)
+
+Set `window.TBP_AUTH_BASE = 'https://<your-vercel-app>.vercel.app'` on pages to direct login/signup to Vercel API.
+
 ### Seed Data
 - File: `data/events.json`
 - Shape:

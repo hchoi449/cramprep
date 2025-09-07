@@ -119,7 +119,13 @@
         return /.+@.+\..+/.test(email);
     }
 
+    function getAuthBase() {
+        // Allow overriding the auth API base, default to relative CF Pages functions
+        return (window && window.TBP_AUTH_BASE) ? window.TBP_AUTH_BASE.replace(/\/$/,'') : '';
+    }
+
     async function postJson(url, data) {
+        const full = url.startsWith('http') ? url : `${getAuthBase()}${url}`;
         const res = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
