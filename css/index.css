@@ -1355,6 +1355,9 @@ body.home .logo .tbp-star {
 .required-star {
     color: #ef4444;
 }
+/* Account form spacing tweaks */
+.account-content .account-grid { margin-top: 12px; }
+.account-content .account-actions { margin-top: 24px; }
 
 .enroll-grid input,
 .enroll-grid select,

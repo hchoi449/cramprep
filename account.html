@@ -14,11 +14,11 @@
       .account-nav a.active,.account-nav a:hover{background:#f8f9fa;color:#8B4513}
       .account-content{background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.08);padding:20px}
       .account-section{margin-bottom:22px}
-      .account-section h2{font-size:22px;margin:0 0 8px;color:#1a1a1a}
+      .account-section h2{font-size:22px;margin:0 0 16px;color:#1a1a1a}
       .account-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
       .account-grid label{display:block;font-weight:600;margin-bottom:6px}
       .account-grid input{width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px}
-      .account-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:10px}
+      .account-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
     </style>
   </head>
   <body class="ai-curriculum">
@@ -71,20 +71,20 @@
           <h2>Profile</h2>
           <div class="account-grid">
             <div>
-              <label>Full Name</label>
-              <input id="acctFullName" type="text" placeholder="Your name" />
+              <label>Full Name <span class="required-star">*</span></label>
+              <input id="acctFullName" type="text" placeholder="Your name" required />
             </div>
             <div>
-              <label>School</label>
-              <input id="acctSchool" type="text" placeholder="e.g., Ridgewood High School" />
+              <label>School <span class="required-star">*</span></label>
+              <input id="acctSchool" type="text" placeholder="e.g., Northern Valley Regional High School" required />
             </div>
             <div>
-              <label>Grade</label>
-              <input id="acctGrade" type="text" placeholder="e.g., 9th" />
+              <label>Grade <span class="required-star">*</span></label>
+              <input id="acctGrade" type="text" placeholder="e.g., 10th grade" required />
             </div>
             <div>
-              <label>Email</label>
-              <input id="acctEmail" type="email" placeholder="you@example.com" />
+              <label>Email <span class="required-star">*</span></label>
+              <input id="acctEmail" type="email" placeholder="you@example.com" required />
             </div>
             <div>
               <label>Phone Number</label>
@@ -132,6 +132,13 @@
           }
         } catch {}
         document.getElementById('acctSaveBtn').addEventListener('click', function(){
+          if (!document.getElementById('acctFullName').value.trim() ||
+              !document.getElementById('acctSchool').value.trim() ||
+              !document.getElementById('acctGrade').value.trim() ||
+              !document.getElementById('acctEmail').value.trim()) {
+            showNotification('Please fill all required fields.', 'error');
+            return;
+          }
           const data = {
             fullName: document.getElementById('acctFullName').value.trim(),
             school: document.getElementById('acctSchool').value.trim(),
