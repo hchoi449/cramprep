@@ -131,20 +131,21 @@ async function bootstrap() {
         updatedAt: now
       };
 
-      let filter;
-      try {
-        filter = payload.sub ? { _id: new ObjectId(payload.sub) } : null;
-      } catch { filter = null; }
-      if (!filter) {
-        const pEmail = (payload.email || '').toLowerCase().trim();
-        filter = { $or: [ { email: pEmail }, { email: nextEmail } ] };
-      }
+      const orConds = [];
+      try { if (payload.sub) orConds.push({ _id: new ObjectId(payload.sub) }); } catch {}
+      const pEmail = (payload.email || '').toLowerCase().trim();
+      if (pEmail) orConds.push({ email: pEmail });
+      if (nextEmail) orConds.push({ email: nextEmail });
+      const filter = orConds.length ? { $or: orConds } : { email: nextEmail };
+
       await users.updateOne(
         filter,
         { $set: update, $setOnInsert: { createdAt: now, groupSessionTokens: 0, privateSessionTokens: 0 } },
         { upsert: true }
       );
-      const doc = await users.findOne({ email: nextEmail }, { projection: { password: 0 } });
+      let doc = null;
+      if (nextEmail) doc = await users.findOne({ email: nextEmail }, { projection: { password: 0 } });
+      if (!doc) doc = await users.findOne(filter, { projection: { password: 0 } });
       if (!doc) return res.status(404).json({ error: 'User not found' });
       res.json({ ok: true, profile: { fullName: doc.fullName, email: doc.email, school: doc.school || null, grade: doc.grade || null, phone: doc.phone || null, icsUrl: doc.icsUrl || null } });
     } catch (e) {
