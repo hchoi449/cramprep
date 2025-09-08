@@ -164,11 +164,38 @@
 
     function renderGreeting(fullName, email) {
         const first = extractFirstName(fullName || email);
-        const greeting = document.createElement('span');
+        const wrap = document.createElement('div');
+        wrap.style.position = 'relative';
+
+        const greeting = document.createElement('button');
         greeting.className = 'header-greeting';
         greeting.textContent = `Hi ${first}`;
-        greeting.style.cssText = 'font-weight:600;color:#6b3410;padding:8px 0;';
-        return greeting;
+        greeting.type = 'button';
+
+        const menu = document.createElement('div');
+        menu.className = 'greeting-dropdown';
+        const signOut = document.createElement('a');
+        signOut.href = '#signout';
+        signOut.textContent = 'Sign out';
+        signOut.addEventListener('click', function(e){
+            e.preventDefault();
+            try { localStorage.removeItem('tbp_token'); localStorage.removeItem('tbp_user'); } catch {}
+            // Reload to restore default nav state
+            window.location.reload();
+        });
+        menu.appendChild(signOut);
+
+        greeting.addEventListener('click', function(){
+            menu.classList.toggle('active');
+        });
+
+        document.addEventListener('click', function(e){
+            if (!wrap.contains(e.target)) menu.classList.remove('active');
+        });
+
+        wrap.appendChild(greeting);
+        wrap.appendChild(menu);
+        return wrap;
     }
 
     function setUserGreeting(user) {

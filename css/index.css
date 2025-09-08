@@ -251,6 +251,39 @@ body.home .logo .tbp-star {
     transform: scale(1);
     animation: fadeInRight 1s ease-out 0.7s both;
 }
+.header-greeting {
+    background: transparent;
+    color: #6b3410;
+    padding: 12px 12px;
+    border-radius: 8px;
+    font-weight: 700;
+}
+
+.greeting-dropdown {
+    position: absolute;
+    right: 20px;
+    top: 56px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.12);
+    min-width: 160px;
+    display: none;
+    z-index: 2000;
+}
+
+.greeting-dropdown.active { display: block; }
+
+.greeting-dropdown a {
+    display: block;
+    padding: 10px 14px;
+    color: #1a1a1a;
+    text-decoration: none;
+}
+
+.greeting-dropdown a:hover {
+    background: #f8f9fa;
+}
 
 .student-hub-link:hover,
 .student-login-link:hover {
