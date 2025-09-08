@@ -257,12 +257,15 @@ body.home .logo .tbp-star {
     padding: 12px 12px;
     border-radius: 8px;
     font-weight: 700;
+    border: 2px solid #d1d5db;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.15);
+    cursor: pointer;
 }
 
 .greeting-dropdown {
     position: absolute;
-    right: 20px;
-    top: 56px;
+    right: 0;
+    top: calc(100% + 8px);
     background: #ffffff;
     border: 1px solid #e5e7eb;
     border-radius: 10px;
@@ -283,6 +286,10 @@ body.home .logo .tbp-star {
 
 .greeting-dropdown a:hover {
     background: #f8f9fa;
+}
+
+.greeting-dropdown a + a {
+    border-top: 1px solid #f0f0f0;
 }
 
 .student-hub-link:hover,

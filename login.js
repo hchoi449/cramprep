@@ -174,16 +174,27 @@
 
         const menu = document.createElement('div');
         menu.className = 'greeting-dropdown';
-        const signOut = document.createElement('a');
-        signOut.href = '#signout';
-        signOut.textContent = 'Sign out';
-        signOut.addEventListener('click', function(e){
+
+        function makeItem(label, href, handler) {
+            const a = document.createElement('a');
+            a.href = href || '#';
+            a.textContent = label;
+            if (handler) a.addEventListener('click', handler);
+            return a;
+        }
+
+        const profile = makeItem('Profile', '#profile');
+        const settings = makeItem('Settings', '#settings');
+        const help = makeItem('Help', '#help');
+        const logout = makeItem('Log out', '#logout', function(e){
             e.preventDefault();
             try { localStorage.removeItem('tbp_token'); localStorage.removeItem('tbp_user'); } catch {}
-            // Reload to restore default nav state
             window.location.reload();
         });
-        menu.appendChild(signOut);
+        menu.appendChild(profile);
+        menu.appendChild(settings);
+        menu.appendChild(help);
+        menu.appendChild(logout);
 
         greeting.addEventListener('click', function(){
             menu.classList.toggle('active');
@@ -253,6 +264,7 @@
             e.preventDefault();
             const email = /** @type {HTMLInputElement} */(document.getElementById('loginEmail')).value.trim();
             const password = /** @type {HTMLInputElement} */(document.getElementById('loginPassword')).value.trim();
+
 
             if (!validateEmail(email) || password.length < 6) {
                 showNotification('Enter a valid email and password', 'error');
