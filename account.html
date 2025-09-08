@@ -163,7 +163,7 @@
             document.getElementById('acctEmail').value = u.email || '';
           }
         } catch {}
-        document.getElementById('acctSaveBtn').addEventListener('click', function(){
+        document.getElementById('acctSaveBtn').addEventListener('click', async function(){
           if (!document.getElementById('acctFullName').value.trim() ||
               !document.getElementById('acctSchool').value.trim() ||
               !document.getElementById('acctGrade').value.trim() ||
@@ -179,8 +179,33 @@
             phone: document.getElementById('acctPhone').value.trim(),
             icsUrl: document.getElementById('acctIcs').value.trim()
           };
+          // Persist locally
           try { localStorage.setItem('tbp_profile', JSON.stringify(data)); } catch {}
-          showNotification('Saved your profile (demo).', 'successToast', 2000);
+          // Persist to API
+          try {
+            const token = localStorage.getItem('tbp_token');
+            if (!token) throw new Error('Please log in to save your profile.');
+            const base = (window && window.TBP_AUTH_BASE ? window.TBP_AUTH_BASE.replace(/\/$/, '') : '');
+            const res = await fetch(`${base}/auth/profile`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify(data)
+            });
+            const j = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(j.error || 'Failed to save profile.');
+            // Update cached user for greeting
+            try {
+              const existing = JSON.parse(localStorage.getItem('tbp_user') || '{}');
+              const merged = { ...existing, fullName: data.fullName, email: data.email };
+              localStorage.setItem('tbp_user', JSON.stringify(merged));
+            } catch {}
+            showNotification('Profile saved!', 'successToast', 2200);
+          } catch (err) {
+            showNotification(err && err.message ? String(err.message) : 'Failed to save profile.', 'error');
+          }
         });
       })();
     </script>

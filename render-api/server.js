@@ -106,6 +106,60 @@ async function bootstrap() {
     res.json({ authenticated: true, user: { id: payload.sub, email: payload.email } });
   });
 
+  // Save or update user profile fields
+  app.post('/auth/profile', async (req, res) => {
+    try {
+      const auth = req.headers.authorization || '';
+      const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+      if (!token) return res.status(401).json({ error: 'Unauthorized' });
+      const payload = verifyJwt(token, JWT_SECRET);
+      if (!payload || !payload.email) return res.status(401).json({ error: 'Unauthorized' });
+
+      const { fullName, school, grade, phone, icsUrl, email } = req.body || {};
+      // allow updating email, but normalize
+      const nextEmail = (email || payload.email || '').toLowerCase().trim();
+      if (!fullName || !nextEmail) return res.status(400).json({ error: 'fullName and email required' });
+
+      const now = new Date().toISOString();
+      const update = {
+        fullName,
+        email: nextEmail,
+        school: school || null,
+        grade: grade || null,
+        phone: phone || null,
+        icsUrl: icsUrl || null,
+        updatedAt: now
+      };
+
+      const result = await users.findOneAndUpdate(
+        { email: (payload.email || '').toLowerCase().trim() },
+        { $set: update },
+        { returnDocument: 'after' }
+      );
+      if (!result || !result.value) return res.status(404).json({ error: 'User not found' });
+      const doc = result.value;
+      res.json({ ok: true, profile: { fullName: doc.fullName, email: doc.email, school: doc.school || null, grade: doc.grade || null, phone: doc.phone || null, icsUrl: doc.icsUrl || null } });
+    } catch (e) {
+      console.error(e); res.status(500).json({ error: 'Internal error' });
+    }
+  });
+
+  // Fetch current profile
+  app.get('/auth/profile', async (req, res) => {
+    try {
+      const auth = req.headers.authorization || '';
+      const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+      if (!token) return res.status(401).json({ error: 'Unauthorized' });
+      const payload = verifyJwt(token, JWT_SECRET);
+      if (!payload || !payload.email) return res.status(401).json({ error: 'Unauthorized' });
+      const user = await users.findOne({ email: (payload.email || '').toLowerCase().trim() }, { projection: { password: 0 } });
+      if (!user) return res.status(404).json({ error: 'User not found' });
+      res.json({ ok: true, profile: { fullName: user.fullName || null, email: user.email, school: user.school || null, grade: user.grade || null, phone: user.phone || null, icsUrl: user.icsUrl || null } });
+    } catch (e) {
+      console.error(e); res.status(500).json({ error: 'Internal error' });
+    }
+  });
+
   const port = PORT || 8080;
   app.listen(port, () => console.log(`Auth API listening on ${port}`));
 }
