@@ -75,8 +75,24 @@
               <input id="acctFullName" type="text" placeholder="Your name" />
             </div>
             <div>
+              <label>School</label>
+              <input id="acctSchool" type="text" placeholder="e.g., Ridgewood High School" />
+            </div>
+            <div>
+              <label>Grade</label>
+              <input id="acctGrade" type="text" placeholder="e.g., 9th" />
+            </div>
+            <div>
               <label>Email</label>
               <input id="acctEmail" type="email" placeholder="you@example.com" />
+            </div>
+            <div>
+              <label>Phone Number</label>
+              <input id="acctPhone" type="tel" inputmode="numeric" placeholder="(201) 555-0123" />
+            </div>
+            <div>
+              <label>iCal (.ics) URL</label>
+              <input id="acctIcs" type="url" placeholder="https://calendar.google.com/calendar/ical/.../basic.ics" />
             </div>
           </div>
           <div class="account-actions">
@@ -116,6 +132,15 @@
           }
         } catch {}
         document.getElementById('acctSaveBtn').addEventListener('click', function(){
+          const data = {
+            fullName: document.getElementById('acctFullName').value.trim(),
+            school: document.getElementById('acctSchool').value.trim(),
+            grade: document.getElementById('acctGrade').value.trim(),
+            email: document.getElementById('acctEmail').value.trim(),
+            phone: document.getElementById('acctPhone').value.trim(),
+            icsUrl: document.getElementById('acctIcs').value.trim()
+          };
+          try { localStorage.setItem('tbp_profile', JSON.stringify(data)); } catch {}
           showNotification('Saved your profile (demo).', 'successToast', 2000);
         });
       })();
