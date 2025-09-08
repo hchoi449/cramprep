@@ -621,7 +621,8 @@ function downloadCurriculum() {
 }
 
 function showNotification(message, type, durationMs = 3000) {
-    if (type === 'success') {
+    // Use overlay only when explicitly requested
+    if (type === 'successOverlay') {
         // Centered success animation with message
         const overlay = document.createElement('div');
         overlay.style.cssText = `
@@ -680,13 +681,15 @@ function showNotification(message, type, durationMs = 3000) {
         position: fixed;
         top: 20px;
         right: 20px;
-        background: ${type === 'success' ? '#10b981' : '#ef4444'};
+        background: ${(type === 'success' || type === 'successToast') ? '#10b981' : '#ef4444'};
         color: white;
         padding: 16px 24px;
         border-radius: 12px;
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
         z-index: 10000;
         animation: slideInRight 0.3s ease-out;
+        transform: translateZ(0);
+        will-change: transform, opacity;
     `;
     
     document.body.appendChild(notification);
@@ -703,25 +706,14 @@ function showNotification(message, type, durationMs = 3000) {
 const style = document.createElement('style');
 style.textContent = `
     @keyframes slideInRight {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
+        0% { transform: translate3d(24px,0,0) scale(0.98); opacity: 0; filter: blur(2px); }
+        60% { transform: translate3d(-4px,0,0) scale(1.01); opacity: 1; filter: blur(0); }
+        100% { transform: translate3d(0,0,0) scale(1); opacity: 1; }
     }
     
     @keyframes slideOutRight {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
+        0% { transform: translate3d(0,0,0) scale(1); opacity: 1; }
+        100% { transform: translate3d(24px,0,0) scale(0.98); opacity: 0; filter: blur(1px); }
     }
     
     .loading-spinner {
