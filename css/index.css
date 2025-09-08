@@ -12,6 +12,7 @@ body {
     line-height: 1.6;
     color: #1a1a1a;
     background-color: #ffffff;
+    min-height: 100vh;
 }
 
 .container {
@@ -1546,7 +1547,7 @@ body.home .logo .tbp-star {
 }
 
 /* AI Curriculum Generator Section - Exact Match */
-.ai-curriculum {
+section.ai-curriculum {
     padding: 100px 0;
     background: #f8f9fa;
 }
@@ -1811,6 +1812,10 @@ body.home .logo .tbp-star {
     color: white;
     padding: 80px 0 30px;
 }
+
+/* Ensure no extra whitespace below footer */
+html, body { height: auto; }
+.footer { margin-bottom: 0; }
 
 .footer-content {
     display: grid;
