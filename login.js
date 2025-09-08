@@ -149,7 +149,7 @@
                 return;
             }
             try {
-                const resp = await postJson('/api/auth/login', { email, password });
+                const resp = await postJson('/auth/login', { email, password });
                 alert('Logged in successfully.');
                 closeOverlay();
             } catch (err) {
@@ -171,7 +171,7 @@
                 return;
             }
             try {
-                const resp = await postJson('/api/auth/signup', { email, password, fullName });
+                const resp = await postJson('/auth/signup', { email, password, fullName });
                 alert('Registered successfully.');
                 wrapper.classList.remove('active');
                 closeOverlay();
