@@ -64,6 +64,20 @@
     }
 
     injectLoginModalIfNeeded();
+    // Create loading overlay once
+    let loading = document.querySelector('.lgn-loading');
+    if (!loading) {
+        loading = document.createElement('div');
+        loading.className = 'lgn-loading';
+        loading.innerHTML = '<div class="tbp-star-spinner" aria-label="Loading"></div>';
+        document.body.appendChild(loading);
+    }
+
+    function showLoading(show) {
+        if (!loading) return;
+        if (show) loading.classList.add('active');
+        else loading.classList.remove('active');
+    }
 
     const overlay = document.querySelector('.lgn-overlay');
     const wrapper = overlay ? overlay.querySelector('.lgn-wrapper') : null;
@@ -126,12 +140,14 @@
 
     async function postJson(url, data) {
         const full = url.startsWith('http') ? url : `${getAuthBase()}${url}`;
+        showLoading(true);
         const res = await fetch(full, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
         const json = await res.json().catch(() => ({}));
+        showLoading(false);
         if (!res.ok) {
             throw new Error(json.error || 'Request failed');
         }
@@ -150,10 +166,10 @@
             }
             try {
                 const resp = await postJson('/auth/login', { email, password });
-                alert('Logged in successfully.');
+                showNotification('Welcome back! You are now logged in.', 'success', 3000);
                 closeOverlay();
             } catch (err) {
-                alert((err && err.message) || 'Login failed');
+                showNotification((err && err.message) || 'Login failed. Please check your email and password.', 'error');
             }
         });
     }
@@ -166,17 +182,17 @@
             const password = /** @type {HTMLInputElement} */(document.getElementById('regPassword')).value.trim();
             const terms = /** @type {HTMLInputElement} */(document.getElementById('terms')).checked;
 
-            if (!fullName || !validateEmail(email) || password.length < 6 || !terms) {
-                alert('Complete all fields, valid email, password >= 6, and accept terms.');
-                return;
-            }
+            if (!fullName) { showNotification('Please enter your full name.', 'error'); return; }
+            if (!validateEmail(email)) { showNotification('Please enter a valid email address.', 'error'); return; }
+            if (password.length < 6) { showNotification('Password must be at least 6 characters.', 'error'); return; }
+            if (!terms) { showNotification('Please agree to the terms & conditions to proceed.', 'error'); return; }
             try {
                 const resp = await postJson('/auth/signup', { email, password, fullName });
-                alert('Registered successfully.');
+                showNotification('🎉 Registration successful! You can now log in.', 'success', 4000);
                 wrapper.classList.remove('active');
                 closeOverlay();
             } catch (err) {
-                alert((err && err.message) || 'Registration failed');
+                showNotification((err && err.message) || 'Registration failed. Please try again.', 'error');
             }
         });
     }
