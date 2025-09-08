@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
 
 const app = express();
 app.use(cors());
@@ -131,10 +131,11 @@ async function bootstrap() {
         updatedAt: now
       };
 
+      const filter = payload.sub ? { _id: new ObjectId(payload.sub) } : { email: (payload.email || '').toLowerCase().trim() };
       const result = await users.findOneAndUpdate(
-        { email: (payload.email || '').toLowerCase().trim() },
-        { $set: update },
-        { returnDocument: 'after' }
+        filter,
+        { $set: update, $setOnInsert: { createdAt: now, groupSessionTokens: 0, privateSessionTokens: 0 } },
+        { returnDocument: 'after', upsert: true }
       );
       if (!result || !result.value) return res.status(404).json({ error: 'User not found' });
       const doc = result.value;
@@ -152,7 +153,8 @@ async function bootstrap() {
       if (!token) return res.status(401).json({ error: 'Unauthorized' });
       const payload = verifyJwt(token, JWT_SECRET);
       if (!payload || !payload.email) return res.status(401).json({ error: 'Unauthorized' });
-      const user = await users.findOne({ email: (payload.email || '').toLowerCase().trim() }, { projection: { password: 0 } });
+      const filter = payload.sub ? { _id: new ObjectId(payload.sub) } : { email: (payload.email || '').toLowerCase().trim() };
+      const user = await users.findOne(filter, { projection: { password: 0 } });
       if (!user) return res.status(404).json({ error: 'User not found' });
       res.json({ ok: true, profile: { fullName: user.fullName || null, email: user.email, school: user.school || null, grade: user.grade || null, phone: user.phone || null, icsUrl: user.icsUrl || null } });
     } catch (e) {

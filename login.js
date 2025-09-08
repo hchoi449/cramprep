@@ -272,7 +272,6 @@
             }
             try {
                 const resp = await postJson('/auth/login', { email, password });
-                showNotification('Welcome back! You are now logged in.', 'success', 3000);
                 try { localStorage.setItem('tbp_token', resp.token || ''); localStorage.setItem('tbp_user', JSON.stringify(resp.user || {})); } catch {}
                 setUserGreeting(resp.user || { email });
                 closeOverlay();
