@@ -155,14 +155,45 @@
     <script src="login.js?v=1.0"></script>
     <script>
       (function(){
+        function fillFields(p){
+          if (!p) return;
+          const byId = (id) => /** @type {HTMLInputElement} */(document.getElementById(id));
+          if (p.fullName != null) byId('acctFullName').value = p.fullName || '';
+          if (p.school != null) byId('acctSchool').value = p.school || '';
+          if (p.grade != null) byId('acctGrade').value = p.grade || '';
+          if (p.email != null) byId('acctEmail').value = p.email || '';
+          if (p.phone != null) byId('acctPhone').value = p.phone || '';
+          if (p.icsUrl != null) byId('acctIcs').value = p.icsUrl || '';
+        }
+
         try {
           const raw = localStorage.getItem('tbp_user');
           if (raw) {
             const u = JSON.parse(raw);
-            document.getElementById('acctFullName').value = u.fullName || '';
-            document.getElementById('acctEmail').value = u.email || '';
+            fillFields({ fullName: u.fullName, email: u.email });
           }
         } catch {}
+
+        // Try to load saved profile from API
+        (async function loadProfile(){
+          try {
+            const token = localStorage.getItem('tbp_token');
+            if (!token) return;
+            const base = (window && window.TBP_AUTH_BASE ? window.TBP_AUTH_BASE.replace(/\/$/, '') : '');
+            const res = await fetch(`${base}/auth/profile`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const j = await res.json().catch(() => ({}));
+            if (res.ok && j && j.profile) {
+              fillFields(j.profile);
+              try { localStorage.setItem('tbp_profile', JSON.stringify(j.profile)); } catch {}
+              return;
+            }
+          } catch {}
+          // Fallback to locally cached profile
+          try {
+            const cached = localStorage.getItem('tbp_profile');
+            if (cached) fillFields(JSON.parse(cached));
+          } catch {}
+        })();
         document.getElementById('acctSaveBtn').addEventListener('click', async function(){
           if (!document.getElementById('acctFullName').value.trim() ||
               !document.getElementById('acctSchool').value.trim() ||
