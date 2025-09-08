@@ -154,6 +154,64 @@
         return json;
     }
 
+    function extractFirstName(nameOrEmail) {
+        if (!nameOrEmail) return '';
+        const name = String(nameOrEmail);
+        if (name.includes(' ')) return name.split(' ')[0];
+        if (name.includes('@')) return name.split('@')[0];
+        return name;
+    }
+
+    function renderGreeting(fullName, email) {
+        const first = extractFirstName(fullName || email);
+        const greeting = document.createElement('span');
+        greeting.className = 'header-greeting';
+        greeting.textContent = `Hi ${first}`;
+        greeting.style.cssText = 'font-weight:600;color:#6b3410;padding:8px 0;';
+        return greeting;
+    }
+
+    function setUserGreeting(user) {
+        try {
+            // Desktop nav replacement
+            const loginLink = document.querySelector('.student-login-link');
+            if (loginLink && loginLink.parentNode) {
+                loginLink.parentNode.replaceChild(renderGreeting(user.fullName, user.email), loginLink);
+            } else {
+                const desktopNav = document.querySelector('.nav-desktop');
+                if (desktopNav) desktopNav.appendChild(renderGreeting(user.fullName, user.email));
+            }
+            // Mobile nav
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (mobileMenu) {
+                const mobileLogin = Array.from(mobileMenu.querySelectorAll('a')).find(a => (a.textContent||'').toLowerCase().includes('student login'));
+                if (mobileLogin && mobileLogin.parentNode) {
+                    mobileLogin.parentNode.replaceChild(renderGreeting(user.fullName, user.email), mobileLogin);
+                } else {
+                    mobileMenu.appendChild(renderGreeting(user.fullName, user.email));
+                }
+            }
+        } catch {}
+    }
+
+    async function tryRestoreSession() {
+        try {
+            const raw = localStorage.getItem('tbp_user');
+            const token = localStorage.getItem('tbp_token');
+            if (!raw || !token) return;
+            // Optionally verify token
+            const res = await fetch(`${getAuthBase()}/auth/me`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const j = await res.json().catch(() => ({}));
+            if (res.ok && j && j.authenticated) {
+                const user = JSON.parse(raw);
+                setUserGreeting(user);
+            }
+        } catch {}
+    }
+
+    // Attempt to restore session on load
+    tryRestoreSession();
+
     if (loginForm) {
         loginForm.addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -161,15 +219,22 @@
             const password = /** @type {HTMLInputElement} */(document.getElementById('loginPassword')).value.trim();
 
             if (!validateEmail(email) || password.length < 6) {
-                alert('Enter a valid email and password (min 6 chars).');
+                showNotification('Enter a valid email and password', 'error');
                 return;
             }
             try {
                 const resp = await postJson('/auth/login', { email, password });
                 showNotification('Welcome back! You are now logged in.', 'success', 3000);
+                try { localStorage.setItem('tbp_token', resp.token || ''); localStorage.setItem('tbp_user', JSON.stringify(resp.user || {})); } catch {}
+                setUserGreeting(resp.user || { email });
                 closeOverlay();
             } catch (err) {
-                showNotification((err && err.message) || 'Login failed. Please check your email and password.', 'error');
+                const msg = (err && err.message ? String(err.message) : '').toLowerCase();
+                if (msg.includes('invalid credential')) {
+                    showNotification('Enter a valid email and password', 'error');
+                } else {
+                    showNotification((err && err.message) || 'Login failed. Please check your email and password.', 'error');
+                }
             }
         });
     }
