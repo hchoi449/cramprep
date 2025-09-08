@@ -200,22 +200,31 @@
 
     function setUserGreeting(user) {
         try {
-            // Desktop nav replacement
-            const loginLink = document.querySelector('.student-login-link');
-            if (loginLink && loginLink.parentNode) {
-                loginLink.parentNode.replaceChild(renderGreeting(user.fullName, user.email), loginLink);
-            } else {
-                const desktopNav = document.querySelector('.nav-desktop');
-                if (desktopNav) desktopNav.appendChild(renderGreeting(user.fullName, user.email));
+            // Desktop nav replacement (avoid duplicates)
+            const desktopNav = document.querySelector('.nav-desktop');
+            if (desktopNav) {
+                const existing = desktopNav.querySelector('.header-greeting');
+                if (existing) return; // already rendered
+                const loginLinkDesktop = desktopNav.querySelector('.student-login-link');
+                const el = renderGreeting(user.fullName, user.email);
+                if (loginLinkDesktop && loginLinkDesktop.parentNode) {
+                    loginLinkDesktop.parentNode.replaceChild(el, loginLinkDesktop);
+                } else {
+                    desktopNav.appendChild(el);
+                }
             }
-            // Mobile nav
+            // Mobile nav (avoid duplicates)
             const mobileMenu = document.getElementById('mobile-menu');
             if (mobileMenu) {
-                const mobileLogin = Array.from(mobileMenu.querySelectorAll('a')).find(a => (a.textContent||'').toLowerCase().includes('student login'));
-                if (mobileLogin && mobileLogin.parentNode) {
-                    mobileLogin.parentNode.replaceChild(renderGreeting(user.fullName, user.email), mobileLogin);
-                } else {
-                    mobileMenu.appendChild(renderGreeting(user.fullName, user.email));
+                const existingMob = mobileMenu.querySelector('.header-greeting');
+                if (!existingMob) {
+                    const mobileLogin = Array.from(mobileMenu.querySelectorAll('a')).find(a => (a.textContent||'').toLowerCase().includes('student login'));
+                    const elMob = renderGreeting(user.fullName, user.email);
+                    if (mobileLogin && mobileLogin.parentNode) {
+                        mobileLogin.parentNode.replaceChild(elMob, mobileLogin);
+                    } else {
+                        mobileMenu.appendChild(elMob);
+                    }
                 }
             }
         } catch {}
