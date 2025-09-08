@@ -183,7 +183,7 @@
             return a;
         }
 
-        const profile = makeItem('Profile', '#profile');
+        const profile = makeItem('My Account', 'account.html');
         const settings = makeItem('Settings', '#settings');
         const help = makeItem('Help', '#help');
         const logout = makeItem('Log out', '#logout', function(e){

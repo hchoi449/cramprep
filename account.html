@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Account - ThinkBigPrep</title>
+    <link rel="shortcut icon" href="assets/logo/thinkbigprep-icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="css/index.css?v=1.1" />
+    <style>
+      .account-layout{display:grid;grid-template-columns:260px 1fr;gap:24px;max-width:1200px;margin:120px auto 60px;padding:0 20px}
+      .account-sidebar{background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.08);padding:18px}
+      .account-sidebar h4{font-size:12px;color:#6b7280;margin:8px 0 10px;font-weight:700;letter-spacing:.08em}
+      .account-nav a{display:block;padding:10px 12px;border-radius:8px;text-decoration:none;color:#1a1a1a;font-weight:600;margin-bottom:6px}
+      .account-nav a.active,.account-nav a:hover{background:#f8f9fa;color:#8B4513}
+      .account-content{background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.08);padding:20px}
+      .account-section{margin-bottom:22px}
+      .account-section h2{font-size:22px;margin:0 0 8px;color:#1a1a1a}
+      .account-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+      .account-grid label{display:block;font-weight:600;margin-bottom:6px}
+      .account-grid input{width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px}
+      .account-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:10px}
+    </style>
+  </head>
+  <body class="ai-curriculum">
+    <header class="header">
+      <div class="header-container">
+        <a href="index.html#home" class="logo" aria-label="ThinkBigPrep Logo" style="text-decoration:none;color:inherit;">
+          <img src="./assets/logo/thinkbigprep-icon.svg" alt="ThinkBigPrep" />
+          <strong style="color:#6b3410;">ThinkBigPrep</strong>
+        </a>
+        <nav class="nav-desktop">
+          <a href="index.html#home">Home</a>
+          <a href="timetable.html">Timetable</a>
+          <a href="index.html#courses">Plans</a>
+          <a href="index.html#coaches">Available Tutors</a>
+          <a href="index.html#about">About Us</a>
+          <a href="ai-curriculum.html" class="ai-curriculum-link">AI Curriculum <span class="new-tag">NEW</span></a>
+          <a href="login.html" class="student-login-link">Student Login</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="account-layout">
+      <aside class="account-sidebar">
+        <h4>MY ACCOUNT</h4>
+        <nav class="account-nav">
+          <a href="#profile" class="active">Profile</a>
+          <a href="#progress">Progress</a>
+          <a href="#projects">Projects</a>
+          <a href="#chat">Chat History</a>
+          <a href="#settings">Settings</a>
+        </nav>
+      </aside>
+      <section class="account-content">
+        <div class="account-section" id="profile">
+          <h2>Profile</h2>
+          <div class="account-grid">
+            <div>
+              <label>Full Name</label>
+              <input id="acctFullName" type="text" placeholder="Your name" />
+            </div>
+            <div>
+              <label>Email</label>
+              <input id="acctEmail" type="email" placeholder="you@example.com" />
+            </div>
+          </div>
+          <div class="account-actions">
+            <button class="btn btn-secondary" id="acctSaveBtn">Save</button>
+          </div>
+        </div>
+        <div class="account-section" id="progress">
+          <h2>Progress</h2>
+          <p>Your learning progress will appear here.</p>
+        </div>
+        <div class="account-section" id="projects">
+          <h2>Projects</h2>
+          <p>You don't have any projects yet.</p>
+        </div>
+        <div class="account-section" id="chat">
+          <h2>Chat History</h2>
+          <p>No chat history found.</p>
+        </div>
+        <div class="account-section" id="settings">
+          <h2>Settings</h2>
+          <p>Manage notification and privacy settings here.</p>
+        </div>
+      </section>
+    </main>
+
+    <script src="index.js"></script>
+    <script src="login.js?v=1.0"></script>
+    <script>
+      (function(){
+        try {
+          const raw = localStorage.getItem('tbp_user');
+          if (raw) {
+            const u = JSON.parse(raw);
+            document.getElementById('acctFullName').value = u.fullName || '';
+            document.getElementById('acctEmail').value = u.email || '';
+          }
+        } catch {}
+        document.getElementById('acctSaveBtn').addEventListener('click', function(){
+          showNotification('Saved your profile (demo).', 'successToast', 2000);
+        });
+      })();
+    </script>
+  </body>
+</html>
