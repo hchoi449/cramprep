@@ -131,14 +131,21 @@ async function bootstrap() {
         updatedAt: now
       };
 
-      const filter = payload.sub ? { _id: new ObjectId(payload.sub) } : { email: (payload.email || '').toLowerCase().trim() };
-      const result = await users.findOneAndUpdate(
+      let filter;
+      try {
+        filter = payload.sub ? { _id: new ObjectId(payload.sub) } : null;
+      } catch { filter = null; }
+      if (!filter) {
+        const pEmail = (payload.email || '').toLowerCase().trim();
+        filter = { $or: [ { email: pEmail }, { email: nextEmail } ] };
+      }
+      await users.updateOne(
         filter,
         { $set: update, $setOnInsert: { createdAt: now, groupSessionTokens: 0, privateSessionTokens: 0 } },
-        { returnDocument: 'after', upsert: true }
+        { upsert: true }
       );
-      if (!result || !result.value) return res.status(404).json({ error: 'User not found' });
-      const doc = result.value;
+      const doc = await users.findOne({ email: nextEmail }, { projection: { password: 0 } });
+      if (!doc) return res.status(404).json({ error: 'User not found' });
       res.json({ ok: true, profile: { fullName: doc.fullName, email: doc.email, school: doc.school || null, grade: doc.grade || null, phone: doc.phone || null, icsUrl: doc.icsUrl || null } });
     } catch (e) {
       console.error(e); res.status(500).json({ error: 'Internal error' });
