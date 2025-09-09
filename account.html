@@ -15,13 +15,12 @@
       .account-nav a.active,.account-nav a:hover{background:#f8f9fa;color:#8B4513}
       .account-content{background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.08);padding:20px}
       .account-section{margin-bottom:22px}
-      .account-section{display:none}
-      .account-section.active{display:block}
       .account-section h2{font-size:22px;margin:0 0 16px;color:#1a1a1a}
       .account-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+      .account-grid .full{grid-column:1 / -1}
       .account-grid label{display:block;font-weight:600;margin-bottom:6px}
       .account-grid input{width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px}
-      .account-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:32px}
+      .account-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:25px}
     </style>
   </head>
   <body class="ai-curriculum">
@@ -90,11 +89,23 @@
             </div>
             <div>
               <label>Phone Number</label>
-              <input id="acctPhone" type="tel" inputmode="numeric" placeholder="(201) 555-0123" />
+              <input id="acctPhone" type="tel" inputmode="numeric" placeholder="e.g., (201) 555-0123" />
             </div>
             <div>
               <label>iCal (.ics) URL</label>
               <input id="acctIcs" type="url" placeholder="https://calendar.google.com/calendar/ical/.../basic.ics" />
+            </div>
+            <div>
+              <label>Pronouns</label>
+              <input id="acctPronouns" type="text" placeholder="e.g., He/Him or She/Her" />
+            </div>
+            <div>
+              <label>Subjects of Focus</label>
+              <input id="acctSubjects" type="text" placeholder="e.g., Math, Chemistry, SAT/ACT Prep" />
+            </div>
+            <div class="full">
+              <label>Notes</label>
+              <textarea id="acctNotes" rows="4" placeholder="e.g., I play school soccer during the fall season."></textarea>
             </div>
           </div>
           <div class="account-actions">
@@ -103,7 +114,32 @@
         </div>
         <div class="account-section" id="emergency">
           <h2>Emergency Contact</h2>
-          <p>Add or update a parent/guardian contact for urgent communication.</p>
+          <div class="account-grid">
+            <div>
+              <label>Parent/Guardian Name</label>
+              <input type="text" id="ecName_0" placeholder="e.g., John Doe" />
+            </div>
+            <div>
+              <label>Parent/Guardian Email</label>
+              <input type="email" id="ecEmail_0" placeholder="parent@example.com" />
+            </div>
+            <div>
+              <label>Parent/Guardian Phone Number</label>
+              <input type="tel" id="ecPhone_0" placeholder="e.g., (201) 555-0123" />
+            </div>
+            <div>
+              <label>Contact Preference</label>
+              <select id="ecPref_0">
+                <option value="Email">Email</option>
+                <option value="Phone">Phone Number</option>
+                <option value="Both">Both</option>
+              </select>
+            </div>
+            <div class="full" style="display:flex;justify-content:flex-end;">
+              <button type="button" id="addGuardianBtn" class="btn btn-secondary" title="Add another contact">＋ Add Contact</button>
+            </div>
+          </div>
+          <div id="extraGuardians"></div>
         </div>
         <div class="account-section" id="tokens">
           <h2>Available Tokens</h2>
@@ -174,6 +210,42 @@
           });
         })();
 
+        // Add additional guardian blocks dynamically
+        (function setupAddGuardian(){
+          const addBtn = document.getElementById('addGuardianBtn');
+          const container = document.getElementById('extraGuardians');
+          if (!addBtn || !container) return;
+          let idx = 1;
+          addBtn.addEventListener('click', function(){
+            const wrap = document.createElement('div');
+            wrap.className = 'account-grid';
+            wrap.innerHTML = `
+              <div>
+                <label>Parent/Guardian Name</label>
+                <input type="text" id="ecName_${idx}" placeholder="e.g., Jane Doe" />
+              </div>
+              <div>
+                <label>Parent/Guardian Email</label>
+                <input type="email" id="ecEmail_${idx}" placeholder="parent@example.com" />
+              </div>
+              <div>
+                <label>Parent/Guardian Phone Number</label>
+                <input type="tel" id="ecPhone_${idx}" placeholder="e.g., (201) 555-0123" />
+              </div>
+              <div>
+                <label>Contact Preference</label>
+                <select id="ecPref_${idx}">
+                  <option value="Email">Email</option>
+                  <option value="Phone">Phone Number</option>
+                  <option value="Both">Both</option>
+                </select>
+              </div>
+            `;
+            container.appendChild(wrap);
+            idx++;
+          });
+        })();
+
         function fillFields(p){
           if (!p) return;
           const byId = (id) => /** @type {HTMLInputElement} */(document.getElementById(id));
@@ -227,7 +299,10 @@
             grade: document.getElementById('acctGrade').value.trim(),
             email: document.getElementById('acctEmail').value.trim(),
             phone: document.getElementById('acctPhone').value.trim(),
-            icsUrl: document.getElementById('acctIcs').value.trim()
+            icsUrl: document.getElementById('acctIcs').value.trim(),
+            pronouns: document.getElementById('acctPronouns').value.trim(),
+            subjects: document.getElementById('acctSubjects').value.trim(),
+            notes: document.getElementById('acctNotes').value.trim(),
           };
           // Persist locally
           try { localStorage.setItem('tbp_profile', JSON.stringify(data)); } catch {}

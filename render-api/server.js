@@ -115,7 +115,7 @@ async function bootstrap() {
       const payload = verifyJwt(token, JWT_SECRET);
       if (!payload || !payload.email) return res.status(401).json({ error: 'Unauthorized' });
 
-      const { fullName, school, grade, phone, icsUrl, email } = req.body || {};
+      const { fullName, school, grade, phone, icsUrl, email, pronouns, subjects, notes } = req.body || {};
       // allow updating email, but normalize
       const nextEmail = (email || payload.email || '').toLowerCase().trim();
       if (!fullName || !nextEmail) return res.status(400).json({ error: 'fullName and email required' });
@@ -128,6 +128,9 @@ async function bootstrap() {
         grade: grade || null,
         phone: phone || null,
         icsUrl: icsUrl || null,
+        pronouns: pronouns || null,
+        subjects: subjects || null,
+        notes: notes || null,
         updatedAt: now
       };
 
