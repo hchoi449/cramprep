@@ -15,11 +15,13 @@
       .account-nav a.active,.account-nav a:hover{background:#f8f9fa;color:#8B4513}
       .account-content{background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.08);padding:20px}
       .account-section{margin-bottom:22px}
+      .account-section{display:none}
+      .account-section.active{display:block}
       .account-section h2{font-size:22px;margin:0 0 16px;color:#1a1a1a}
       .account-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
       .account-grid label{display:block;font-weight:600;margin-bottom:6px}
       .account-grid input{width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px}
-      .account-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+      .account-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:32px}
     </style>
   </head>
   <body class="ai-curriculum">
@@ -67,7 +69,7 @@
         </nav>
       </aside>
       <section class="account-content">
-        <div class="account-section" id="profile">
+        <div class="account-section active" id="profile">
           <h2>Profile</h2>
           <div class="account-grid">
             <div>
@@ -155,6 +157,23 @@
     <script src="login.js?v=1.0"></script>
     <script>
       (function(){
+        // simple tab switcher
+        (function setupTabs(){
+          const links = document.querySelectorAll('.account-nav a');
+          const sections = document.querySelectorAll('.account-section');
+          links.forEach(a => {
+            a.addEventListener('click', function(e){
+              e.preventDefault();
+              links.forEach(l => l.classList.remove('active'));
+              this.classList.add('active');
+              const id = this.getAttribute('href');
+              sections.forEach(s => s.classList.remove('active'));
+              const target = document.querySelector(id);
+              if (target) target.classList.add('active');
+            });
+          });
+        })();
+
         function fillFields(p){
           if (!p) return;
           const byId = (id) => /** @type {HTMLInputElement} */(document.getElementById(id));
