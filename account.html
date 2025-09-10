@@ -125,34 +125,50 @@
         <div class="account-section" id="emergency">
           <h2>Emergency Contact</h2>
           <div class="account-grid">
-            <div class="full ec-row-header" style="padding-bottom:6px;margin-bottom:8px;">
-              <strong style="text-decoration:underline;">Contact 1</strong>
+            <div>
+              <label>Parent/Guardian Name <span class="required-star">*</span></label>
+              <input type="text" id="ecName_0" placeholder="e.g., John Doe" required />
             </div>
             <div>
+              <label>Parent/Guardian Email <span class="required-star">*</span></label>
+              <input type="email" id="ecEmail_0" placeholder="parent@example.com" required />
+            </div>
+            <div>
+              <label>Parent/Guardian Phone Number <span class="required-star">*</span></label>
+              <input type="tel" id="ecPhone_0" placeholder="e.g., (201) 555-0123" required />
+            </div>
+            <div>
+              <label>Contact Preference <span class="required-star">*</span></label>
+              <select id="ecPref_0" required>
+                <option value="Email">Email</option>
+                <option value="Phone">Phone Number</option>
+                <option value="Both">Both</option>
+              </select>
+            </div>
+
+            <div>
               <label>Parent/Guardian Name</label>
-              <input type="text" id="ecName_0" placeholder="e.g., John Doe" />
+              <input type="text" id="ecName_1" placeholder="e.g., Jane Doe" />
             </div>
             <div>
               <label>Parent/Guardian Email</label>
-              <input type="email" id="ecEmail_0" placeholder="parent@example.com" />
+              <input type="email" id="ecEmail_1" placeholder="parent2@example.com" />
             </div>
             <div>
               <label>Parent/Guardian Phone Number</label>
-              <input type="tel" id="ecPhone_0" placeholder="e.g., (201) 555-0123" />
+              <input type="tel" id="ecPhone_1" placeholder="e.g., (201) 555-0456" />
             </div>
             <div>
               <label>Contact Preference</label>
-              <select id="ecPref_0">
+              <select id="ecPref_1">
                 <option value="Email">Email</option>
                 <option value="Phone">Phone Number</option>
                 <option value="Both">Both</option>
               </select>
             </div>
           </div>
-          <div id="extraGuardians"></div>
-          <div class="account-actions" id="addGuardianRow" style="justify-content:flex-end;margin-top:18px;gap:8px;">
-            <button type="button" id="addGuardianBtn" class="circle-btn" title="Add contact">+</button>
-            <button type="button" id="removeLastGuardianBtn" class="circle-btn" title="Delete last contact">-</button>
+          <div class="account-actions" style="justify-content:flex-end;margin-top:18px;">
+            <button type="button" class="btn btn-secondary">Save</button>
           </div>
         </div>
         <div class="account-section" id="tokens">
