@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="css/index.css?v=1.1" />
     <link rel="stylesheet" href="css/login.css?v=1.0" />
     <style>
-      .account-layout{display:grid;grid-template-columns:260px 1fr;gap:24px;max-width:1200px;margin:120px auto 60px;padding:0 20px}
+      .account-layout{display:grid;grid-template-columns:260px 1fr;gap:24px;max-width:1200px;margin:120px auto 100px;padding:0 20px}
       .account-sidebar{background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.08);padding:18px}
       .account-sidebar h4{font-size:12px;color:#6b7280;margin:8px 0 10px;font-weight:700;letter-spacing:.08em}
       .account-nav a{display:block;padding:10px 12px;border-radius:8px;text-decoration:none;color:#1a1a1a;font-weight:600;margin-bottom:6px}
@@ -23,6 +23,7 @@
       .account-section h2{font-size:22px;margin:0 0 16px;color:#1a1a1a}
       .account-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
       .account-grid .full{grid-column:1 / -1}
+      .account-grid textarea{width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px}
       .account-grid label{display:block;font-weight:600;margin-bottom:6px}
       .account-grid input{width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px}
       .account-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:25px}
@@ -104,13 +105,13 @@
               <label>Pronouns</label>
               <input id="acctPronouns" type="text" placeholder="e.g., He/Him or She/Her" />
             </div>
-            <div>
+            <div class="full">
               <label>Subjects of Focus</label>
               <input id="acctSubjects" type="text" placeholder="e.g., Math, Chemistry, SAT/ACT Prep" />
             </div>
             <div class="full">
               <label>Notes</label>
-              <textarea id="acctNotes" rows="4" placeholder="e.g., I play school soccer during the fall season."></textarea>
+              <textarea id="acctNotes" rows="5" placeholder="e.g., I play school soccer during the fall season."></textarea>
             </div>
           </div>
           <div class="account-actions">
