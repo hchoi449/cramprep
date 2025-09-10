@@ -26,6 +26,7 @@
       .account-grid textarea{width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px}
       .account-grid label{display:block;font-weight:600;margin-bottom:6px}
       .account-grid input{width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px}
+      .account-grid select{width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff}
       .account-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:25px}
     </style>
   </head>
@@ -141,11 +142,11 @@
                 <option value="Both">Both</option>
               </select>
             </div>
-            <div class="full" style="display:flex;justify-content:flex-end;">
-              <button type="button" id="addGuardianBtn" class="btn btn-secondary" title="Add another contact">＋ Add Contact</button>
-            </div>
           </div>
           <div id="extraGuardians"></div>
+          <div class="account-actions" id="addGuardianRow" style="justify-content:flex-start;margin-top:12px;">
+            <button type="button" id="addGuardianBtn" class="btn btn-secondary" title="Add another contact">＋ Add Contact</button>
+          </div>
         </div>
         <div class="account-section" id="tokens">
           <h2>Available Tokens</h2>
@@ -225,6 +226,7 @@
           if (!addBtn || !container) return;
           let idx = 1;
           addBtn.addEventListener('click', function(){
+            if (idx >= 3) { try { showNotification('You can add up to 3 contacts.', 'error'); } catch {} return; }
             const wrap = document.createElement('div');
             wrap.className = 'account-grid';
             wrap.innerHTML = `
