@@ -308,6 +308,9 @@
           if (p.email != null) byId('acctEmail').value = p.email || '';
           if (p.phone != null) byId('acctPhone').value = p.phone || '';
           if (p.icsUrl != null) byId('acctIcs').value = p.icsUrl || '';
+          if (p.pronouns != null) byId('acctPronouns').value = p.pronouns || '';
+          if (p.subjects != null) byId('acctSubjects').value = p.subjects || '';
+          if (p.notes != null) document.getElementById('acctNotes').value = p.notes || '';
           // fill emergency contacts from flat fields if present
           if (p.parentguardprimaryname != null) byId('ecName_0').value = p.parentguardprimaryname || '';
           if (p.parentguardprimaryemail != null) byId('ecEmail_0').value = p.parentguardprimaryemail || '';
