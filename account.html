@@ -424,6 +424,23 @@
             showNotification(e && e.message ? String(e.message) : 'Failed to save emergency contacts.', 'error');
           }
         });
+
+        // Auto-format phone numbers to (###) ####-#### when 11 digits are entered
+        function formatIf11Digits(el){
+          if (!el) return;
+          const raw = String(el.value || '').replace(/\D/g, '');
+          if (raw.length === 11) {
+            el.value = `(${raw.slice(0,3)}) ${raw.slice(3,7)}-${raw.slice(7,11)}`;
+          }
+        }
+        [
+          document.getElementById('acctPhone'),
+          document.getElementById('ecPhone_0'),
+          document.getElementById('ecPhone_1')
+        ].forEach(function(el){
+          if (!el) return;
+          ['input','blur','change'].forEach(evt => el.addEventListener(evt, function(){ formatIf11Digits(el); }));
+        });
       })();
     </script>
   </body>
