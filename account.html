@@ -66,11 +66,11 @@
       <aside class="account-sidebar">
         <h4>MY ACCOUNT</h4>
         <nav class="account-nav">
-          <a href="#profile" class="active">Profile</a>
-          <a href="#emergency">Emergency Contact</a>
-          <a href="#tokens">Available Tokens</a>
-          <a href="#sessions">Session Log</a>
-          <a href="#goals">Goal Tracker</a>
+          <a href="#" data-target="#profile" class="active">Profile</a>
+          <a href="#" data-target="#emergency">Emergency Contact</a>
+          <a href="#" data-target="#tokens">Available Tokens</a>
+          <a href="#" data-target="#sessions">Session Log</a>
+          <a href="#" data-target="#goals">Goal Tracker</a>
         </nav>
       </aside>
       <section class="account-content">
@@ -208,10 +208,12 @@
               e.preventDefault();
               links.forEach(l => l.classList.remove('active'));
               this.classList.add('active');
-              const id = this.getAttribute('href');
+              const id = this.getAttribute('data-target') || this.getAttribute('href');
               sections.forEach(s => s.classList.remove('active'));
               const target = document.querySelector(id);
               if (target) target.classList.add('active');
+              // prevent any hash change/scroll
+              history.replaceState(null, '', location.pathname + location.search);
             });
           });
         })();
