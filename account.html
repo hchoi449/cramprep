@@ -29,8 +29,8 @@
       .account-grid select{width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff}
       .account-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:25px}
       /* Small circle icon buttons */
-      .circle-btn{width:28px;height:28px;border-radius:9999px;border:1px solid #e5e7eb;background:#ffffff;color:#8B4513;font-weight:700;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
-      .circle-btn:hover{background:#f8f9fa}
+      .circle-btn{width:28px;height:28px;border-radius:9999px;border:1px solid #6b3410;background:#8B4513;color:#ffffff;font-weight:900;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+      .circle-btn:hover{background:#6b3410}
     </style>
   </head>
   <body class="ai-curriculum">
@@ -125,7 +125,7 @@
         <div class="account-section" id="emergency">
           <h2>Emergency Contact</h2>
           <div class="account-grid">
-            <div class="full ec-row-header" style="border-bottom:1px solid #e5e7eb;padding-bottom:6px;margin-bottom:8px;">
+            <div class="full ec-row-header" style="padding-bottom:6px;margin-bottom:8px;">
               <strong style="text-decoration:underline;">Contact 1</strong>
             </div>
             <div>
@@ -150,8 +150,9 @@
             </div>
           </div>
           <div id="extraGuardians"></div>
-          <div class="account-actions" id="addGuardianRow" style="justify-content:flex-end;margin-top:18px;gap:12px;">
+          <div class="account-actions" id="addGuardianRow" style="justify-content:flex-end;margin-top:18px;gap:8px;">
             <button type="button" id="addGuardianBtn" class="circle-btn" title="Add contact">+</button>
+            <button type="button" id="removeLastGuardianBtn" class="circle-btn" title="Delete last contact">-</button>
           </div>
         </div>
         <div class="account-section" id="tokens">
@@ -228,6 +229,7 @@
         // Add additional guardian blocks dynamically
         (function setupAddGuardian(){
           const addBtn = document.getElementById('addGuardianBtn');
+          const removeBtn = document.getElementById('removeLastGuardianBtn');
           const container = document.getElementById('extraGuardians');
           if (!addBtn || !container) return;
           let idx = 1;
@@ -270,6 +272,15 @@
             del.addEventListener('click', () => wrap.remove());
             idx++;
           });
+
+          if (removeBtn) {
+            removeBtn.addEventListener('click', function(){
+              const blocks = container.querySelectorAll('.account-grid');
+              if (blocks.length === 0) return;
+              blocks[blocks.length - 1].remove();
+              if (idx > 1) idx--;
+            });
+          }
         })();
 
         function fillFields(p){
