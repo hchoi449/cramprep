@@ -115,7 +115,7 @@ async function bootstrap() {
       const payload = verifyJwt(token, JWT_SECRET);
       if (!payload || !payload.email) return res.status(401).json({ error: 'Unauthorized' });
 
-      const { fullName, school, grade, phone, icsUrl, email, pronouns, subjects, notes, emergencyContacts } = req.body || {};
+      const { fullName, school, grade, phone, icsUrl, email, pronouns, subjects, notes, emergencyPrimary, emergencySecondary } = req.body || {};
       // allow updating email, but normalize
       const nextEmail = (email || payload.email || '').toLowerCase().trim();
       if (!nextEmail) return res.status(400).json({ error: 'email required' });
@@ -130,7 +130,8 @@ async function bootstrap() {
       if (typeof pronouns !== 'undefined') update.pronouns = pronouns || null;
       if (typeof subjects !== 'undefined') update.subjects = subjects || null;
       if (typeof notes !== 'undefined') update.notes = notes || null;
-      if (Array.isArray(emergencyContacts)) update.emergencyContacts = emergencyContacts.slice(0, 2);
+      if (emergencyPrimary) update.emergencyPrimary = emergencyPrimary;
+      if (emergencySecondary) update.emergencySecondary = emergencySecondary;
 
       const orConds = [];
       try { if (payload.sub) orConds.push({ _id: new ObjectId(payload.sub) }); } catch {}
@@ -181,15 +182,15 @@ async function bootstrap() {
       if (!payload || !payload.email) return res.status(401).json({ error: 'Unauthorized' });
 
       const list = Array.isArray(req.body && req.body.emergencyContacts) ? req.body.emergencyContacts : [];
-      // Normalize and enforce up to 2 entries; first must be valid
+      // Normalize
       const normalize = (c) => ({
         name: (c && c.name ? String(c.name).trim() : '') || null,
         email: (c && c.email ? String(c.email).trim().toLowerCase() : '') || null,
         phone: (c && c.phone ? String(c.phone).trim() : '') || null,
         preference: (c && c.preference ? String(c.preference).trim() : '') || null,
       });
-      const arr = list.slice(0, 2).map(normalize);
-      const primary = arr[0] || normalize({});
+      const primary = normalize(list[0] || {});
+      const secondary = normalize(list[1] || {});
       if (!primary.name || !primary.email || !primary.phone || !primary.preference) {
         return res.status(400).json({ error: 'Primary contact (row 1) is required' });
       }
@@ -201,7 +202,7 @@ async function bootstrap() {
       if (pEmail) orConds.push({ email: pEmail });
       const filter = orConds.length ? { $or: orConds } : { email: pEmail };
 
-      await users.updateOne(filter, { $set: { emergencyContacts: arr, updatedAt: now } });
+      await users.updateOne(filter, { $set: { emergencyPrimary: primary, emergencySecondary: secondary, updatedAt: now } });
       return res.json({ ok: true });
     } catch (e) {
       console.error(e); res.status(500).json({ error: 'Internal error' });

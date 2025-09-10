@@ -405,7 +405,7 @@
             phone: document.getElementById('ecPhone_1').value.trim(),
             preference: document.getElementById('ecPref_1').value.trim()
           };
-          const payload = { emergencyContacts: [primary, secondary] };
+          const payload = { emergencyPrimary: primary, emergencySecondary: secondary };
           try {
             const token = localStorage.getItem('tbp_token');
             if (!token) throw new Error('Please log in to save your profile.');
