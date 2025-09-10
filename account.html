@@ -122,6 +122,12 @@
         <div class="account-section" id="emergency">
           <h2>Emergency Contact</h2>
           <div class="account-grid">
+            <div class="full ec-row-header">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <strong>Contact 1</strong>
+                <button type="button" class="btn btn-secondary ec-del" data-id="0" style="display:none">− Delete</button>
+              </div>
+            </div>
             <div>
               <label>Parent/Guardian Name</label>
               <input type="text" id="ecName_0" placeholder="e.g., John Doe" />
@@ -144,7 +150,7 @@
             </div>
           </div>
           <div id="extraGuardians"></div>
-          <div class="account-actions" id="addGuardianRow" style="justify-content:flex-start;margin-top:12px;">
+          <div class="account-actions" id="addGuardianRow" style="justify-content:flex-end;margin-top:12px;">
             <button type="button" id="addGuardianBtn" class="btn btn-secondary" title="Add another contact">＋ Add Contact</button>
           </div>
         </div>
@@ -230,6 +236,12 @@
             const wrap = document.createElement('div');
             wrap.className = 'account-grid';
             wrap.innerHTML = `
+              <div class="full ec-row-header">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <strong>Contact ${idx+1}</strong>
+                  <button type="button" class="btn btn-secondary ec-del" data-id="${idx}">− Delete</button>
+                </div>
+              </div>
               <div>
                 <label>Parent/Guardian Name</label>
                 <input type="text" id="ecName_${idx}" placeholder="e.g., Jane Doe" />
@@ -252,6 +264,8 @@
               </div>
             `;
             container.appendChild(wrap);
+            const del = wrap.querySelector('.ec-del');
+            if (del) del.addEventListener('click', () => wrap.remove());
             idx++;
           });
         })();
