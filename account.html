@@ -28,6 +28,9 @@
       .account-grid input{width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px}
       .account-grid select{width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff}
       .account-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:25px}
+      /* Small circle icon buttons */
+      .circle-btn{width:28px;height:28px;border-radius:9999px;border:1px solid #e5e7eb;background:#ffffff;color:#8B4513;font-weight:700;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+      .circle-btn:hover{background:#f8f9fa}
     </style>
   </head>
   <body class="ai-curriculum">
@@ -122,11 +125,8 @@
         <div class="account-section" id="emergency">
           <h2>Emergency Contact</h2>
           <div class="account-grid">
-            <div class="full ec-row-header">
-              <div style="display:flex;justify-content:space-between;align-items:center;">
-                <strong>Contact 1</strong>
-                <button type="button" class="btn btn-secondary ec-del" data-id="0" style="display:none">− Delete</button>
-              </div>
+            <div class="full ec-row-header" style="border-bottom:1px solid #e5e7eb;padding-bottom:6px;margin-bottom:8px;">
+              <strong style="text-decoration:underline;">Contact 1</strong>
             </div>
             <div>
               <label>Parent/Guardian Name</label>
@@ -150,8 +150,8 @@
             </div>
           </div>
           <div id="extraGuardians"></div>
-          <div class="account-actions" id="addGuardianRow" style="justify-content:flex-end;margin-top:12px;">
-            <button type="button" id="addGuardianBtn" class="btn btn-secondary" title="Add another contact">＋ Add Contact</button>
+          <div class="account-actions" id="addGuardianRow" style="justify-content:flex-end;margin-top:18px;gap:12px;">
+            <button type="button" id="addGuardianBtn" class="circle-btn" title="Add contact">+</button>
           </div>
         </div>
         <div class="account-section" id="tokens">
@@ -236,11 +236,8 @@
             const wrap = document.createElement('div');
             wrap.className = 'account-grid';
             wrap.innerHTML = `
-              <div class="full ec-row-header">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                  <strong>Contact ${idx+1}</strong>
-                  <button type="button" class="btn btn-secondary ec-del" data-id="${idx}">− Delete</button>
-                </div>
+              <div class="full ec-row-header" style="border-bottom:1px solid #e5e7eb;padding-bottom:6px;margin-bottom:8px;">
+                <strong style="text-decoration:underline;">Contact ${idx+1}</strong>
               </div>
               <div>
                 <label>Parent/Guardian Name</label>
@@ -264,8 +261,13 @@
               </div>
             `;
             container.appendChild(wrap);
-            const del = wrap.querySelector('.ec-del');
-            if (del) del.addEventListener('click', () => wrap.remove());
+            const delRow = document.createElement('div');
+            delRow.className = 'account-actions';
+            delRow.style.justifyContent = 'flex-start';
+            delRow.innerHTML = `<button type="button" class="circle-btn ec-del" aria-label="Delete">-</button>`;
+            wrap.appendChild(delRow);
+            const del = delRow.querySelector('.ec-del');
+            del.addEventListener('click', () => wrap.remove());
             idx++;
           });
         })();
