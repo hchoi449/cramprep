@@ -13,8 +13,6 @@ body {
     color: #1a1a1a;
     background-color: #ffffff;
     min-height: 100vh;
-    display: flex;
-    flex-direction: column;
 }
 
 .container {
@@ -1813,7 +1811,6 @@ section.ai-curriculum {
     background: #8B4513;
     color: white;
     padding: 80px 0 30px;
-    margin-top: auto;
 }
 
 /* Ensure no extra whitespace below footer */
