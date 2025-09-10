@@ -115,24 +115,22 @@ async function bootstrap() {
       const payload = verifyJwt(token, JWT_SECRET);
       if (!payload || !payload.email) return res.status(401).json({ error: 'Unauthorized' });
 
-      const { fullName, school, grade, phone, icsUrl, email, pronouns, subjects, notes } = req.body || {};
+      const { fullName, school, grade, phone, icsUrl, email, pronouns, subjects, notes, emergencyContacts } = req.body || {};
       // allow updating email, but normalize
       const nextEmail = (email || payload.email || '').toLowerCase().trim();
-      if (!fullName || !nextEmail) return res.status(400).json({ error: 'fullName and email required' });
+      if (!nextEmail) return res.status(400).json({ error: 'email required' });
 
       const now = new Date().toISOString();
-      const update = {
-        fullName,
-        email: nextEmail,
-        school: school || null,
-        grade: grade || null,
-        phone: phone || null,
-        icsUrl: icsUrl || null,
-        pronouns: pronouns || null,
-        subjects: subjects || null,
-        notes: notes || null,
-        updatedAt: now
-      };
+      const update = { email: nextEmail, updatedAt: now };
+      if (typeof fullName !== 'undefined') update.fullName = fullName || null;
+      if (typeof school !== 'undefined') update.school = school || null;
+      if (typeof grade !== 'undefined') update.grade = grade || null;
+      if (typeof phone !== 'undefined') update.phone = phone || null;
+      if (typeof icsUrl !== 'undefined') update.icsUrl = icsUrl || null;
+      if (typeof pronouns !== 'undefined') update.pronouns = pronouns || null;
+      if (typeof subjects !== 'undefined') update.subjects = subjects || null;
+      if (typeof notes !== 'undefined') update.notes = notes || null;
+      if (Array.isArray(emergencyContacts)) update.emergencyContacts = emergencyContacts.slice(0, 2);
 
       const orConds = [];
       try { if (payload.sub) orConds.push({ _id: new ObjectId(payload.sub) }); } catch {}
