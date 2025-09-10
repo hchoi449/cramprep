@@ -168,7 +168,7 @@
             </div>
           </div>
           <div class="account-actions" style="justify-content:flex-end;margin-top:18px;">
-            <button type="button" class="btn btn-secondary">Save</button>
+            <button type="button" id="emergencySaveBtn" class="btn btn-secondary">Save</button>
           </div>
         </div>
         <div class="account-section" id="tokens">
@@ -383,6 +383,45 @@
             showNotification('Profile saved!', 'successToast', 2200);
           } catch (err) {
             showNotification(err && err.message ? String(err.message) : 'Failed to save profile.', 'error');
+          }
+        });
+
+        // Save emergency contacts
+        const emergencySave = document.getElementById('emergencySaveBtn');
+        if (emergencySave) emergencySave.addEventListener('click', async function(){
+          const primary = {
+            name: document.getElementById('ecName_0').value.trim(),
+            email: document.getElementById('ecEmail_0').value.trim(),
+            phone: document.getElementById('ecPhone_0').value.trim(),
+            preference: document.getElementById('ecPref_0').value.trim()
+          };
+          if (!primary.name || !primary.email || !primary.phone || !primary.preference) {
+            showNotification('Please complete all required primary contact fields.', 'error');
+            return;
+          }
+          const secondary = {
+            name: document.getElementById('ecName_1').value.trim(),
+            email: document.getElementById('ecEmail_1').value.trim(),
+            phone: document.getElementById('ecPhone_1').value.trim(),
+            preference: document.getElementById('ecPref_1').value.trim()
+          };
+          const payload = { emergencyContacts: [primary, secondary] };
+          try {
+            const token = localStorage.getItem('tbp_token');
+            if (!token) throw new Error('Please log in to save your profile.');
+            const base = (window && window.TBP_AUTH_BASE ? window.TBP_AUTH_BASE.replace(/\/$/, '') : '');
+            const res = await fetch(`${base}/auth/emergency`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify(payload)
+            });
+            if (!res.ok) {
+              const j = await res.json().catch(() => ({}));
+              throw new Error(j.error || 'Failed to save emergency contacts.');
+            }
+            showNotification('Profile saved', 'successToast', 2000);
+          } catch (e) {
+            showNotification(e && e.message ? String(e.message) : 'Failed to save emergency contacts.', 'error');
           }
         });
       })();

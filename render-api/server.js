@@ -173,6 +173,43 @@ async function bootstrap() {
     }
   });
 
+  // Save emergency contacts (two rows max) without requiring full profile fields
+  app.post('/auth/emergency', async (req, res) => {
+    try {
+      const auth = req.headers.authorization || '';
+      const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+      if (!token) return res.status(401).json({ error: 'Unauthorized' });
+      const payload = verifyJwt(token, JWT_SECRET);
+      if (!payload || !payload.email) return res.status(401).json({ error: 'Unauthorized' });
+
+      const list = Array.isArray(req.body && req.body.emergencyContacts) ? req.body.emergencyContacts : [];
+      // Normalize and enforce up to 2 entries; first must be valid
+      const normalize = (c) => ({
+        name: (c && c.name ? String(c.name).trim() : '') || null,
+        email: (c && c.email ? String(c.email).trim().toLowerCase() : '') || null,
+        phone: (c && c.phone ? String(c.phone).trim() : '') || null,
+        preference: (c && c.preference ? String(c.preference).trim() : '') || null,
+      });
+      const arr = list.slice(0, 2).map(normalize);
+      const primary = arr[0] || normalize({});
+      if (!primary.name || !primary.email || !primary.phone || !primary.preference) {
+        return res.status(400).json({ error: 'Primary contact (row 1) is required' });
+      }
+
+      const now = new Date().toISOString();
+      const orConds = [];
+      try { if (payload.sub) orConds.push({ _id: new ObjectId(payload.sub) }); } catch {}
+      const pEmail = (payload.email || '').toLowerCase().trim();
+      if (pEmail) orConds.push({ email: pEmail });
+      const filter = orConds.length ? { $or: orConds } : { email: pEmail };
+
+      await users.updateOne(filter, { $set: { emergencyContacts: arr, updatedAt: now } });
+      return res.json({ ok: true });
+    } catch (e) {
+      console.error(e); res.status(500).json({ error: 'Internal error' });
+    }
+  });
+
   const port = PORT || 8080;
   app.listen(port, () => console.log(`Auth API listening on ${port}`));
 }
