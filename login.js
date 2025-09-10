@@ -189,7 +189,8 @@
         const logout = makeItem('Log out', '#logout', function(e){
             e.preventDefault();
             try { localStorage.removeItem('tbp_token'); localStorage.removeItem('tbp_user'); } catch {}
-            window.location.reload();
+            // Redirect to homepage unsigned
+            window.location.href = 'index.html#home';
         });
         menu.appendChild(profile);
         menu.appendChild(settings);
