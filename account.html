@@ -429,8 +429,9 @@
         function formatIf11Digits(el){
           if (!el) return;
           const raw = String(el.value || '').replace(/\D/g, '');
-          if (raw.length === 11) {
-            el.value = `(${raw.slice(0,3)}) ${raw.slice(3,7)}-${raw.slice(7,11)}`;
+          if (raw.length === 11 || raw.length === 10) {
+            const ten = raw.length === 11 ? raw.slice(-10) : raw; // use last 10 digits
+            el.value = `(${ten.slice(0,3)}) ${ten.slice(3,6)}-${ten.slice(6,10)}`;
           }
         }
         [
