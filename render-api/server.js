@@ -182,7 +182,25 @@ async function bootstrap() {
       const filter = payload.sub ? { _id: new ObjectId(payload.sub) } : { email: (payload.email || '').toLowerCase().trim() };
       const user = await users.findOne(filter, { projection: { password: 0 } });
       if (!user) return res.status(404).json({ error: 'User not found' });
-      res.json({ ok: true, profile: { fullName: user.fullName || null, email: user.email, school: user.school || null, grade: user.grade || null, phone: user.phone || null, icsUrl: user.icsUrl || null } });
+      res.json({ ok: true, profile: {
+        fullName: user.fullName || null,
+        email: user.email,
+        school: user.school || null,
+        grade: user.grade || null,
+        phone: user.phone || null,
+        icsUrl: user.icsUrl || null,
+        pronouns: user.pronouns || null,
+        subjects: user.subjects || null,
+        notes: user.notes || null,
+        parentguardprimaryname: user.parentguardprimaryname || null,
+        parentguardprimaryemail: user.parentguardprimaryemail || null,
+        parentguardprimaryphone: user.parentguardprimaryphone || null,
+        parentguardprimarypreference: user.parentguardprimarypreference || null,
+        parentguardsecondaryname: user.parentguardsecondaryname || null,
+        parentguardsecondaryemail: user.parentguardsecondaryemail || null,
+        parentguardsecondaryphone: user.parentguardsecondaryphone || null,
+        parentguardsecondarypreference: user.parentguardsecondarypreference || null
+      } });
     } catch (e) {
       console.error(e); res.status(500).json({ error: 'Internal error' });
     }
