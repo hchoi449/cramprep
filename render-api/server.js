@@ -115,7 +115,7 @@ async function bootstrap() {
       const payload = verifyJwt(token, JWT_SECRET);
       if (!payload || !payload.email) return res.status(401).json({ error: 'Unauthorized' });
 
-      const { fullName, school, grade, phone, icsUrl, email, pronouns, subjects, notes, emergencyPrimary, emergencySecondary } = req.body || {};
+      const { fullName, school, grade, phone, icsUrl, email, pronouns, subjects, notes, emergencyContacts } = req.body || {};
       // allow updating email, but normalize
       const nextEmail = (email || payload.email || '').toLowerCase().trim();
       if (!nextEmail) return res.status(400).json({ error: 'email required' });
@@ -130,8 +130,24 @@ async function bootstrap() {
       if (typeof pronouns !== 'undefined') update.pronouns = pronouns || null;
       if (typeof subjects !== 'undefined') update.subjects = subjects || null;
       if (typeof notes !== 'undefined') update.notes = notes || null;
-      if (emergencyPrimary) update.emergencyPrimary = emergencyPrimary;
-      if (emergencySecondary) update.emergencySecondary = emergencySecondary;
+      if (Array.isArray(emergencyContacts)) {
+        const norm = (c) => ({
+          name: c && c.name ? String(c.name).trim() : null,
+          email: c && c.email ? String(c.email).trim().toLowerCase() : null,
+          phone: c && c.phone ? String(c.phone).trim() : null,
+          preference: c && c.preference ? String(c.preference).trim() : null
+        });
+        const p = norm(emergencyContacts[0] || {});
+        const s = norm(emergencyContacts[1] || {});
+        update.parentguardprimaryname = p.name;
+        update.parentguardprimaryemail = p.email;
+        update.parentguardprimaryphone = p.phone;
+        update.parentguardprimarypreference = p.preference;
+        update.parentguardsecondaryname = s.name;
+        update.parentguardsecondaryemail = s.email;
+        update.parentguardsecondaryphone = s.phone;
+        update.parentguardsecondarypreference = s.preference;
+      }
 
       const orConds = [];
       try { if (payload.sub) orConds.push({ _id: new ObjectId(payload.sub) }); } catch {}
@@ -182,15 +198,15 @@ async function bootstrap() {
       if (!payload || !payload.email) return res.status(401).json({ error: 'Unauthorized' });
 
       const list = Array.isArray(req.body && req.body.emergencyContacts) ? req.body.emergencyContacts : [];
-      // Normalize
+      // Normalize and cap to two
       const normalize = (c) => ({
         name: (c && c.name ? String(c.name).trim() : '') || null,
         email: (c && c.email ? String(c.email).trim().toLowerCase() : '') || null,
         phone: (c && c.phone ? String(c.phone).trim() : '') || null,
         preference: (c && c.preference ? String(c.preference).trim() : '') || null,
       });
-      const primary = normalize(list[0] || {});
-      const secondary = normalize(list[1] || {});
+      const arr = [ normalize(list[0] || {}), normalize(list[1] || {}) ];
+      const primary = arr[0];
       if (!primary.name || !primary.email || !primary.phone || !primary.preference) {
         return res.status(400).json({ error: 'Primary contact (row 1) is required' });
       }
@@ -202,7 +218,7 @@ async function bootstrap() {
       if (pEmail) orConds.push({ email: pEmail });
       const filter = orConds.length ? { $or: orConds } : { email: pEmail };
 
-      await users.updateOne(filter, { $set: { emergencyPrimary: primary, emergencySecondary: secondary, updatedAt: now } });
+      await users.updateOne(filter, { $set: { emergencyContacts: arr, updatedAt: now } });
       return res.json({ ok: true });
     } catch (e) {
       console.error(e); res.status(500).json({ error: 'Internal error' });
