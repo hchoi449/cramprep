@@ -199,7 +199,8 @@ async function bootstrap() {
         parentguardsecondaryname: user.parentguardsecondaryname || null,
         parentguardsecondaryemail: user.parentguardsecondaryemail || null,
         parentguardsecondaryphone: user.parentguardsecondaryphone || null,
-        parentguardsecondarypreference: user.parentguardsecondarypreference || null
+        parentguardsecondarypreference: user.parentguardsecondarypreference || null,
+        emergencyContacts: Array.isArray(user.emergencyContacts) ? user.emergencyContacts : null
       } });
     } catch (e) {
       console.error(e); res.status(500).json({ error: 'Internal error' });
