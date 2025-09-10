@@ -15,6 +15,11 @@
       .account-nav a.active,.account-nav a:hover{background:#f8f9fa;color:#8B4513}
       .account-content{background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.08);padding:20px}
       .account-section{margin-bottom:22px}
+      /* Tabs: show only active section */
+      .account-section{display:none}
+      .account-section.active{display:block}
+      /* Prevent resizing of multi-line notes */
+      .account-content textarea{resize:none}
       .account-section h2{font-size:22px;margin:0 0 16px;color:#1a1a1a}
       .account-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
       .account-grid .full{grid-column:1 / -1}
