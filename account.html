@@ -308,6 +308,27 @@
           if (p.email != null) byId('acctEmail').value = p.email || '';
           if (p.phone != null) byId('acctPhone').value = p.phone || '';
           if (p.icsUrl != null) byId('acctIcs').value = p.icsUrl || '';
+          // fill emergency contacts from flat fields if present
+          if (p.parentguardprimaryname != null) byId('ecName_0').value = p.parentguardprimaryname || '';
+          if (p.parentguardprimaryemail != null) byId('ecEmail_0').value = p.parentguardprimaryemail || '';
+          if (p.parentguardprimaryphone != null) byId('ecPhone_0').value = p.parentguardprimaryphone || '';
+          if (p.parentguardprimarypreference != null) byId('ecPref_0').value = p.parentguardprimarypreference || 'Email';
+          if (p.parentguardsecondaryname != null) byId('ecName_1').value = p.parentguardsecondaryname || '';
+          if (p.parentguardsecondaryemail != null) byId('ecEmail_1').value = p.parentguardsecondaryemail || '';
+          if (p.parentguardsecondaryphone != null) byId('ecPhone_1').value = p.parentguardsecondaryphone || '';
+          if (p.parentguardsecondarypreference != null) byId('ecPref_1').value = p.parentguardsecondarypreference || 'Email';
+          // fallback to array
+          if (Array.isArray(p.emergencyContacts)) {
+            const e0 = p.emergencyContacts[0] || {}; const e1 = p.emergencyContacts[1] || {};
+            if (!byId('ecName_0').value) byId('ecName_0').value = e0.name || '';
+            if (!byId('ecEmail_0').value) byId('ecEmail_0').value = e0.email || '';
+            if (!byId('ecPhone_0').value) byId('ecPhone_0').value = e0.phone || '';
+            if (e0.preference) byId('ecPref_0').value = e0.preference;
+            if (!byId('ecName_1').value) byId('ecName_1').value = e1.name || '';
+            if (!byId('ecEmail_1').value) byId('ecEmail_1').value = e1.email || '';
+            if (!byId('ecPhone_1').value) byId('ecPhone_1').value = e1.phone || '';
+            if (e1.preference) byId('ecPref_1').value = e1.preference;
+          }
         }
 
         try {
