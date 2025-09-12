@@ -192,6 +192,8 @@ async function bootstrap() {
         pronouns: user.pronouns || null,
         subjects: user.subjects || null,
         notes: user.notes || null,
+        groupSessionTokens: typeof user.groupSessionTokens === 'number' ? user.groupSessionTokens : 0,
+        privateSessionTokens: typeof user.privateSessionTokens === 'number' ? user.privateSessionTokens : 0,
         parentguardprimaryname: user.parentguardprimaryname || null,
         parentguardprimaryemail: user.parentguardprimaryemail || null,
         parentguardprimaryphone: user.parentguardprimaryphone || null,
