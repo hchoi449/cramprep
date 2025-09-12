@@ -6,7 +6,7 @@
     </linearGradient>
   </defs>
   <circle cx="60" cy="60" r="55" fill="none" stroke="#6b3410" stroke-width="6" />
-  <circle cx="60" cy="60" r="48" fill="url(#tbpGradTokenBlue)" />
+  <circle cx="60" cy="60" r="52" fill="url(#tbpGradTokenBlue)" />
   <!-- TBP spark/star -->
   <g transform="translate(60,60) rotate(-10)">
     <path d="M0 -18 L3 -4 L18 0 L3 4 L0 18 L-3 4 L-18 0 L-3 -4 Z" fill="rgb(218,164,37)" opacity="0.95"/>
