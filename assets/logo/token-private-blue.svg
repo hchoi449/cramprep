@@ -1,14 +1,16 @@
-<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ThinkBigPrep token (blue)">
+<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ThinkBigPrep token (private - gold)">
   <defs>
-    <linearGradient id="tbpGradTokenBlue" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#BFD0B0"/>
-      <stop offset="100%" stop-color="#E1DCC9"/>
-    </linearGradient>
+    <!-- Gold radial gradient: bright center → deeper rim -->
+    <radialGradient id="tbpGoldRad" cx="50%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#fde68a"/>
+      <stop offset="55%" stop-color="#f1c232"/>
+      <stop offset="100%" stop-color="#d4a017"/>
+    </radialGradient>
   </defs>
   <circle cx="60" cy="60" r="55" fill="none" stroke="#8B4513" stroke-width="6" />
-  <circle cx="60" cy="60" r="52" fill="url(#tbpGradTokenBlue)" />
+  <circle cx="60" cy="60" r="52" fill="url(#tbpGoldRad)" />
   <!-- TBP spark/star -->
   <g transform="translate(60,60) rotate(-10)">
-    <path d="M0 -18 L3 -4 L18 0 L3 4 L0 18 L-3 4 L-18 0 L-3 -4 Z" fill="rgb(218,164,37)" opacity="0.95"/>
+    <path d="M0 -18 L3 -4 L18 0 L3 4 L0 18 L-3 4 L-18 0 L-3 -4 Z" fill="#5f4313" opacity="0.95"/>
   </g>
 </svg>
