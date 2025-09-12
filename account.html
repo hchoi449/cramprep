@@ -31,6 +31,13 @@
       /* Small circle icon buttons */
       .circle-btn{width:28px;height:28px;border-radius:9999px;border:1px solid #6b3410;background:#8B4513;color:#ffffff;font-weight:900;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
       .circle-btn:hover{background:#6b3410}
+      /* Tokens section */
+      .tokens-row{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:18px 8px;border-bottom:1px solid #eee}
+      .tokens-left{display:flex;align-items:center;gap:24px}
+      .token-icon{width:96px;height:96px}
+      .tokens-label{font-size:1.8rem;font-weight:700;color:#1a1a1a}
+      .tokens-count{font-size:1.6rem;font-weight:800;color:#6b3410;margin-left:12px}
+      .token-add{background:#fff;border:2px solid #1a1a1a;padding:12px 24px;border-radius:16px;font-weight:700;cursor:pointer}
     </style>
   </head>
   <body class="ai-curriculum">
@@ -173,7 +180,20 @@
         </div>
         <div class="account-section" id="tokens">
           <h2>Available Tokens</h2>
-          <p>Your group and private session tokens will be shown here.</p>
+          <div class="tokens-row">
+            <div class="tokens-left">
+              <img src="assets/logo/token-cram-green.svg" alt="Cram Token" class="token-icon" />
+              <div class="tokens-label"># of Cram Session Token <span id="cramCount" class="tokens-count">0</span></div>
+            </div>
+            <button class="token-add" id="addCramBtn">Add More</button>
+          </div>
+          <div class="tokens-row">
+            <div class="tokens-left">
+              <img src="assets/logo/token-private-blue.svg" alt="Private Token" class="token-icon" />
+              <div class="tokens-label"># of Private Session Token <span id="privateCount" class="tokens-count">0</span></div>
+            </div>
+            <button class="token-add" id="addPrivateBtn">Add More</button>
+          </div>
         </div>
         <div class="account-section" id="sessions">
           <h2>Session Log</h2>
@@ -353,6 +373,13 @@
             if (res.ok && j && j.profile) {
               fillFields(j.profile);
               try { localStorage.setItem('tbp_profile', JSON.stringify(j.profile)); } catch {}
+              // tokens
+              try {
+                const cram = document.getElementById('cramCount');
+                const priv = document.getElementById('privateCount');
+                if (cram) cram.textContent = String(j.profile.groupSessionTokens ?? 0);
+                if (priv) priv.textContent = String(j.profile.privateSessionTokens ?? 0);
+              } catch {}
               return;
             }
           } catch {}
