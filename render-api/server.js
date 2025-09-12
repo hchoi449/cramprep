@@ -106,6 +106,37 @@ async function bootstrap() {
     res.json({ authenticated: true, user: { id: payload.sub, email: payload.email } });
   });
 
+  // Proxy iCalendar (.ics) fetch to avoid CORS in browser
+  app.get('/auth/ics', async (req, res) => {
+    try {
+      const auth = req.headers.authorization || '';
+      const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+      if (!token) return res.status(401).json({ error: 'Unauthorized' });
+      const payload = verifyJwt(token, JWT_SECRET);
+      if (!payload || !payload.email) return res.status(401).json({ error: 'Unauthorized' });
+
+      const src = String(req.query.url || '').trim();
+      if (!src) return res.status(400).json({ error: 'url is required' });
+      if (!/^https?:\/\//i.test(src)) return res.status(400).json({ error: 'Only http(s) URLs allowed' });
+
+      const r = await fetch(src, {
+        headers: {
+          'Accept': 'text/calendar, text/plain;q=0.9, */*;q=0.8',
+          'User-Agent': 'ThinkBigPrep/1.0 (+https://thinkbigprep.com)'
+        }
+      });
+      if (!r.ok) {
+        return res.status(r.status).json({ error: 'Failed to fetch ICS' });
+      }
+      const text = await r.text();
+      res.set('Content-Type', 'text/calendar; charset=utf-8');
+      return res.send(text);
+    } catch (e) {
+      console.error(e);
+      return res.status(500).json({ error: 'Internal error' });
+    }
+  });
+
   // Save or update user profile fields
   app.post('/auth/profile', async (req, res) => {
     try {

@@ -172,6 +172,23 @@
             </div>
         </section>
 
+        <!-- Assignments Drawer Toggle -->
+        <button id="assignments-tab" aria-controls="assignments-drawer" aria-expanded="false" title="Assignments">
+            <i class="bi bi-card-checklist"></i>
+        </button>
+
+        <!-- Assignments Drawer -->
+        <aside id="assignments-drawer" aria-hidden="true">
+            <div class="drawer-header">
+                <h3>Assignments (This Week)</h3>
+                <button class="drawer-close" aria-label="Close assignments">×</button>
+            </div>
+            <div class="drawer-body">
+                <div class="drawer-empty">No assignments for this week.</div>
+                <ul class="drawer-list" id="assignments-list"></ul>
+            </div>
+        </aside>
+
         <!-- Footer -->
         <footer class="footer">
             <div class="container">

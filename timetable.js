@@ -155,6 +155,7 @@ document.addEventListener('DOMContentLoaded', function() {
     updateMonthDisplay();
 
     // AI chat UI removed; button retained for future integration
+    try { setupAssignmentsDrawer(); } catch {}
 });
 
 // Initialize timetable functionality
@@ -237,11 +238,13 @@ function switchView(view) {
 function previousWeek() {
     currentWeek.setDate(currentWeek.getDate() - 7);
     updateWeekDisplay();
+    try { refreshAssignmentsForCurrentWeek(); } catch {}
 }
 
 function nextWeek() {
     currentWeek.setDate(currentWeek.getDate() + 7);
     updateWeekDisplay();
+    try { refreshAssignmentsForCurrentWeek(); } catch {}
 }
 
 function previousMonth() {
@@ -287,6 +290,10 @@ function updateWeekDisplay() {
 
     // Re-render events for the newly displayed week (EST-aware)
     renderWeekEvents(startOfWeek);
+    try {
+        const header = document.querySelector('#assignments-drawer .drawer-header h3');
+        if (header) header.textContent = 'Assignments (This Week)';
+    } catch {}
 }
 
 // Accessible event modal (basic)
@@ -486,3 +493,160 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// ===== Assignments Drawer + ICS parsing =====
+function setupAssignmentsDrawer(){
+    const tab = document.getElementById('assignments-tab');
+    const drawer = document.getElementById('assignments-drawer');
+    const closeBtn = drawer ? drawer.querySelector('.drawer-close') : null;
+    if (!tab || !drawer) return;
+    const toggle = (open)=>{
+        const isOpen = typeof open === 'boolean' ? open : !drawer.classList.contains('active');
+        if (isOpen) {
+            drawer.classList.add('active');
+            tab.setAttribute('aria-expanded','true');
+            drawer.setAttribute('aria-hidden','false');
+            refreshAssignmentsForCurrentWeek();
+        } else {
+            drawer.classList.remove('active');
+            tab.setAttribute('aria-expanded','false');
+            drawer.setAttribute('aria-hidden','true');
+        }
+    };
+    tab.addEventListener('click', ()=> toggle());
+    if (closeBtn) closeBtn.addEventListener('click', ()=> toggle(false));
+}
+
+async function refreshAssignmentsForCurrentWeek(){
+    try {
+        const list = document.getElementById('assignments-list');
+        const empty = document.querySelector('.drawer-empty');
+        if (list) list.innerHTML = '';
+        if (empty) empty.style.display = 'block';
+        const profile = await fetchProfile();
+        const icsUrl = profile && profile.icsUrl ? String(profile.icsUrl).trim() : '';
+        if (!icsUrl) return;
+        const token = (localStorage && localStorage.getItem('tbp_token')) || '';
+        const base = (window && window.TBP_AUTH_BASE) ? window.TBP_AUTH_BASE.replace(/\/$/,'') : '';
+        const res = await fetch(`${base}/auth/ics?url=${encodeURIComponent(icsUrl)}`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!res.ok) throw new Error('Failed to fetch calendar');
+        const text = await res.text();
+        const events = parseIcs(text);
+        const weekEvents = filterEventsToDisplayedWeek(events);
+        renderAssignmentsList(weekEvents);
+    } catch (e) {
+        // Silent fail
+    }
+}
+
+async function fetchProfile(){
+    try {
+        const token = (localStorage && localStorage.getItem('tbp_token')) || '';
+        if (!token) return null;
+        const base = (window && window.TBP_AUTH_BASE) ? window.TBP_AUTH_BASE.replace(/\/$/,'') : '';
+        const res = await fetch(`${base}/auth/profile`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const j = await res.json().catch(()=>({}));
+        if (res.ok && j && j.profile) return j.profile;
+        return null;
+    } catch { return null; }
+}
+
+function parseIcs(icsText){
+    const events = [];
+    const lines = icsText.split(/\r?\n/);
+    let cur = null;
+    const unfolded = [];
+    for (let i=0;i<lines.length;i++){
+        const line = lines[i];
+        if (/^\s/.test(line) && unfolded.length){
+            unfolded[unfolded.length-1] += line.trim();
+        } else {
+            unfolded.push(line);
+        }
+    }
+    for (const raw of unfolded){
+        const line = raw.trim();
+        if (line === 'BEGIN:VEVENT') { cur = {}; continue; }
+        if (line === 'END:VEVENT') { if (cur) { events.push(cur); cur = null; } continue; }
+        if (!cur) continue;
+        const idx = line.indexOf(':');
+        if (idx < 0) continue;
+        const keyPart = line.slice(0, idx);
+        const val = line.slice(idx+1);
+        const key = keyPart.split(';')[0];
+        if (key === 'DTSTART' || key.startsWith('DTSTART')) cur.DTSTART = val;
+        else if (key === 'DTEND' || key.startsWith('DTEND')) cur.DTEND = val;
+        else if (key === 'SUMMARY') cur.SUMMARY = decodeIcsText(val);
+        else if (key === 'DESCRIPTION') cur.DESCRIPTION = decodeIcsText(val);
+        else if (key === 'URL' || key === 'URL;VALUE=URI') cur.URL = val;
+    }
+    return events
+        .map(e => ({
+            title: e.SUMMARY || 'Assignment',
+            start: icsToDate(e.DTSTART),
+            end: icsToDate(e.DTEND || e.DTSTART),
+            url: e.URL || null,
+            description: e.DESCRIPTION || null
+        }))
+        .filter(e => !!e.start);
+}
+
+function decodeIcsText(s){
+    return String(s||'').replace(/\\n/g,'\n').replace(/\\,/g,',').replace(/\\;/g,';');
+}
+
+function icsToDate(v){
+    if (!v) return null;
+    if (/^\d{8}$/.test(v)) {
+        const y = Number(v.slice(0,4));
+        const m = Number(v.slice(4,6));
+        const d = Number(v.slice(6,8));
+        return new Date(Date.UTC(y, m-1, d));
+    }
+    if (/^\d{8}T\d{6}Z$/.test(v)) {
+        const y = Number(v.slice(0,4));
+        const m = Number(v.slice(4,6));
+        const d = Number(v.slice(6,8));
+        const hh = Number(v.slice(9,11));
+        const mm = Number(v.slice(11,13));
+        const ss = Number(v.slice(13,15));
+        return new Date(Date.UTC(y, m-1, d, hh, mm, ss));
+    }
+    const dt = new Date(v);
+    return isNaN(dt.getTime()) ? null : dt;
+}
+
+function filterEventsToDisplayedWeek(events){
+    const monday = getMonday(currentWeek);
+    const start = new Date(monday);
+    const end = new Date(monday);
+    end.setDate(end.getDate() + 7);
+    return events.filter(ev => ev.start && ev.start >= start && ev.start < end);
+}
+
+function renderAssignmentsList(events){
+    const list = document.getElementById('assignments-list');
+    const empty = document.querySelector('.drawer-empty');
+    if (!list) return;
+    list.innerHTML = '';
+    if (!events || !events.length) {
+        if (empty) empty.style.display = 'block';
+        return;
+    }
+    if (empty) empty.style.display = 'none';
+    const tz = 'America/New_York';
+    const tf = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
+    events.sort((a,b)=> (a.start||0) - (b.start||0));
+    for (const ev of events){
+        const li = document.createElement('li');
+        li.className = 'drawer-item';
+        const when = ev.start ? tf.format(ev.start) : '';
+        const linkHtml = ev.url ? `<a href="${ev.url}" target="_blank" rel="noopener">Open</a>` : '';
+        li.innerHTML = `<h4>${escapeHtml(ev.title)}</h4><div class=\"meta\">${when}</div>${linkHtml}`;
+        list.appendChild(li);
+    }
+}
+
+function escapeHtml(s){
+    return String(s||'').replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]||c));
+}
