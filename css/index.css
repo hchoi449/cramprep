@@ -1817,8 +1817,22 @@ section.ai-curriculum {
 }
 
 /* Ensure no extra whitespace below footer */
-html, body { height: auto; }
+html, body { height: 100%; }
 .footer { margin-bottom: 0; }
+
+/* Viewport-fit content so pages dynamically fill the screen */
+:root { --viewport-offset: 220px; }
+main,
+section.hero,
+body.timetable .timetable-content .container,
+body.ai-curriculum section.ai-curriculum,
+.content-root {
+    min-height: calc(100vh - var(--viewport-offset));
+}
+
+@media (max-width: 768px) {
+    :root { --viewport-offset: 200px; }
+}
 
 .footer-content {
     display: grid;
