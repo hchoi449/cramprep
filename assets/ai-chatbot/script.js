@@ -39,13 +39,6 @@
       overlay.addEventListener('click', ()=> document.body.classList.remove('show-chatbot'));
     }
     document.body.appendChild(root);
-    // initial bot greeting
-    const chatBody = root.querySelector('.chat-body');
-    const greet = document.createElement('div');
-    greet.className = 'message bot-message';
-    greet.innerHTML = `<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/> </svg><div class=\"message-text\"> Hey there 👋 <br /> How can I help you today? </div>`;
-    chatBody.appendChild(greet);
-
     wireLogic(root);
   }
 
