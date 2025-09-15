@@ -260,11 +260,19 @@
         const msg = document.createElement('div');
         msg.className = 'message bot-message';
         if (!profile) {
-          msg.innerHTML = `<div class=\"message-text\">Please log in or sign up to continue scheduling.</div>`;
+          msg.innerHTML = `<div class=\"message-text\">Please log in or sign up to continue scheduling. <a href=\"#\" class=\"open-login\">Open login</a></div>`;
         } else {
           msg.innerHTML = `<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\"> Hey there 👋 <br /> How can I help you today? </div>`;
         }
         chatBody.appendChild(msg);
+        // Wire open-login link to trigger login modal
+        const link = msg.querySelector('.open-login');
+        if (link) link.addEventListener('click', function(e){ e.preventDefault();
+          try {
+            const a = document.querySelector('.student-login-link');
+            if (a) a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+          } catch {}
+        });
       } catch {}
     }
     // Expose for debugging
@@ -322,8 +330,15 @@
         // If not logged in, instruct to sign up / log in and stop
         if (!profile) {
           try { chatBody.innerHTML = ''; } catch {}
-          const msg = createMessageElement(`<div class=\"message-text\">Please log in or sign up to continue scheduling.</div>`, 'bot-message');
+          const msg = createMessageElement(`<div class=\"message-text\">Please log in or sign up to continue scheduling. <a href=\"#\" class=\"open-login\">Open login</a></div>`, 'bot-message');
           chatBody.appendChild(msg);
+          const link = msg.querySelector('.open-login');
+          if (link) link.addEventListener('click', function(e){ e.preventDefault();
+            try {
+              const a = document.querySelector('.student-login-link');
+              if (a) a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+            } catch {}
+          });
           chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
           return;
         }
