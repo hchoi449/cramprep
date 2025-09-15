@@ -75,6 +75,8 @@
 
     let userIsAuthed = false;
     let cachedProfile = null;
+    let hasAskedHelp = false;
+    let helpTopic = null;
     let loginPromptShown = false;
 
     const createMessageElement = (content, ...classes) => { const div = document.createElement('div'); div.classList.add('message', ...classes); div.innerHTML = content; return div; };
@@ -166,6 +168,9 @@
       chatHistory.push({ role:'user', parts:[{ text: userData.message }, ...(userData.file.data ? [{ inline_data: userData.file }] : [])] });
       // Provide strict available sessions only from timetable (/sessions)
       try {
+        if (helpTopic) {
+          chatHistory.push({ role:'user', parts:[{ text: `HelpTopic: ${helpTopic}` }] });
+        }
         const free = await fetchSessionsUntil();
         const fmt = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York', weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
         const choices = (free || []).slice(0, 8).map(d=> fmt.format(d));
@@ -213,11 +218,29 @@
       outgoingMessageDiv.querySelector('.message-text').innerText = userData.message;
       chatBody.appendChild(outgoingMessageDiv);
       chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+
+      // If we've asked for help topic and none captured yet, intercept greetings/short replies
+      if (hasAskedHelp && !helpTopic) {
+        const looksGreeting = /^(hi|hey|hello|yo|sup|good\s*(morning|afternoon|evening))\b/i.test(userData.message);
+        const hasKeywords = /(homework|exam|test|quiz|assessment|assignment|project|paper|lab|due|study|help)\b/i.test(userData.message);
+        if (!hasKeywords && (looksGreeting || userData.message.length < 15)) {
+          const ask = createMessageElement(`<div class=\"message-text\">Got it. What do you need help with? (e.g., Algebra homework due Thu)</div>`, 'bot-message');
+          chatBody.appendChild(ask);
+          chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+          return;
+        }
+        helpTopic = userData.message;
+      }
       setTimeout(()=>{
         const messageContent = `<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\"><div class=\"thinking-indicator\"><div class=\"dot\"></div><div class=\"dot\"></div><div class=\"dot\"></div></div></div>`;
         const incomingMessageDiv = createMessageElement(messageContent, 'bot-message', 'thinking');
         chatBody.appendChild(incomingMessageDiv);
         chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+        // If a help topic was captured, bias the next response with it
+        if (helpTopic) {
+          const firstName = cachedProfile && cachedProfile.fullName ? (String(cachedProfile.fullName).trim().split(' ')[0] || 'there') : 'there';
+          userData.message = `HelpTopic: ${helpTopic}\nStudentFirstName: ${firstName}`;
+        }
         generateBotResponse(incomingMessageDiv);
       }, 600);
     }
@@ -283,7 +306,8 @@
         if (!profile) {
           msg.innerHTML = `<div class=\"message-text\">Please log in or sign up to continue scheduling. <a href=\"#\" class=\"open-login\">Open login</a></div>`;
         } else {
-          msg.innerHTML = `<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\"> Hey there 👋 <br /> How can I help you today? </div>`;
+          msg.innerHTML = `<div class=\"message-text\">You're logged in. What do you need help with? (e.g., Algebra homework, Chemistry quiz, due date)</div>`;
+          hasAskedHelp = true; helpTopic = null;
         }
         chatBody.appendChild(msg);
         // Wire open-login link to trigger login modal
