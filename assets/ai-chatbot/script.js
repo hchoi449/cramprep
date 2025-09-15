@@ -67,13 +67,14 @@
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
 
     const userData = { message: null, file: { data:null, mime_type:null } };
-    const SEED_PROMPT = "You are ThinkBigPrep's scheduling assistant. Help students book sessions. Keep every reply within 300 characters. Ask concise follow-ups (name, school, grade, subject, help type, preferred day/time). Be friendly and professional.";
+    const SEED_PROMPT = "You are ThinkBigPrep's scheduling assistant. Help students book sessions. Keep every reply within 300 characters. If the student's profile is available, do not ask for their name, school, or grade; use the provided profile data. Ask only what is necessary (subject, help type, preferred day/time). Be friendly and professional.";
     const chatHistory = [];
     // Seed assistant role and constraints
     chatHistory.push({ role: 'model', parts: [{ text: SEED_PROMPT }] });
     const initialInputHeight = messageInput.scrollHeight;
 
     let userIsAuthed = false;
+    let cachedProfile = null;
     let loginPromptShown = false;
 
     const createMessageElement = (content, ...classes) => { const div = document.createElement('div'); div.classList.add('message', ...classes); div.innerHTML = content; return div; };
@@ -163,11 +164,18 @@
     async function generateBotResponse(incomingMessageDiv){
       const messageElement = incomingMessageDiv.querySelector('.message-text');
       chatHistory.push({ role:'user', parts:[{ text: userData.message }, ...(userData.file.data ? [{ inline_data: userData.file }] : [])] });
-      // Prepend availability context
-      const avail = await fetchAvailability(7, 12, 24);
-      if (avail.length) {
-        chatHistory.push({ role:'user', parts:[{ text: `Availability context (EST): ${avail.join(', ')}` }] });
-      }
+      // Provide strict available sessions only from timetable (/sessions)
+      try {
+        const free = await fetchSessionsUntil();
+        const fmt = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York', weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
+        const choices = (free || []).slice(0, 8).map(d=> fmt.format(d));
+        const firstName = cachedProfile && cachedProfile.fullName ? (String(cachedProfile.fullName).trim().split(' ')[0] || 'there') : 'there';
+        const school = cachedProfile && cachedProfile.school ? cachedProfile.school : 'N/A';
+        const grade = cachedProfile && cachedProfile.grade ? cachedProfile.grade : 'N/A';
+        const authRule = userIsAuthed ? '' : `\nIf NotLoggedIn: Reply EXACTLY: Please log in or sign up to continue scheduling.`;
+        const instruction = `StudentFirstName: ${firstName}\nSchool: ${school}\nGrade: ${grade}\nAvailableSlotsEST (choose only from this list exactly): [${choices.map(c=>`"${c}"`).join(', ')}]\nRules:\n- If NotLoggedIn, follow the auth instruction above and stop.\n- If the list is not empty, reply with EXACTLY: Hi ${firstName}! How about <OneOfTheListedSlots>?\n- The <OneOfTheListedSlots> must be copied verbatim from the list above (no new times).\n- Prefer the earliest item in the list.\n- If the user says none of the options work OR the list is empty, reply EXACTLY: Help is on the way. Someone from our team will contact you through your email as soon as possible.${authRule}`;
+        chatHistory.push({ role:'user', parts:[{ text: instruction }] });
+      } catch {}
       const requestOptions = { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ contents: chatHistory }) };
       try {
         const response = await fetch(API_URL, requestOptions);
@@ -256,6 +264,7 @@
     async function initializeOnOpen(){
       try {
         const profile = await getProfile();
+        cachedProfile = profile;
         chatBody.innerHTML = '';
         const msg = document.createElement('div');
         msg.className = 'message bot-message';
@@ -284,7 +293,7 @@
       document.body.classList.add('show-chatbot');
       if (willOpen) {
         (async ()=>{
-          try { const profile = await getProfile(); setAuthUI(!!profile); } catch { setAuthUI(false); }
+          try { const profile = await getProfile(); cachedProfile = profile; setAuthUI(!!profile); } catch { cachedProfile = null; setAuthUI(false); }
           try { await initializeOnOpen(); } catch {}
         })();
       }
@@ -296,7 +305,7 @@
       if (willOpen) { 
         // Initialize without blocking UI open
         (async ()=>{
-          try { const profile = await getProfile(); setAuthUI(!!profile); } catch { setAuthUI(false); }
+          try { const profile = await getProfile(); cachedProfile = profile; setAuthUI(!!profile); } catch { cachedProfile = null; setAuthUI(false); }
           try { await initializeOnOpen(); } catch {}
         })();
       }
