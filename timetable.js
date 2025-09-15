@@ -696,6 +696,8 @@ function renderAssignmentsList(events){
             for (const ev of items){
                 const pill = document.createElement('div');
                 pill.className = 'pill';
+                const subj = (ev.subject || ev.title || '').toLowerCase();
+                pill.setAttribute('data-subject', subj);
                 pill.innerHTML = `${escapeHtml(ev.title)} <span class="help-btn" data-title="${escapeHtml(ev.title)}" data-when="${ev.start ? ev.start.toISOString() : ''}">Get Help</span>`;
                 ul.appendChild(pill);
             }

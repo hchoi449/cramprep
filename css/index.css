@@ -2006,6 +2006,14 @@ html, body { height: auto; }
     position: relative;
 }
 
+/* Subject pastel colors */
+.pill[data-subject*="math"], .pill[data-subject*="algebra"], .pill[data-subject*="geometry"], .pill[data-subject*="calculus"] { background: #a8d5ba; color:#0f3b2e; }
+.pill[data-subject*="chem"], .pill[data-subject*="science"], .pill[data-subject*="biology"], .pill[data-subject*="physics"] { background: #bfe0ff; color:#0d2946; }
+.pill[data-subject*="english"], .pill[data-subject*="writing"] { background: #ffd6a5; color:#5a2b00; }
+.pill[data-subject*="history"], .pill[data-subject*="social"] { background: #ffe0f0; color:#5a0036; }
+.pill[data-subject*="hebrew"], .pill[data-subject*="language"] { background: #e6e0ff; color:#1e114a; }
+.pill[data-subject*="general"], .pill:not([data-subject]) { background: #d5e8ff; color:#0b2a52; }
+
 .pill .help-btn {
     position: absolute;
     right: 10px;
