@@ -54,6 +54,10 @@ async function bootstrap() {
   const client = new MongoClient(MONGODB_URI, { serverSelectionTimeoutMS: 10000 });
   await client.connect();
   const users = client.db(MONGODB_DATABASE).collection(MONGODB_COLLECTION_USERS);
+  // Students profile store (thinkpod/student)
+  const STUD_DB = process.env.MONGODB_DATABASE_STUDENTS || 'thinkpod';
+  const STUD_COL = process.env.MONGODB_COLLECTION_STUDENTS || 'student';
+  const students = client.db(STUD_DB).collection(STUD_COL);
   const SESS_DB = process.env.MONGODB_DATABASE_SESSIONS || 'thinkpod';
   const SESS_COL = process.env.MONGODB_COLLECTION_SESSIONS || 'sessiontime';
   const sessionsCol = client.db(SESS_DB).collection(SESS_COL);
@@ -220,14 +224,14 @@ async function bootstrap() {
       if (nextEmail) orConds.push({ email: nextEmail });
       const filter = orConds.length ? { $or: orConds } : { email: nextEmail };
 
-      await users.updateOne(
+      await students.updateOne(
         filter,
         { $set: update, $setOnInsert: { createdAt: now, groupSessionTokens: 0, privateSessionTokens: 0 } },
         { upsert: true }
       );
       let doc = null;
-      if (nextEmail) doc = await users.findOne({ email: nextEmail }, { projection: { password: 0 } });
-      if (!doc) doc = await users.findOne(filter, { projection: { password: 0 } });
+      if (nextEmail) doc = await students.findOne({ email: nextEmail }, { projection: { password: 0 } });
+      if (!doc) doc = await students.findOne(filter, { projection: { password: 0 } });
       if (!doc) return res.status(404).json({ error: 'User not found' });
       res.json({ ok: true, profile: { fullName: doc.fullName, email: doc.email, school: doc.school || null, grade: doc.grade || null, phone: doc.phone || null, icsUrl: doc.icsUrl || null } });
     } catch (e) {
@@ -244,7 +248,7 @@ async function bootstrap() {
       const payload = verifyJwt(token, JWT_SECRET);
       if (!payload || !payload.email) return res.status(401).json({ error: 'Unauthorized' });
       const filter = payload.sub ? { _id: new ObjectId(payload.sub) } : { email: (payload.email || '').toLowerCase().trim() };
-      const user = await users.findOne(filter, { projection: { password: 0 } });
+      const user = await students.findOne(filter, { projection: { password: 0 } });
       if (!user) return res.status(404).json({ error: 'User not found' });
       res.json({ ok: true, profile: {
         fullName: user.fullName || null,
@@ -303,7 +307,7 @@ async function bootstrap() {
       if (pEmail) orConds.push({ email: pEmail });
       const filter = orConds.length ? { $or: orConds } : { email: pEmail };
 
-      await users.updateOne(filter, { $set: { emergencyContacts: arr, updatedAt: now } });
+      await students.updateOne(filter, { $set: { emergencyContacts: arr, updatedAt: now } });
       return res.json({ ok: true });
     } catch (e) {
       console.error(e); res.status(500).json({ error: 'Internal error' });
