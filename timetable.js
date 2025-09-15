@@ -719,28 +719,7 @@ function renderAssignmentsList(events){
                 if (drawer) { drawer.classList.remove('active'); drawer.setAttribute('aria-hidden','true'); }
                 if (tab) tab.setAttribute('aria-expanded','false');
                 // Open Schedule AI
-                document.body.classList.add('show-chatbot');
-                // Compose intro message
-                const raw = localStorage.getItem('tbp_user');
-                let first = 'there';
-                try { if (raw) { const u = JSON.parse(raw); const nm = (u && (u.fullName || u.email || '')).trim(); if (nm) first = (nm.split(' ')[0] || nm.split('@')[0] || 'there'); } } catch {}
-                const chatRoot = document.querySelector('.chatbot-popup');
-                const body = chatRoot ? chatRoot.querySelector('.chat-body') : null;
-                const form = chatRoot ? chatRoot.querySelector('.chat-form') : null;
-                const input = chatRoot ? chatRoot.querySelector('.message-input') : null;
-                const fmt = when ? new Intl.DateTimeFormat('en-US',{ month:'short', day:'numeric' }).format(when) : '';
-                const intro = `Hey ${first}. I see that you need help on "${title}"${fmt?` due ${fmt}`:''}. Would you like to get help?`;
-                if (body && form && input) {
-                    // inject as bot message
-                    const div = document.createElement('div');
-                    div.className = 'message bot-message';
-                    div.innerHTML = `<div class="message-text">${intro}</div>`;
-                    body.appendChild(div);
-                    body.scrollTo({ top: body.scrollHeight, behavior: 'smooth' });
-                }
-
-                // Pre-fill user prompt hint
-                if (input) input.value = 'Yes, recommend a session before the deadline.';
+                if (window.tbpOpenScheduleAI) { window.tbpOpenScheduleAI(title, when ? when.toISOString() : ''); }
 
                 // If no availability becomes found, send fallback form (deferred demonstration)
                 // Provide a helper function exposed on window to be called by chatbot flow when needed

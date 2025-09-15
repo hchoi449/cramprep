@@ -112,6 +112,31 @@
       } catch { return []; }
     }
 
+    async function fetchAvailabilityUntil(deadlineIso, dayStart=12, dayEnd=24){
+      try {
+        const res = await fetch('/api/events', { headers: { Accept:'application/json' } });
+        if (!res.ok) return [];
+        const { events } = await res.json();
+        const tz = 'America/New_York';
+        const now = new Date();
+        const deadline = deadlineIso ? new Date(deadlineIso) : new Date(now.getTime() + 7*86400000);
+        const busy = events.map(ev=>({ s:new Date(ev.start), e:new Date(ev.end) }));
+        const freeSlots = [];
+        for(let d=new Date(now); d <= deadline; d.setDate(d.getDate()+1)){
+          const parts = new Intl.DateTimeFormat('en-US',{ timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit'}).formatToParts(d).reduce((a,p)=> (a[p.type]=p.value,a),{});
+          for (let h=dayStart; h<dayEnd; h++){
+            const hour = String(h%24).padStart(2,'0');
+            const start = new Date(`${parts.year}-${parts.month}-${parts.day}T${hour}:00:00`);
+            const end = new Date(`${parts.year}-${parts.month}-${parts.day}T${hour}:59:59`);
+            if (start < now) continue; // skip past
+            const overlaps = busy.some(b=> !(b.e<=start || b.s>=end));
+            if (!overlaps && start <= deadline) freeSlots.push(start);
+          }
+        }
+        return freeSlots;
+      } catch { return []; }
+    }
+
     async function generateBotResponse(incomingMessageDiv){
       const messageElement = incomingMessageDiv.querySelector('.message-text');
       chatHistory.push({ role:'user', parts:[{ text: userData.message }, ...(userData.file.data ? [{ inline_data: userData.file }] : [])] });
@@ -183,6 +208,40 @@
     root.querySelector('#file-upload').addEventListener('click', ()=> fileInput.click());
     closeChatbot.addEventListener('click', ()=> document.body.classList.remove('show-chatbot'));
     if (chatbotToggler) chatbotToggler.addEventListener('click', ()=> document.body.classList.toggle('show-chatbot'));
+
+    // Public helper to open with assignment context from timetable
+    window.tbpOpenScheduleAI = async function(assignmentTitle, dueIso){
+      try {
+        document.body.classList.add('show-chatbot');
+        const raw = localStorage.getItem('tbp_user');
+        let first = 'there';
+        try { if (raw) { const u = JSON.parse(raw); const nm = (u && (u.fullName || u.email || '')).trim(); if (nm) first = (nm.split(' ')[0] || nm.split('@')[0] || 'there'); } } catch {}
+        const greetText = `Hey ${first}. I see that you need help on "${assignmentTitle}"${dueIso?` due ${new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric'}).format(new Date(dueIso))}`:''}. Would you like to get help?`;
+        const greetDiv = createMessageElement(`<div class="message-text">${greetText}</div>`, 'bot-message');
+        chatBody.appendChild(greetDiv);
+        chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+
+        const free = await fetchAvailabilityUntil(dueIso, 12, 24);
+        if (!free.length) {
+          const none = createMessageElement(`<div class="message-text">Help is on the way. Someone from our team will contact you through your email.</div>`, 'bot-message');
+          chatBody.appendChild(none);
+          chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+          if (window.tbpFallbackNotify) try { await window.tbpFallbackNotify(); } catch {}
+          return;
+        }
+
+        const fmt = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York', weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
+        const slotsStr = free.slice(0,8).map(d=> fmt.format(d)).join(', ');
+
+        // Ask model with structured context
+        const instruction = `Student: ${first}\nAssignment: ${assignmentTitle}\nDue: ${dueIso ? new Date(dueIso).toISOString() : 'N/A'}\nAvailableSlotsEST: ${slotsStr}\nGoal: Propose the earliest viable session before the due date. If user agrees, confirm. Keep under 300 chars.`;
+        userData.message = instruction;
+        const thinking = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\"><div class=\"thinking-indicator\"><div class=\"dot\"></div><div class=\"dot\"></div><div class=\"dot\"></div></div></div>`, 'bot-message', 'thinking');
+        chatBody.appendChild(thinking);
+        chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+        await generateBotResponse(thinking);
+      } catch {}
+    };
 
     // Warn if missing API key
     if (API_KEY === API_KEY_PLACEHOLDER && !window.TBP_GEMINI_API_KEY) {
