@@ -4,12 +4,13 @@
     bottom: 24px;
     right: 24px;
     z-index: 1000;
-    padding: 12px 18px !important;
+    padding: 18px 36px !important; /* match Book Consultation size */
     border-radius: 9999px !important;
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
     display: inline-flex;
     align-items: center;
     gap: 10px;
+    font-size: 16px;
 }
 
 /* Timetable Page Styles */
@@ -370,6 +371,8 @@
         grid-template-columns: 80px repeat(7, 1fr);
     }
     .time-slot { font-size: 0.7rem; height: 35px; }
+
+    
     .class-slot { padding: 8px; }
     .class-info h4 { font-size: 0.8rem; }
     .class-info p { font-size: 0.7rem; }
