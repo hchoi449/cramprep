@@ -655,7 +655,8 @@ function renderAssignmentsList(events){
 
     const isAssessment = (title)=>{
         const t = String(title||'').toLowerCase();
-        return /(exam|exams|test|tests|assessment|assessments|quiz|quizzes)/.test(t);
+        // match whole words only (e.g., 'test' not matching 'contest')
+        return /\b(exams?|tests?|assessments?|quiz(?:zes)?)\b/.test(t);
     };
 
     const exams = [];
