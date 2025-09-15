@@ -515,6 +515,13 @@ function setupAssignmentsDrawer(){
     };
     tab.addEventListener('click', ()=> toggle());
     if (closeBtn) closeBtn.addEventListener('click', ()=> toggle(false));
+    // Click outside to close
+    document.addEventListener('click', function(e){
+        if (!drawer.classList.contains('active')) return;
+        const withinDrawer = drawer.contains(e.target);
+        const onTab = tab.contains(e.target);
+        if (!withinDrawer && !onTab) toggle(false);
+    });
 }
 
 async function refreshAssignmentsForCurrentWeek(){
