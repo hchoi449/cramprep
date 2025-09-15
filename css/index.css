@@ -515,25 +515,29 @@ body.home .logo .tbp-star {
 }
 
 .btn-primary {
-    background: #8B4513;
-    color: white;
-    box-shadow: 0 4px 15px rgba(139, 69, 19, 0.3);
+    background: #dfe7d6;
+    color: #0f3b2e;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+    border: 2px solid #c9d7c0;
 }
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(139, 69, 19, 0.4);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.18);
+    background: #e7efe1;
 }
 
 .btn-secondary {
-    background: #8B4513;
-    color: white;
-    box-shadow: 0 4px 15px rgba(139, 69, 19, 0.3);
+    background: #dfe7d6;
+    color: #0f3b2e;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+    border: 2px solid #c9d7c0;
 }
 
 .btn-secondary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(139, 69, 19, 0.4);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.18);
+    background: #e7efe1;
 }
 
 /* Assessment Section - Exact Match to Reference */
