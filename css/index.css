@@ -1965,6 +1965,18 @@ html, body { height: auto; }
     gap: 10px;
 }
 
+.drawer-loading { display:none; padding: 20px 0; display:flex; align-items:center; justify-content:center; }
+.drawer-loading .tbp-star-spinner {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 3px solid rgba(0,0,0,0.08);
+    border-top-color: #8B4513;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
 .drawer-item {
     border: 1px solid #e5e7eb;
     border-radius: 10px;

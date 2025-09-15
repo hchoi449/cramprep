@@ -521,12 +521,26 @@ async function refreshAssignmentsForCurrentWeek(){
     try {
         const list = document.getElementById('assignments-list');
         const empty = document.querySelector('.drawer-empty');
+        const loading = document.getElementById('assignments-loading');
         if (list) list.innerHTML = '';
-        if (empty) empty.style.display = 'block';
+        if (empty) empty.style.display = 'none';
+        if (loading) loading.style.display = 'flex';
         const profile = await fetchProfile();
-        const icsUrl = profile && profile.icsUrl ? String(profile.icsUrl).trim() : '';
-        if (!icsUrl) return;
         const token = (localStorage && localStorage.getItem('tbp_token')) || '';
+        if (!token) {
+            if (loading) loading.style.display = 'none';
+            if (empty) { empty.textContent = 'Please login to view your assignments.'; empty.style.display = 'block'; }
+            return;
+        }
+        const icsUrl = profile && profile.icsUrl ? String(profile.icsUrl).trim() : '';
+        if (!icsUrl) {
+            if (loading) loading.style.display = 'none';
+            if (empty) {
+                empty.innerHTML = 'Please input the iCal (.ics) URL <a href="account.html#acctIcs">here</a>.';
+                empty.style.display = 'block';
+            }
+            return;
+        }
         const base = (window && window.TBP_AUTH_BASE) ? window.TBP_AUTH_BASE.replace(/\/$/,'') : '';
         const res = await fetch(`${base}/auth/ics?url=${encodeURIComponent(icsUrl)}`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (!res.ok) throw new Error('Failed to fetch calendar');
@@ -534,8 +548,12 @@ async function refreshAssignmentsForCurrentWeek(){
         const events = parseIcs(text);
         const weekEvents = filterEventsToDisplayedWeek(events);
         renderAssignmentsList(weekEvents);
+        if (loading) loading.style.display = 'none';
     } catch (e) {
-        // Silent fail
+        const loading = document.getElementById('assignments-loading');
+        if (loading) loading.style.display = 'none';
+        const empty = document.querySelector('.drawer-empty');
+        if (empty) { empty.textContent = 'Unable to load assignments.'; empty.style.display = 'block'; }
     }
 }
 
