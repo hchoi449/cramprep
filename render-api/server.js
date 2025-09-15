@@ -99,15 +99,22 @@ async function bootstrap() {
       const { fullName, email, password } = req.body || {};
       const e = (email || '').toLowerCase().trim();
       if (!fullName || !e || !password) return res.status(400).json({ error: 'fullName, email, password required' });
-      const exist = await users.findOne({ email: e });
-      if (exist) return res.status(409).json({ error: 'Email already registered' });
+      const exist = await students.findOne({ email: e });
+      if (exist && exist.password) return res.status(409).json({ error: 'Email already registered' });
       const salt = crypto.randomBytes(16);
       const pwd = await pbkdf2Hash(password, salt);
       const now = new Date().toISOString();
-      const ins = await users.insertOne({ email: e, fullName, password: { algo: 'pbkdf2-sha256', ...pwd }, createdAt: now, updatedAt: now, groupSessionTokens: 0, privateSessionTokens: 0 });
+      let insertedId = null;
+      if (exist && !exist.password) {
+        await students.updateOne({ _id: exist._id }, { $set: { fullName, email: e, password: { algo: 'pbkdf2-sha256', ...pwd }, updatedAt: now }, $setOnInsert: { createdAt: now, groupSessionTokens: 0, privateSessionTokens: 0 } }, { upsert: true });
+        insertedId = exist._id;
+      } else {
+        const ins = await students.insertOne({ email: e, fullName, password: { algo: 'pbkdf2-sha256', ...pwd }, createdAt: now, updatedAt: now, groupSessionTokens: 0, privateSessionTokens: 0 });
+        insertedId = ins.insertedId;
+      }
       const iat = Math.floor(Date.now()/1000); const exp = iat + 60*60*24*7;
-      const token = signJwt({ sub: (ins.insertedId||'').toString(), email: e, iat, exp }, JWT_SECRET);
-      res.status(201).json({ ok: true, user: { id: (ins.insertedId||'').toString(), email: e, fullName }, token });
+      const token = signJwt({ sub: (insertedId||'').toString(), email: e, iat, exp }, JWT_SECRET);
+      res.status(201).json({ ok: true, user: { id: (insertedId||'').toString(), email: e, fullName }, token });
     } catch (e) {
       console.error(e); res.status(500).json({ error: 'Internal error' });
     }
@@ -118,7 +125,7 @@ async function bootstrap() {
       const { email, password } = req.body || {};
       const e = (email || '').toLowerCase().trim();
       if (!e || !password) return res.status(400).json({ error: 'email and password required' });
-      const user = await users.findOne({ email: e });
+      const user = await students.findOne({ email: e });
       if (!user || !user.password) return res.status(401).json({ error: 'Invalid credentials' });
       const saltBuf = fromB64url(user.password.salt);
       const derived = await new Promise((resolve, reject) => {
