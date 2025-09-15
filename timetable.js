@@ -29,14 +29,16 @@ async function fetchEvents() {
     if (Date.now() - EVENTS_CACHE.fetchedAt < 60_000 && EVENTS_CACHE.data.length) return EVENTS_CACHE.data;
     const banner = ensureBanner();
     try {
-        const res = await fetch('/api/events', { headers: { Accept: 'application/json' } });
+        const base = (window && window.TBP_AUTH_BASE) ? window.TBP_AUTH_BASE.replace(/\/$/,'') : '';
+        const res = await fetch(`${base}/sessions`, { headers: { Accept: 'application/json' } });
         if (!res.ok) throw new Error('Failed');
-        const { events } = await res.json();
+        const j = await res.json();
+        const events = (j && j.events) ? j.events : [];
         EVENTS_CACHE = { data: events, fetchedAt: Date.now() };
         hideBanner(banner);
         return events;
     } catch {
-        showBanner(banner, 'Unable to load events');
+        showBanner(banner, 'Unable to load sessions');
         EVENTS_CACHE = { data: [], fetchedAt: Date.now() };
         return [];
     }

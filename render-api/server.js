@@ -54,8 +54,41 @@ async function bootstrap() {
   const client = new MongoClient(MONGODB_URI, { serverSelectionTimeoutMS: 10000 });
   await client.connect();
   const users = client.db(MONGODB_DATABASE).collection(MONGODB_COLLECTION_USERS);
+  const SESS_DB = process.env.MONGODB_DATABASE_SESSIONS || 'thinkpod';
+  const SESS_COL = process.env.MONGODB_COLLECTION_SESSIONS || 'sessiontime';
+  const sessionsCol = client.db(SESS_DB).collection(SESS_COL);
 
   app.get('/auth/ping', (req, res) => res.json({ ok: true, ts: Date.now() }));
+
+  // Sessions API for timetable
+  app.get('/sessions', async (req, res) => {
+    try {
+      // Seed one sample session if collection empty
+      const total = await sessionsCol.estimatedDocumentCount();
+      if (total === 0) {
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 19, 0, 0); // tomorrow 7pm local
+        const end = new Date(start.getTime() + 60 * 60000);
+        await sessionsCol.insertOne({ title: 'Homework Help Session', subject: 'General', start: start.toISOString(), end: end.toISOString(), createdAt: new Date().toISOString() });
+      }
+      const nowIso = new Date().toISOString();
+      const docs = await sessionsCol.find({ end: { $gte: nowIso } }).sort({ start: 1 }).limit(200).toArray();
+      const events = docs.map(d => ({
+        id: String(d._id || ''),
+        title: d.title || 'Session',
+        school: 'ThinkBigPrep',
+        tutorName: 'TBP Coach',
+        subject: d.subject || 'General',
+        start: d.start,
+        end: d.end,
+        createdBy: 'system'
+      }));
+      return res.json({ ok: true, events });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).json({ error: 'Internal error' });
+    }
+  });
 
   app.post('/auth/signup', async (req, res) => {
     try {
