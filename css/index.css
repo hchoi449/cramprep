@@ -1841,18 +1841,9 @@ html, body { height: auto; }
     height: 28px;
     width: auto;
 }
-.footer-logo span {
-    font-size: 1.1rem;
-    color: rgba(255,255,255,0.92);
-}
+.footer-logo span { font-size: 1.1rem; color: #111111; }
 
-.footer-section h4 {
-    font-size: 1rem;
-    font-weight: 700;
-    margin-bottom: 12px;
-    color: white;
-    letter-spacing: 0.02em;
-}
+.footer-section h4 { font-size: 1rem; font-weight: 700; margin-bottom: 12px; color: #111111; letter-spacing: 0.02em; }
 
 .footer-section ul {
     list-style: none;
@@ -1862,32 +1853,13 @@ html, body { height: auto; }
     margin-bottom: 12px;
 }
 
-.footer-section a {
-    color: #f6efe9;
-    text-decoration: none;
-    transition: color 0.3s ease;
-    font-weight: 500;
-}
+.footer-section a { color: #111111; text-decoration: none; transition: color 0.3s ease; font-weight: 500; }
 
-.footer-section a:hover {
-    color: #ffffff;
-    text-decoration: underline;
-}
+.footer-section a:hover { color: #6b3410; text-decoration: underline; }
 
-.footer-section p {
-    color: #f6efe9;
-    margin-bottom: 8px;
-    font-weight: 500;
-}
+.footer-section p { color: #111111; margin-bottom: 8px; font-weight: 500; }
 
-.footer-bottom {
-    border-top: 1px solid rgba(255,255,255,0.18);
-    padding-top: 16px;
-    text-align: center;
-    color: rgba(255,255,255,0.8);
-    font-weight: 500;
-    font-size: 0.9rem;
-}
+.footer-bottom { border-top: 1px solid rgba(0,0,0,0.08); padding-top: 16px; text-align: center; color: #111111; font-weight: 500; font-size: 0.9rem; }
 
 /* Assignments Drawer */
 #assignments-tab {
