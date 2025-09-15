@@ -81,6 +81,9 @@
     chatHistory.push({ role: 'model', parts: [{ text: SEED_PROMPT }] });
     const initialInputHeight = messageInput.scrollHeight;
 
+    let userIsAuthed = false;
+    let loginPromptShown = false;
+
     const createMessageElement = (content, ...classes) => { const div = document.createElement('div'); div.classList.add('message', ...classes); div.innerHTML = content; return div; };
 
     async function fetchAvailability(days=7, dayStart=12, dayEnd=24){
@@ -137,6 +140,34 @@
       return null;
     }
 
+    function setAuthUI(authed){
+      userIsAuthed = !!authed;
+      if (!userIsAuthed) {
+        messageInput.disabled = true;
+        sendMessage.disabled = true;
+        messageInput.placeholder = 'Please log in or sign up to continue scheduling.';
+      } else {
+        messageInput.disabled = false;
+        sendMessage.disabled = false;
+        messageInput.placeholder = 'Message...';
+      }
+    }
+
+    function renderLoginPromptOnce(){
+      if (loginPromptShown) return;
+      const div = createMessageElement(`<div class=\"message-text\">Please log in or sign up to continue scheduling. <a href=\"#\" class=\"open-login\">Open login</a></div>`, 'bot-message');
+      chatBody.appendChild(div);
+      const link = div.querySelector('.open-login');
+      if (link) link.addEventListener('click', function(e){ e.preventDefault();
+        try {
+          const a = document.querySelector('.student-login-link');
+          if (a) a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+        } catch {}
+      });
+      chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+      loginPromptShown = true;
+    }
+
     async function generateBotResponse(incomingMessageDiv){
       const messageElement = incomingMessageDiv.querySelector('.message-text');
       chatHistory.push({ role:'user', parts:[{ text: userData.message }, ...(userData.file.data ? [{ inline_data: userData.file }] : [])] });
@@ -168,8 +199,10 @@
       }
     }
 
-    function handleOutgoingMessage(e){
+    async function handleOutgoingMessage(e){
       e.preventDefault();
+      // Block sending if not authenticated
+      if (!userIsAuthed) { renderLoginPromptOnce(); return; }
       userData.message = messageInput.value.trim();
       if (!userData.message) return;
       messageInput.value = '';
@@ -220,6 +253,7 @@
       // Reset seed
       chatHistory.length = 0;
       chatHistory.push({ role: 'model', parts: [{ text: SEED_PROMPT }] });
+      loginPromptShown = false;
     }
     async function initializeOnOpen(){
       try {
@@ -242,7 +276,11 @@
     if (chatbotToggler) chatbotToggler.addEventListener('click', async ()=> { 
       const willOpen = !document.body.classList.contains('show-chatbot');
       document.body.classList.toggle('show-chatbot'); 
-      if (willOpen) { await initializeOnOpen(); }
+      if (willOpen) { 
+        const profile = await getProfile();
+        setAuthUI(!!profile);
+        await initializeOnOpen(); 
+      }
     });
 
     // Public helper to open with assignment context from timetable
