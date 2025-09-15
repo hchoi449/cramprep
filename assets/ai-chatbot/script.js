@@ -263,6 +263,17 @@
     window.tbpResetAI = resetChat;
 
     closeChatbot.addEventListener('click', ()=> { document.body.classList.remove('show-chatbot'); resetChat(); });
+    function openChatAsync(){
+      const willOpen = !document.body.classList.contains('show-chatbot');
+      document.body.classList.add('show-chatbot');
+      if (willOpen) {
+        (async ()=>{
+          try { const profile = await getProfile(); setAuthUI(!!profile); } catch { setAuthUI(false); }
+          try { await initializeOnOpen(); } catch {}
+        })();
+      }
+    }
+
     if (chatbotToggler) chatbotToggler.addEventListener('click', ()=> { 
       const willOpen = !document.body.classList.contains('show-chatbot');
       document.body.classList.toggle('show-chatbot'); 
@@ -273,6 +284,14 @@
           try { await initializeOnOpen(); } catch {}
         })();
       }
+    });
+
+    // Global delegation: allow any element with these selectors to open chat
+    document.addEventListener('click', function(e){
+      const target = e.target.closest('#ai-chat-open, .floating-ai-btn, [data-open="schedule-ai"]');
+      if (!target) return;
+      e.preventDefault();
+      openChatAsync();
     });
 
     // Public helper to open with assignment context from timetable
