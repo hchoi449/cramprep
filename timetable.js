@@ -292,7 +292,7 @@ function updateWeekDisplay() {
     renderWeekEvents(startOfWeek);
     try {
         const header = document.querySelector('#assignments-drawer .drawer-header h3');
-        if (header) header.textContent = 'Assignments (This Week)';
+        if (header) header.textContent = 'Assignments (Next 7 Days)';
     } catch {}
 }
 
@@ -635,11 +635,12 @@ function icsToDate(v){
 }
 
 function filterEventsToDisplayedWeek(events){
-    const monday = getMonday(currentWeek);
-    const start = new Date(monday);
-    const end = new Date(monday);
+    // Show from current day forward, 7-day window
+    const now = new Date();
+    now.setHours(0,0,0,0);
+    const end = new Date(now);
     end.setDate(end.getDate() + 7);
-    return events.filter(ev => ev.start && ev.start >= start && ev.start < end);
+    return events.filter(ev => ev.start && ev.start >= now && ev.start < end);
 }
 
 function renderAssignmentsList(events){
