@@ -115,6 +115,8 @@
         if (!overlay) return;
         overlay.classList.add('active');
         document.body.style.overflow = 'hidden';
+        // Warm up API to avoid cold-start timeouts
+        try { pingAuth(); } catch {}
     }
 
     function closeOverlay() {
@@ -269,6 +271,17 @@
 
     // Attempt to restore session on load
     tryRestoreSession();
+
+    async function pingAuth(){
+        try {
+            const base = getAuthBase();
+            if (!base) return;
+            const res = await fetch(`${base}/auth/ping`, { cache:'no-store' });
+            if (!res.ok) throw new Error('offline');
+        } catch {}
+    }
+    // Ping in background on page load
+    pingAuth();
 
     if (loginForm) {
         loginForm.addEventListener('submit', async function(e) {
