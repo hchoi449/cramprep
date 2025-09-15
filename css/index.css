@@ -539,15 +539,15 @@ body.home .logo .tbp-star {
 /* Muted green-gray style ONLY for bottom-right buttons */
 .floating-consult-btn,
 .floating-ai-btn {
-    background: #dfe7d6 !important;
-    color: #0f3b2e !important;
-    border: 2px solid #c9d7c0 !important;
+    background: #F2EEDD !important; /* ivory */
+    color: #6b3410 !important; /* star brown */
+    border: 2px solid #E8E3CF !important;
     box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
 }
 
 .floating-consult-btn:hover,
 .floating-ai-btn:hover {
-    background: #e7efe1 !important;
+    background: #F6F2E6 !important;
 }
 
 /* Assessment Section - Exact Match to Reference */
