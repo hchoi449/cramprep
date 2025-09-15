@@ -515,29 +515,43 @@ body.home .logo .tbp-star {
 }
 
 .btn-primary {
-    background: #dfe7d6;
-    color: #0f3b2e;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
-    border: 2px solid #c9d7c0;
+    background: #8B4513;
+    color: white;
+    box-shadow: 0 4px 15px rgba(139, 69, 19, 0.3);
 }
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.18);
-    background: #e7efe1;
+    box-shadow: 0 8px 25px rgba(139, 69, 19, 0.4);
 }
 
 .btn-secondary {
-    background: #dfe7d6;
-    color: #0f3b2e;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
-    border: 2px solid #c9d7c0;
+    background: #8B4513;
+    color: white;
+    box-shadow: 0 4px 15px rgba(139, 69, 19, 0.3);
 }
 
 .btn-secondary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.18);
-    background: #e7efe1;
+    box-shadow: 0 8px 25px rgba(139, 69, 19, 0.4);
+}
+
+/* Muted green-gray style ONLY for Book Consultation links and Schedule AI button */
+a.btn.btn-primary[href="#contact"],
+a.btn.btn-primary[href="index.html#contact"],
+.floating-consult-btn,
+.floating-ai-btn {
+    background: #dfe7d6 !important;
+    color: #0f3b2e !important;
+    border: 2px solid #c9d7c0 !important;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+}
+
+a.btn.btn-primary[href="#contact"]:hover,
+a.btn.btn-primary[href="index.html#contact"]:hover,
+.floating-consult-btn:hover,
+.floating-ai-btn:hover {
+    background: #e7efe1 !important;
 }
 
 /* Assessment Section - Exact Match to Reference */
