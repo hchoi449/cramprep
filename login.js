@@ -140,18 +140,28 @@
 
     async function postJson(url, data) {
         const full = url.startsWith('http') ? url : `${getAuthBase()}${url}`;
+        const controller = new AbortController();
+        const timeout = setTimeout(()=> controller.abort(), 15000);
         showLoading(true);
-        const res = await fetch(full, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-        const json = await res.json().catch(() => ({}));
-        showLoading(false);
-        if (!res.ok) {
-            throw new Error(json.error || 'Request failed');
+        try {
+            const res = await fetch(full, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+                signal: controller.signal
+            });
+            const json = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                throw new Error(json.error || 'Request failed');
+            }
+            return json;
+        } catch (err) {
+            const msg = (err && err.name === 'AbortError') ? 'Request timed out' : (err && err.message) || 'Network error';
+            throw new Error(msg);
+        } finally {
+            clearTimeout(timeout);
+            showLoading(false);
         }
-        return json;
     }
 
     function extractFirstName(nameOrEmail) {
