@@ -536,7 +536,7 @@ async function refreshAssignmentsForCurrentWeek(){
         if (!icsUrl) {
             if (loading) loading.style.display = 'none';
             if (empty) {
-                empty.innerHTML = 'Please input the iCal (.ics) URL <a href="account.html#acctIcs">here</a>.';
+                empty.innerHTML = 'Please input the iCal (.ics) URL <a href="account.html">here</a>.';
                 empty.style.display = 'block';
             }
             return;

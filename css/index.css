@@ -1949,6 +1949,7 @@ html, body { height: auto; }
     padding: 12px 18px 18px;
     overflow-y: auto;
     flex: 1;
+    position: relative;
 }
 
 .drawer-empty {
@@ -1965,7 +1966,7 @@ html, body { height: auto; }
     gap: 10px;
 }
 
-.drawer-loading { display:none; padding: 20px 0; display:flex; align-items:center; justify-content:center; }
+.drawer-loading { display:none; position: absolute; inset: 0; display:grid; place-items:center; }
 .drawer-loading .tbp-star-spinner {
     width: 28px;
     height: 28px;
