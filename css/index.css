@@ -1955,20 +1955,24 @@ html, body { height: auto; }
 #assignments-drawer {
     position: fixed;
     top: 0;
-    right: -380px;
+    right: 0;
     width: 360px;
     max-width: 92vw;
     height: 100vh;
     background: #ffffff;
-    box-shadow: -20px 0 50px rgba(0,0,0,0.15);
+    box-shadow: -20px 0 50px rgba(0,0,0,0.12);
     z-index: 1200;
-    transition: right 0.3s ease;
     display: flex;
     flex-direction: column;
     border-left: 1px solid #e5e7eb;
+    transform: translateX(105%);
+    opacity: 0;
+    transition: transform .35s cubic-bezier(.22,.61,.36,1), opacity .3s ease, box-shadow .35s ease;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
 }
 
-#assignments-drawer.active { right: 0; }
+#assignments-drawer.active { transform: translateX(0); opacity: 1; box-shadow: -24px 0 60px rgba(0,0,0,0.18); }
 
 #assignments-drawer .drawer-header {
     display: flex;
@@ -1997,6 +2001,13 @@ html, body { height: auto; }
     overflow-y: auto;
     flex: 1;
     position: relative;
+}
+
+#assignments-drawer.active .drawer-body { animation: drawerContentIn .4s ease both; }
+
+@keyframes drawerContentIn {
+    from { opacity: 0; transform: translateX(12px); }
+    to { opacity: 1; transform: translateX(0); }
 }
 
 .drawer-empty {
