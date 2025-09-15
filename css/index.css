@@ -1822,23 +1822,14 @@ html, body { height: 100%; }
 
 /* Viewport-fit content so pages dynamically fill the screen */
 :root { --viewport-offset: 220px; }
-/* Approximate fixed header height for viewport-fit calculations */
-:root { --header-height: 72px; }
-main,
-section.hero,
-body.timetable .timetable-content .container,
-body.ai-curriculum section.ai-curriculum,
-.content-root {
-    min-height: calc(100vh - var(--viewport-offset));
-}
+/* Remove broad min-height rules to revert layout */
 
 @media (max-width: 768px) {
     :root { --viewport-offset: 200px; }
 }
 
-/* Ensure top hero sections dynamically fit the screen minus sticky header */
-.hero { min-height: calc(100vh - var(--header-height)); }
-body.timetable .timetable-hero { min-height: calc(100vh - var(--header-height)); }
+/* Footer area should stick to bottom without extra whitespace */
+.footer { margin-top: auto; }
 
 .footer-content {
     display: grid;
