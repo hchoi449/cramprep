@@ -635,7 +635,8 @@ function icsToDate(v){
         const y = Number(v.slice(0,4));
         const m = Number(v.slice(4,6));
         const d = Number(v.slice(6,8));
-        return new Date(Date.UTC(y, m-1, d));
+        // Use noon UTC for all-day dates to avoid prior-day shift in US timezones
+        return new Date(Date.UTC(y, m-1, d, 12, 0, 0));
     }
     if (/^\d{8}T\d{6}Z$/.test(v)) {
         const y = Number(v.slice(0,4));
