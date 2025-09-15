@@ -536,19 +536,7 @@ body.home .logo .tbp-star {
     box-shadow: 0 8px 25px rgba(139, 69, 19, 0.4);
 }
 
-/* Muted green-gray style ONLY for bottom-right buttons */
-.floating-consult-btn,
-.floating-ai-btn {
-    background: #E4EAD7 !important; /* muted greener */
-    color: #6b3410 !important; /* star brown */
-    border: 2px solid #6b3410 !important; /* outline to star brown */
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
-}
-
-.floating-consult-btn:hover,
-.floating-ai-btn:hover {
-    background: #EDF1E3 !important; /* lighter muted green */
-}
+/* Reverted: use default button colors for floating buttons */
 
 /* Assessment Section - Exact Match to Reference */
 .assessment {
@@ -1823,8 +1811,8 @@ section.ai-curriculum {
 
 /* Footer - Exact Match */
 .footer {
-    background: #8B4513;
-    color: white;
+    background: #ffffff;
+    color: #1a1a1a;
     padding: 80px 0 30px;
 }
 
