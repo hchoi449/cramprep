@@ -5,10 +5,7 @@
   if (!document.querySelector(`link[href^="${iconHref}"]`)) {
     const lf = document.createElement('link'); lf.rel='stylesheet'; lf.href=iconHref; document.head.appendChild(lf);
   }
-  // Emoji picker
-  if (!window.EmojiMart) {
-    const es = document.createElement('script'); es.src='https://cdn.jsdelivr.net/npm/emoji-mart@latest/dist/browser.js'; document.head.appendChild(es);
-  }
+  // (Removed) Emoji picker and attachments not used
 
   // Inject DOM
   const root = document.createElement('div');
@@ -26,13 +23,6 @@
       <form action="#" class="chat-form">
         <textarea placeholder="Message..." class="message-input" required></textarea>
         <div class="chat-controls">
-          <button type="button" id="emoji-picker" class="material-symbols-outlined">sentiment_satisfied</button>
-          <div class="file-upload-wrapper">
-            <input type="file" accept="image/*" id="file-input" hidden />
-            <img src="#" />
-            <button type="button" id="file-upload" class="material-symbols-rounded">attach_file</button>
-            <button type="button" id="file-cancel" class="material-symbols-rounded">close</button>
-          </div>
           <button type="submit" id="send-message" class="material-symbols-rounded">arrow_upward</button>
         </div>
       </form>
