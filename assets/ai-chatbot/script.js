@@ -216,30 +216,18 @@
         const raw = localStorage.getItem('tbp_user');
         let first = 'there';
         try { if (raw) { const u = JSON.parse(raw); const nm = (u && (u.fullName || u.email || '')).trim(); if (nm) first = (nm.split(' ')[0] || nm.split('@')[0] || 'there'); } } catch {}
-        const greetText = `Hey ${first}. I see that you need help on "${assignmentTitle}"${dueIso?` due ${new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric'}).format(new Date(dueIso))}`:''}. Would you like to get help?`;
-        const greetDiv = createMessageElement(`<div class="message-text">${greetText}</div>`, 'bot-message');
-        chatBody.appendChild(greetDiv);
-        chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
-
         const free = await fetchAvailabilityUntil(dueIso, 12, 24);
-        if (!free.length) {
-          const none = createMessageElement(`<div class="message-text">Help is on the way. Someone from our team will contact you through your email.</div>`, 'bot-message');
-          chatBody.appendChild(none);
-          chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
-          if (window.tbpFallbackNotify) try { await window.tbpFallbackNotify(); } catch {}
-          return;
-        }
-
         const fmt = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York', weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
         const slotsStr = free.slice(0,8).map(d=> fmt.format(d)).join(', ');
 
-        // Ask model with structured context
-        const instruction = `Student: ${first}\nAssignment: ${assignmentTitle}\nDue: ${dueIso ? new Date(dueIso).toISOString() : 'N/A'}\nAvailableSlotsEST: ${slotsStr}\nGoal: Propose the earliest viable session before the due date. If user agrees, confirm. Keep under 300 chars.`;
+        // Strict, single-message prompt: model should output only the suggestion line
+        const instruction = `StudentFirstName: ${first}\nAssignmentTitle: ${assignmentTitle}\nDueISO: ${dueIso ? new Date(dueIso).toISOString() : 'N/A'}\nAvailableSlotsEST: ${slotsStr || 'NONE'}\nRules: If there is at least one AvailableSlotsEST, reply with EXACTLY: Hi ${first}! How about <EarliestSlot> for your ${assignmentTitle}? Use format Mon, Sep 15, 1:00 PM. No extra text. If none, reply EXACTLY: Help is on the way. Someone from our team will contact you through your email.`;
         userData.message = instruction;
         const thinking = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\"><div class=\"thinking-indicator\"><div class=\"dot\"></div><div class=\"dot\"></div><div class=\"dot\"></div></div></div>`, 'bot-message', 'thinking');
         chatBody.appendChild(thinking);
         chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
         await generateBotResponse(thinking);
+        if (!free.length && window.tbpFallbackNotify) try { await window.tbpFallbackNotify(); } catch {}
       } catch {}
     };
 
