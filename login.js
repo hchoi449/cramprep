@@ -298,6 +298,8 @@
                 const resp = await postJson('/auth/login', { email, password });
                 try { localStorage.setItem('tbp_token', resp.token || ''); localStorage.setItem('tbp_user', JSON.stringify(resp.user || {})); } catch {}
                 setUserGreeting(resp.user || { email });
+                // Notify listeners (e.g., chatbot) that login completed
+                try { window.dispatchEvent(new CustomEvent('tbp:auth:login', { detail: { user: resp.user || { email } } })); } catch {}
                 closeOverlay();
             } catch (err) {
                 const msg = (err && err.message ? String(err.message) : '').toLowerCase();

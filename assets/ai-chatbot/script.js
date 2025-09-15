@@ -261,6 +261,18 @@
       chatHistory.push({ role: 'model', parts: [{ text: SEED_PROMPT }] });
       loginPromptShown = false;
     }
+    // When login completes via Open login link, refresh chat and ask for help topic first
+    window.addEventListener('tbp:auth:login', async function(){
+      try {
+        document.body.classList.add('show-chatbot');
+        const profile = await getProfile();
+        cachedProfile = profile; setAuthUI(!!profile);
+        chatBody.innerHTML = '';
+        const msg = createMessageElement(`<div class=\"message-text\">You're logged in. What do you need help with? (e.g., Algebra homework, Chemistry quiz, due date)</div>`, 'bot-message');
+        chatBody.appendChild(msg);
+        chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+      } catch {}
+    });
     async function initializeOnOpen(){
       try {
         const profile = await getProfile();
