@@ -1892,18 +1892,46 @@ html, body { height: auto; }
     top: 50%;
     right: 0;
     transform: translateY(-50%);
-    background: #8B4513;
+    background: rgba(139,69,19,0.92);
     color: #fff;
     border: none;
-    border-top-left-radius: 10px;
-    border-bottom-left-radius: 10px;
-    padding: 10px 12px;
+    border-top-left-radius: 14px;
+    border-bottom-left-radius: 14px;
+    padding: 16px 18px;
     z-index: 1100;
     cursor: pointer;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    box-shadow: 0 14px 36px rgba(0,0,0,0.18);
+    backdrop-filter: saturate(1.2) blur(3px);
+    -webkit-backdrop-filter: saturate(1.2) blur(3px);
+    transition: transform .25s ease, box-shadow .25s ease, background .25s ease;
+    overflow: hidden;
 }
 
-#assignments-tab .bi { font-size: 1.2rem; }
+#assignments-tab .bi { font-size: 1.4rem; }
+
+/* glass shimmer on hover */
+#assignments-tab::before {
+    content: "";
+    position: absolute;
+    inset: -40%;
+    background: linear-gradient(120deg, rgba(255,255,255,0.05), rgba(255,255,255,0.25), rgba(255,255,255,0.05));
+    transform: translateX(-120%);
+    filter: blur(2px);
+    opacity: 0;
+}
+
+@keyframes glassSweep { from { transform: translateX(-120%);} to { transform: translateX(120%);} }
+
+#assignments-tab:hover {
+    transform: translateY(-50%) scale(1.06);
+    box-shadow: 0 18px 44px rgba(0,0,0,0.24);
+    background: rgba(139,69,19,0.98);
+}
+
+#assignments-tab:hover::before {
+    opacity: 1;
+    animation: glassSweep 1.2s ease-in-out;
+}
 
 #assignments-drawer {
     position: fixed;
