@@ -220,10 +220,11 @@
         try { if (raw) { const u = JSON.parse(raw); const nm = (u && (u.fullName || u.email || '')).trim(); if (nm) first = (nm.split(' ')[0] || nm.split('@')[0] || 'there'); } } catch {}
         const free = await fetchSessionsUntil(dueIso);
         const fmt = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York', weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
-        const slotsStr = free.slice(0,8).map(d=> fmt.format(d)).join(', ');
+        const choices = free.slice(0,8).map(d=> fmt.format(d));
+        const slotsStr = choices.join(', ');
 
         // Strict, single-message prompt: model should output only the suggestion line
-        const instruction = `StudentFirstName: ${first}\nAssignmentTitle: ${assignmentTitle}\nDueISO: ${dueIso ? new Date(dueIso).toISOString() : 'N/A'}\nAvailableSlotsEST: ${slotsStr || 'NONE'}\nRules: If there is at least one AvailableSlotsEST, reply with EXACTLY: Hi ${first}! How about <EarliestSlot> for your ${assignmentTitle}? Use format Mon, Sep 15, 1:00 PM. No extra text. If none, reply EXACTLY: Help is on the way. Someone from our team will contact you through your email as soon as possible.`;
+        const instruction = `StudentFirstName: ${first}\nAssignmentTitle: ${assignmentTitle}\nDueISO: ${dueIso ? new Date(dueIso).toISOString() : 'N/A'}\nAvailableSlotsEST (choose only from this list exactly): [${choices.map(c=>`"${c}"`).join(', ')}]\nRules:\n- If the list is not empty, reply with EXACTLY: Hi ${first}! How about <OneOfTheListedSlots> for your ${assignmentTitle}?\n- The <OneOfTheListedSlots> must be copied verbatim from the list above (no new times).\n- Prefer the earliest item in the list.\n- Use format Mon, Sep 15, 1:00 PM. No extra text.\n- If the list is empty, reply EXACTLY: Help is on the way. Someone from our team will contact you through your email as soon as possible.`;
         userData.message = instruction;
         const thinking = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\"><div class=\"thinking-indicator\"><div class=\"dot\"></div><div class=\"dot\"></div><div class=\"dot\"></div></div></div>`, 'bot-message', 'thinking');
         chatBody.appendChild(thinking);
