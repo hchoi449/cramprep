@@ -536,9 +536,7 @@ body.home .logo .tbp-star {
     box-shadow: 0 8px 25px rgba(139, 69, 19, 0.4);
 }
 
-/* Muted green-gray style ONLY for Book Consultation links and Schedule AI button */
-a.btn.btn-primary[href="#contact"],
-a.btn.btn-primary[href="index.html#contact"],
+/* Muted green-gray style ONLY for bottom-right buttons */
 .floating-consult-btn,
 .floating-ai-btn {
     background: #dfe7d6 !important;
@@ -547,8 +545,6 @@ a.btn.btn-primary[href="index.html#contact"],
     box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
 }
 
-a.btn.btn-primary[href="#contact"]:hover,
-a.btn.btn-primary[href="index.html#contact"]:hover,
 .floating-consult-btn:hover,
 .floating-ai-btn:hover {
     background: #e7efe1 !important;
