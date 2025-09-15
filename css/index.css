@@ -286,7 +286,7 @@ body.home .logo .tbp-star {
     border-radius: 8px;
     margin: 2px 6px;
     transition: background-color .2s ease;
-}
+    }
 
 .greeting-dropdown a:hover {
     background: #f0f2f5;
@@ -539,15 +539,15 @@ body.home .logo .tbp-star {
 /* Muted green-gray style ONLY for bottom-right buttons */
 .floating-consult-btn,
 .floating-ai-btn {
-    background: #F2EEDD !important; /* ivory */
+    background: #E4EAD7 !important; /* muted greener */
     color: #6b3410 !important; /* star brown */
-    border: 2px solid #E8E3CF !important;
+    border: 2px solid #6b3410 !important; /* outline to star brown */
     box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
 }
 
 .floating-consult-btn:hover,
 .floating-ai-btn:hover {
-    background: #F6F2E6 !important;
+    background: #EDF1E3 !important; /* lighter muted green */
 }
 
 /* Assessment Section - Exact Match to Reference */
