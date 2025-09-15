@@ -77,6 +77,8 @@
     let cachedProfile = null;
     let hasAskedHelp = false;
     let helpTopic = null;
+    let contextHelpType = null;
+    let contextSubject = null;
     let loginPromptShown = false;
 
     const createMessageElement = (content, ...classes) => { const div = document.createElement('div'); div.classList.add('message', ...classes); div.innerHTML = content; return div; };
@@ -171,6 +173,12 @@
         if (helpTopic) {
           chatHistory.push({ role:'user', parts:[{ text: `HelpTopic: ${helpTopic}` }] });
         }
+        if (contextHelpType) {
+          chatHistory.push({ role:'user', parts:[{ text: `HelpType: ${contextHelpType}` }] });
+        }
+        if (contextSubject) {
+          chatHistory.push({ role:'user', parts:[{ text: `Subject: ${contextSubject}` }] });
+        }
         const free = await fetchSessionsUntil();
         const fmt = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York', weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
         const choices = (free || []).slice(0, 8).map(d=> fmt.format(d));
@@ -204,6 +212,30 @@
       }
     }
 
+    function detectHelpType(text){
+      if (!text) return null;
+      const t = String(text).toLowerCase();
+      if (/\b(homework|assignment|hw)\b/.test(t)) return 'homework';
+      if (/\b(quiz|quizzes)\b/.test(t)) return 'quiz';
+      if (/\b(exam|test|assessment|assessments)\b/.test(t)) return 'exam';
+      if (/\b(project|paper|lab)\b/.test(t)) return 'project';
+      return null;
+    }
+    function detectSubject(text){
+      if (!text) return null;
+      const t = String(text).toLowerCase();
+      if (/\b(pre[- ]?calculus|precalculus|calculus|algebra|geometry|math|mathematics)\b/.test(t)) return 'Math';
+      if (/\b(physics)\b/.test(t)) return 'Physics';
+      if (/\b(chemistry|chem)\b/.test(t)) return 'Chemistry';
+      if (/\b(biology|bio)\b/.test(t)) return 'Biology';
+      if (/\b(english|ela)\b/.test(t)) return 'English';
+      if (/\b(history)\b/.test(t)) return 'History';
+      if (/\b(computer\s*science|cs|programming|coding)\b/.test(t)) return 'Computer Science';
+      if (/\b(sat)\b/.test(t)) return 'SAT';
+      if (/\b(act)\b/.test(t)) return 'ACT';
+      return null;
+    }
+
     async function handleOutgoingMessage(e){
       e.preventDefault();
       // Block sending if not authenticated
@@ -231,6 +263,20 @@
         }
         helpTopic = userData.message;
       }
+
+      // Extract structured context from any message
+      const ht = detectHelpType(userData.message); if (ht && !contextHelpType) contextHelpType = ht;
+      const sj = detectSubject(userData.message); if (sj && !contextSubject) contextSubject = sj;
+      if (!contextHelpType || !contextSubject) {
+        const askWhat = !contextHelpType && !contextSubject
+          ? 'Which subject is this for, and is it homework, quiz, or exam?'
+          : (!contextSubject ? 'Which subject is this for?' : 'Is this for homework, a quiz, or an exam?');
+        const ask2 = createMessageElement(`<div class=\"message-text\">${askWhat}</div>`, 'bot-message');
+        chatBody.appendChild(ask2);
+        chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+        hasAskedHelp = true;
+        return;
+      }
       setTimeout(()=>{
         const messageContent = `<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\"><div class=\"thinking-indicator\"><div class=\"dot\"></div><div class=\"dot\"></div><div class=\"dot\"></div></div></div>`;
         const incomingMessageDiv = createMessageElement(messageContent, 'bot-message', 'thinking');
@@ -240,6 +286,13 @@
         if (helpTopic) {
           const firstName = cachedProfile && cachedProfile.fullName ? (String(cachedProfile.fullName).trim().split(' ')[0] || 'there') : 'there';
           userData.message = `HelpTopic: ${helpTopic}\nStudentFirstName: ${firstName}`;
+        }
+        // Include structured context for the model
+        if (contextHelpType || contextSubject) {
+          const parts = [];
+          if (contextHelpType) parts.push(`HelpType: ${contextHelpType}`);
+          if (contextSubject) parts.push(`Subject: ${contextSubject}`);
+          userData.message += `\n${parts.join('\n')}`;
         }
         generateBotResponse(incomingMessageDiv);
       }, 600);
@@ -308,8 +361,8 @@
         } else {
           const nm = (profile && profile.fullName ? String(profile.fullName).trim() : '') || '';
           const first = (nm.split(' ')[0] || nm || 'there');
-          msg.innerHTML = `<div class=\"message-text\">Hey ${first} 👋 How can I help?</div>`;
-          hasAskedHelp = false; helpTopic = null;
+          msg.innerHTML = `<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">Hey ${first} 👋 How can I help?</div>`;
+          hasAskedHelp = false; helpTopic = null; contextHelpType = null; contextSubject = null;
         }
         chatBody.appendChild(msg);
         // Wire open-login link to trigger login modal
