@@ -53,9 +53,11 @@
     const chatBody = root.querySelector('.chat-body');
     const messageInput = root.querySelector('.message-input');
     const sendMessage = root.querySelector('#send-message');
+    // Optional file-upload elements (may not exist in our UI)
     const fileInput = root.querySelector('#file-input');
     const fileUploadWrapper = root.querySelector('.file-upload-wrapper');
-    const fileCancelButton = fileUploadWrapper.querySelector('#file-cancel');
+    const fileCancelButton = fileUploadWrapper ? fileUploadWrapper.querySelector('#file-cancel') : null;
+    const fileUploadButton = root.querySelector('#file-upload');
     const chatbotToggler = document.getElementById('ai-chat-open');
     const closeChatbot = root.querySelector('#close-chatbot');
 
@@ -197,7 +199,7 @@
       if (!userData.message) return;
       messageInput.value = '';
       messageInput.dispatchEvent(new Event('input'));
-      fileUploadWrapper.classList.remove('file-uploaded');
+      if (fileUploadWrapper) fileUploadWrapper.classList.remove('file-uploaded');
       const messageContent = `<div class=\"message-text\"></div>${userData.file.data ? `<img src=\"data:${userData.file.mime_type};base64,${userData.file.data}\" class=\"attachment\" />` : ''}`;
       const outgoingMessageDiv = createMessageElement(messageContent, 'user-message');
       outgoingMessageDiv.querySelector('.message-text').innerText = userData.message;
@@ -215,8 +217,12 @@
     messageInput.addEventListener('input', ()=>{ messageInput.style.height = `${initialInputHeight}px`; messageInput.style.height = `${messageInput.scrollHeight}px`; root.querySelector('.chat-form').style.borderRadius = messageInput.scrollHeight > initialInputHeight ? '15px' : '32px'; });
     messageInput.addEventListener('keydown', (e)=>{ const userMessage = e.target.value.trim(); if (e.key==='Enter' && !e.shiftKey && userMessage && window.innerWidth > 768) { handleOutgoingMessage(e); } });
 
-    fileInput.addEventListener('change', ()=>{ const file = fileInput.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = (ev)=>{ fileInput.value=''; fileUploadWrapper.querySelector('img').src = ev.target.result; fileUploadWrapper.classList.add('file-uploaded'); const b64 = String(ev.target.result).split(',')[1]; userData.file = { data: b64, mime_type: file.type }; }; reader.readAsDataURL(file); });
-    fileCancelButton.addEventListener('click', ()=>{ userData.file = {}; fileUploadWrapper.classList.remove('file-uploaded'); });
+    if (fileInput) {
+      fileInput.addEventListener('change', ()=>{ const file = fileInput.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = (ev)=>{ try { if (fileUploadWrapper) { const img = fileUploadWrapper.querySelector('img'); if (img) img.src = ev.target.result; fileUploadWrapper.classList.add('file-uploaded'); } } catch{} fileInput.value=''; const b64 = String(ev.target.result).split(',')[1]; userData.file = { data: b64, mime_type: file.type }; }; reader.readAsDataURL(file); });
+    }
+    if (fileCancelButton && fileUploadWrapper) {
+      fileCancelButton.addEventListener('click', ()=>{ userData.file = {}; try { fileUploadWrapper.classList.remove('file-uploaded'); } catch{} });
+    }
 
     // Scroll-linked logo parallax: update CSS var based on scroll position
     chatBody.addEventListener('scroll', ()=>{
@@ -232,7 +238,9 @@
     initEmoji();
 
     sendMessage.addEventListener('click', (e)=> handleOutgoingMessage(e));
-    root.querySelector('#file-upload').addEventListener('click', ()=> fileInput.click());
+    if (fileUploadButton && fileInput) {
+      fileUploadButton.addEventListener('click', ()=> fileInput.click());
+    }
     function resetChat(){
       // Clear transcript
       chatBody.innerHTML = '';
