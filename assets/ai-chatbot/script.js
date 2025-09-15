@@ -112,28 +112,20 @@
       } catch { return []; }
     }
 
-    async function fetchAvailabilityUntil(deadlineIso, dayStart=12, dayEnd=24){
+    async function fetchSessionsUntil(deadlineIso){
       try {
-        const res = await fetch('/api/events', { headers: { Accept:'application/json' } });
+        const AUTH_BASE = (window && window.TBP_AUTH_BASE) ? window.TBP_AUTH_BASE.replace(/\/$/,'') : '';
+        const res = await fetch(`${AUTH_BASE}/sessions`, { headers: { Accept:'application/json' } });
         if (!res.ok) return [];
-        const { events } = await res.json();
-        const tz = 'America/New_York';
+        const j = await res.json();
+        const events = (j && j.events) ? j.events : [];
         const now = new Date();
         const deadline = deadlineIso ? new Date(deadlineIso) : new Date(now.getTime() + 7*86400000);
-        const busy = events.map(ev=>({ s:new Date(ev.start), e:new Date(ev.end) }));
-        const freeSlots = [];
-        for(let d=new Date(now); d <= deadline; d.setDate(d.getDate()+1)){
-          const parts = new Intl.DateTimeFormat('en-US',{ timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit'}).formatToParts(d).reduce((a,p)=> (a[p.type]=p.value,a),{});
-          for (let h=dayStart; h<dayEnd; h++){
-            const hour = String(h%24).padStart(2,'0');
-            const start = new Date(`${parts.year}-${parts.month}-${parts.day}T${hour}:00:00`);
-            const end = new Date(`${parts.year}-${parts.month}-${parts.day}T${hour}:59:59`);
-            if (start < now) continue; // skip past
-            const overlaps = busy.some(b=> !(b.e<=start || b.s>=end));
-            if (!overlaps && start <= deadline) freeSlots.push(start);
-          }
-        }
-        return freeSlots;
+        return events
+          .map(ev => ({ start: new Date(ev.start), end: new Date(ev.end), title: ev.title }))
+          .filter(ev => ev.start >= now && ev.start <= deadline)
+          .sort((a,b)=> a.start - b.start)
+          .map(ev => ev.start);
       } catch { return []; }
     }
 
@@ -216,7 +208,7 @@
         const raw = localStorage.getItem('tbp_user');
         let first = 'there';
         try { if (raw) { const u = JSON.parse(raw); const nm = (u && (u.fullName || u.email || '')).trim(); if (nm) first = (nm.split(' ')[0] || nm.split('@')[0] || 'there'); } } catch {}
-        const free = await fetchAvailabilityUntil(dueIso, 12, 24);
+        const free = await fetchSessionsUntil(dueIso);
         const fmt = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York', weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
         const slotsStr = free.slice(0,8).map(d=> fmt.format(d)).join(', ');
 
