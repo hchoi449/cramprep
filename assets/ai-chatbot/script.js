@@ -346,7 +346,12 @@
     }
   }
 
-  document.addEventListener('DOMContentLoaded', mount);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', mount);
+  } else {
+    // DOM is already ready (script loaded late) – mount immediately
+    try { mount(); } catch {}
+  }
 })();
 
 
