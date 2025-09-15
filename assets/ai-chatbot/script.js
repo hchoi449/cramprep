@@ -244,6 +244,15 @@
             if (nm) first = (nm.split(' ')[0] || nm.split('@')[0] || 'there');
           }
         } catch {}
+        // If not logged in, instruct to sign up / log in and stop
+        if (!profile) {
+          try { chatBody.innerHTML = ''; } catch {}
+          const msg = createMessageElement(`<div class=\"message-text\">Please log in or sign up to continue scheduling.</div>`, 'bot-message');
+          chatBody.appendChild(msg);
+          chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+          return;
+        }
+
         const free = await fetchSessionsUntil(dueIso);
         const fmt = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York', weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
         const choices = free.slice(0,8).map(d=> fmt.format(d));
