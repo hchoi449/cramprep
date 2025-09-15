@@ -125,6 +125,18 @@
       } catch { return []; }
     }
 
+    async function getProfile(){
+      try {
+        const token = localStorage.getItem('tbp_token');
+        if (!token) return null;
+        const AUTH_BASE = (window && window.TBP_AUTH_BASE) ? window.TBP_AUTH_BASE.replace(/\/$/,'') : '';
+        const res = await fetch(`${AUTH_BASE}/auth/profile`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const j = await res.json().catch(()=>({}));
+        if (res.ok && j && j.profile) return j.profile;
+      } catch {}
+      return null;
+    }
+
     async function generateBotResponse(incomingMessageDiv){
       const messageElement = incomingMessageDiv.querySelector('.message-text');
       chatHistory.push({ role:'user', parts:[{ text: userData.message }, ...(userData.file.data ? [{ inline_data: userData.file }] : [])] });
@@ -142,6 +154,10 @@
         const constrained = apiResponseText ? apiResponseText.slice(0, 300) : '';
         messageElement.innerText = constrained || '...';
         chatHistory.push({ role:'model', parts:[{ text: constrained }] });
+        // If model signals fallback, trigger notify
+        if (/Help is on the way\. Someone from our team will contact you through your email as soon as possible\./i.test(constrained)) {
+          if (window.tbpFallbackNotify) try { await window.tbpFallbackNotify(); } catch {}
+        }
       } catch (err) {
         messageElement.innerText = (err && err.message) || 'Request failed';
         messageElement.style.color = '#ff0000';
@@ -215,16 +231,30 @@
     window.tbpOpenScheduleAI = async function(assignmentTitle, dueIso){
       try {
         document.body.classList.add('show-chatbot');
+        const profile = await getProfile();
         const raw = localStorage.getItem('tbp_user');
         let first = 'there';
-        try { if (raw) { const u = JSON.parse(raw); const nm = (u && (u.fullName || u.email || '')).trim(); if (nm) first = (nm.split(' ')[0] || nm.split('@')[0] || 'there'); } } catch {}
+        try {
+          if (profile && profile.fullName) {
+            const nm = String(profile.fullName).trim();
+            first = (nm.split(' ')[0] || nm) || first;
+          } else if (raw) {
+            const u = JSON.parse(raw);
+            const nm = (u && (u.fullName || u.email || '')).trim();
+            if (nm) first = (nm.split(' ')[0] || nm.split('@')[0] || 'there');
+          }
+        } catch {}
         const free = await fetchSessionsUntil(dueIso);
         const fmt = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York', weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
         const choices = free.slice(0,8).map(d=> fmt.format(d));
         const slotsStr = choices.join(', ');
 
+        const isLoggedIn = !!profile;
+        const baseInfo = `StudentFirstName: ${first}\nAssignmentTitle: ${assignmentTitle}\nDueISO: ${dueIso ? new Date(dueIso).toISOString() : 'N/A'}`;
+        const studentInfo = isLoggedIn ? `\nSchool: ${profile.school || 'N/A'}\nGrade: ${profile.grade || 'N/A'}` : '';
+        const authRule = isLoggedIn ? '' : `\nIf NotLoggedIn: Reply EXACTLY: Please log in or sign up to continue scheduling.`;
         // Strict, single-message prompt: model should output only the suggestion line
-        const instruction = `StudentFirstName: ${first}\nAssignmentTitle: ${assignmentTitle}\nDueISO: ${dueIso ? new Date(dueIso).toISOString() : 'N/A'}\nAvailableSlotsEST (choose only from this list exactly): [${choices.map(c=>`"${c}"`).join(', ')}]\nRules:\n- If the list is not empty, reply with EXACTLY: Hi ${first}! How about <OneOfTheListedSlots> for your ${assignmentTitle}?\n- The <OneOfTheListedSlots> must be copied verbatim from the list above (no new times).\n- Prefer the earliest item in the list.\n- Use format Mon, Sep 15, 1:00 PM. No extra text.\n- If the list is empty, reply EXACTLY: Help is on the way. Someone from our team will contact you through your email as soon as possible.`;
+        const instruction = `${baseInfo}${studentInfo}\nAvailableSlotsEST (choose only from this list exactly): [${choices.map(c=>`\"${c}\"`).join(', ')}]\nRules:\n- If NotLoggedIn, follow the auth instruction above and stop.\n- If the list is not empty, reply with EXACTLY: Hi ${first}! How about <OneOfTheListedSlots> for your ${assignmentTitle}?\n- The <OneOfTheListedSlots> must be copied verbatim from the list above (no new times).\n- Prefer the earliest item in the list.\n- Use format Mon, Sep 15, 1:00 PM. No extra text.\n- If the user says none of the options work OR the list is empty, reply EXACTLY: Help is on the way. Someone from our team will contact you through your email as soon as possible.${authRule}`;
         userData.message = instruction;
         const thinking = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\"><div class=\"thinking-indicator\"><div class=\"dot\"></div><div class=\"dot\"></div><div class=\"dot\"></div></div></div>`, 'bot-message', 'thinking');
         chatBody.appendChild(thinking);
