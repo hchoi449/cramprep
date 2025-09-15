@@ -1999,10 +1999,22 @@ html, body { height: auto; }
     display: inline-block;
     background: #6fb64b;
     color: #fff;
-    padding: 10px 14px;
+    padding: 10px 72px 22px 14px;
     border-radius: 12px;
     font-weight: 700;
     line-height: 1.2;
+    position: relative;
+}
+
+.pill .help-btn {
+    position: absolute;
+    right: 10px;
+    bottom: 8px;
+    color: #ffffff;
+    text-decoration: underline;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
 }
 
 /* Animations */
