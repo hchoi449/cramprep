@@ -306,8 +306,10 @@
         if (!profile) {
           msg.innerHTML = `<div class=\"message-text\">Please log in or sign up to continue scheduling. <a href=\"#\" class=\"open-login\">Open login</a></div>`;
         } else {
-          msg.innerHTML = `<div class=\"message-text\">You're logged in. What do you need help with? (e.g., Algebra homework, Chemistry quiz, due date)</div>`;
-          hasAskedHelp = true; helpTopic = null;
+          const nm = (profile && profile.fullName ? String(profile.fullName).trim() : '') || '';
+          const first = (nm.split(' ')[0] || nm || 'there');
+          msg.innerHTML = `<div class=\"message-text\">Hey ${first} 👋 How can I help?</div>`;
+          hasAskedHelp = false; helpTopic = null;
         }
         chatBody.appendChild(msg);
         // Wire open-login link to trigger login modal
