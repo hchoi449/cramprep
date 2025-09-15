@@ -263,13 +263,15 @@
     window.tbpResetAI = resetChat;
 
     closeChatbot.addEventListener('click', ()=> { document.body.classList.remove('show-chatbot'); resetChat(); });
-    if (chatbotToggler) chatbotToggler.addEventListener('click', async ()=> { 
+    if (chatbotToggler) chatbotToggler.addEventListener('click', ()=> { 
       const willOpen = !document.body.classList.contains('show-chatbot');
       document.body.classList.toggle('show-chatbot'); 
       if (willOpen) { 
-        const profile = await getProfile();
-        setAuthUI(!!profile);
-        await initializeOnOpen(); 
+        // Initialize without blocking UI open
+        (async ()=>{
+          try { const profile = await getProfile(); setAuthUI(!!profile); } catch { setAuthUI(false); }
+          try { await initializeOnOpen(); } catch {}
+        })();
       }
     });
 
