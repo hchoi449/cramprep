@@ -524,6 +524,13 @@ function setupAssignmentsDrawer(){
         const onTab = tab.contains(e.target);
         if (!withinDrawer && !onTab) toggle(false);
     });
+    // Collapsible headers
+    try {
+        const exTitle = document.querySelector('#section-exams .drawer-section-title');
+        const hwTitle = document.querySelector('#section-homework .drawer-section-title');
+        if (exTitle) exTitle.addEventListener('click', function(){ const s = document.getElementById('section-exams'); if (s) s.classList.toggle('collapsed'); });
+        if (hwTitle) hwTitle.addEventListener('click', function(){ const s = document.getElementById('section-homework'); if (s) s.classList.toggle('collapsed'); });
+    } catch {}
 }
 
 async function refreshAssignmentsForCurrentWeek(){
