@@ -644,26 +644,58 @@ function filterEventsToDisplayedWeek(events){
 }
 
 function renderAssignmentsList(events){
-    const list = document.getElementById('assignments-list');
     const empty = document.querySelector('.drawer-empty');
-    if (!list) return;
-    list.innerHTML = '';
-    if (!events || !events.length) {
-        if (empty) empty.style.display = 'block';
-        return;
-    }
+    const examsRoot = document.getElementById('exams-groups');
+    const hwRoot = document.getElementById('homework-groups');
+    if (!examsRoot || !hwRoot) return;
+    examsRoot.innerHTML = '';
+    hwRoot.innerHTML = '';
+    if (!events || !events.length) { if (empty) empty.style.display = 'block'; return; }
     if (empty) empty.style.display = 'none';
+
+    const isAssessment = (title)=>{
+        const t = String(title||'').toLowerCase();
+        return /(exam|exams|test|tests|assessment|assessments|quiz|quizzes)/.test(t);
+    };
+
+    const exams = [];
+    const hw = [];
+    events.forEach(e => (isAssessment(e.title) ? exams : hw).push(e));
+
     const tz = 'America/New_York';
-    const tf = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
-    events.sort((a,b)=> (a.start||0) - (b.start||0));
-    for (const ev of events){
-        const li = document.createElement('li');
-        li.className = 'drawer-item';
-        const when = ev.start ? tf.format(ev.start) : '';
-        const linkHtml = ev.url ? `<a href="${ev.url}" target="_blank" rel="noopener">Open</a>` : '';
-        li.innerHTML = `<h4>${escapeHtml(ev.title)}</h4><div class=\"meta\">${when}</div>${linkHtml}`;
-        list.appendChild(li);
-    }
+    const dayFmt = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday:'long', month:'short', day:'numeric' });
+
+    const mkGroups = (arr)=>{
+        const map = new Map();
+        arr.sort((a,b)=> (a.start||0) - (b.start||0));
+        for(const ev of arr){
+            const key = ev.start ? dayFmt.format(ev.start) : 'Unknown';
+            if (!map.has(key)) map.set(key, []);
+            map.get(key).push(ev);
+        }
+        return map;
+    };
+
+    const renderGroups = (map, root)=>{
+        for (const [day, items] of map.entries()){
+            const wrap = document.createElement('div');
+            wrap.className = 'weekday';
+            wrap.innerHTML = `<h5>${day}</h5>`;
+            const ul = document.createElement('div');
+            ul.className = 'pill-list';
+            for (const ev of items){
+                const pill = document.createElement('div');
+                pill.className = 'pill';
+                pill.textContent = `${ev.title}`;
+                ul.appendChild(pill);
+            }
+            wrap.appendChild(ul);
+            root.appendChild(wrap);
+        }
+    };
+
+    renderGroups(mkGroups(exams), examsRoot);
+    renderGroups(mkGroups(hw), hwRoot);
 }
 
 function escapeHtml(s){

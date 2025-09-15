@@ -1989,6 +1989,22 @@ html, body { height: auto; }
 .drawer-item a { color: #8B4513; text-decoration: none; font-weight: 600; }
 .drawer-item a:hover { text-decoration: underline; }
 
+/* Drawer sections and pill styling like the screenshot */
+.drawer-section { margin-top: 10px; }
+.drawer-section-title { margin: 10px 0 8px; font-size: 0.95rem; color: #374151; font-weight: 700; }
+.weekday { margin-top: 8px; }
+.weekday h5 { margin: 8px 0 6px; font-size: 0.9rem; color: #6b7280; font-weight: 700; }
+.pill-list { display: grid; gap: 6px; }
+.pill {
+    display: inline-block;
+    background: #6fb64b;
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
 /* Animations */
 @keyframes fadeInUp {
     from {
