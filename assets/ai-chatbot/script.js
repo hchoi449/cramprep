@@ -36,7 +36,12 @@
       overlay = document.createElement('div');
       overlay.className = 'tbp-chat-overlay';
       document.body.appendChild(overlay);
-      overlay.addEventListener('click', ()=> { document.body.classList.remove('show-chatbot'); try { window.__tbp_clearOnNextOpen = true; } catch {} });
+      overlay.addEventListener('click', ()=> {
+        document.body.classList.remove('show-chatbot');
+        try { if (typeof window.tbpResetAI === 'function') window.tbpResetAI(); } catch {}
+        try { window.__tbp_hasGreeted = false; } catch {}
+        try { window.__tbp_clearOnNextOpen = true; } catch {}
+      });
     }
     document.body.appendChild(root);
     wireLogic(root);
