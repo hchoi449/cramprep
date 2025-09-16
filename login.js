@@ -131,6 +131,9 @@
     if (closeBtn) closeBtn.addEventListener('click', closeOverlay);
     if (overlay) overlay.addEventListener('click', function(e) { if (e.target === overlay) closeOverlay(); });
 
+    // Close login on ESC
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') { try { closeOverlay(); } catch{} } });
+
     function validateEmail(email) {
         return /.+@.+\..+/.test(email);
     }
