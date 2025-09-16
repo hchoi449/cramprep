@@ -2016,15 +2016,13 @@ html, body { height: 100%; }
 
 /* Drawer sections and pill styling like the screenshot */
 .drawer-section { margin-top: 10px; }
-.drawer-section-title { display:inline-block; margin: 10px 0 8px; font-size: 0.95rem; font-weight: 800; padding: 8px 14px; border-radius: 9999px; color: #ffffff; cursor: pointer; user-select: none; transition: transform .2s ease, box-shadow .2s ease, filter .2s ease; position: relative; overflow: hidden; }
-#section-exams .drawer-section-title { background: #7a1d1d; }
-#section-homework .drawer-section-title { background: #0f2a5a; }
-
-/* subtle hover glow + shimmer */
-.drawer-section-title:hover { transform: translateY(-1px) scale(1.03); box-shadow: 0 8px 20px rgba(0,0,0,0.18); filter: saturate(1.1); }
-.drawer-section-title:active { transform: translateY(0) scale(0.99); }
-.drawer-section-title::after { content:""; position:absolute; inset:-50%; background: linear-gradient(120deg, rgba(255,255,255,0.05), rgba(255,255,255,0.35), rgba(255,255,255,0.05)); transform: translateX(-120%); opacity: 0; }
-.drawer-section-title:hover::after { opacity: 1; animation: glassSweep 1.2s ease-in-out; }
+.drawer-section-title { display:block; margin: 10px 0 8px; font-size: 0.95rem; font-weight: 800; color: #1a1a1a; user-select: none; padding: 8px 0; border-radius: 0; background: transparent; box-shadow: none; }
+#section-exams .drawer-section-title { background: transparent; }
+#section-homework .drawer-section-title { background: transparent; }
+.drawer-section-title:hover { transform: none; box-shadow: none; filter: none; }
+.drawer-section-title:active { transform: none; }
+.drawer-section-title::after { content:""; display:none; }
+.drawer-section-title:hover::after { opacity: 0; animation: none; }
 .weekday { margin-top: 8px; }
 .weekday h5 { margin: 8px 0 6px; font-size: 0.9rem; color: #6b7280; font-weight: 700; }
 .pill-list { display: grid; gap: 6px; }
@@ -2684,9 +2682,6 @@ html, body { height: 100%; }
 }
 
 /* Assignments drawer headers: caret toggle; remove pill styles */
-#assignments-drawer .drawer-section-title{
-    display:flex;align-items:center;gap:8px;cursor:pointer;
-    background:transparent;border:none;border-radius:0;padding:8px 0;
-}
-#assignments-drawer .drawer-section-title .drawer-caret{font-size:0.9rem;opacity:0.8}
-#assignments-drawer .drawer-section.collapsed .weekday{display:none}
+#assignments-drawer .drawer-section-title{display:flex;align-items:center;gap:8px;background:transparent;border:none;border-radius:0;padding:8px 0;}
+#assignments-drawer .drawer-section-title .drawer-caret{font-size:0.9rem;opacity:0.8;cursor:pointer;}
+#assignments-drawer .drawer-section.collapsed .weekday-group{display:none}

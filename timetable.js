@@ -524,20 +524,25 @@ function setupAssignmentsDrawer(){
         const onTab = tab.contains(e.target);
         if (!withinDrawer && !onTab) toggle(false);
     });
-    // Collapsible headers: click caret (or entire title) to toggle; default expanded
+    // Collapsible headers: click caret only to toggle; default expanded
     try {
         function wireToggle(id){
             const title = document.querySelector(`#${id} .drawer-section-title`);
             if (!title) return;
-            title.addEventListener('click', function(){
-                const s = document.getElementById(id);
-                if (!s) return;
-                const isCollapsed = s.classList.toggle('collapsed');
-                const caret = title.querySelector('.drawer-caret');
-                if (caret) caret.textContent = isCollapsed ? '▸' : '▾';
-            });
-            // ensure default expanded caret
             const caret = title.querySelector('.drawer-caret');
+            if (caret) {
+                caret.setAttribute('role','button');
+                caret.setAttribute('tabindex','0');
+                const handler = function(){
+                    const s = document.getElementById(id);
+                    if (!s) return;
+                    const isCollapsed = s.classList.toggle('collapsed');
+                    caret.textContent = isCollapsed ? '▸' : '▾';
+                };
+                caret.addEventListener('click', handler);
+                caret.addEventListener('keydown', function(e){ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); handler(); } });
+            }
+            // ensure default expanded caret
             if (caret) caret.textContent = '▾';
             const s = document.getElementById(id);
             if (s) s.classList.remove('collapsed');
