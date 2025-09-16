@@ -269,6 +269,14 @@
       // Extract structured context from any message
       const ht = detectHelpType(userData.message); if (ht && !contextHelpType) contextHelpType = ht;
       const sj = detectSubject(userData.message); if (sj && !contextSubject) contextSubject = sj;
+      // If user provided a meaningful first message, treat it as the assignment title
+      if (!helpTopic) {
+        const looksGreeting = /^(hi|hey|hello|yo|sup|good\s*(morning|afternoon|evening))\b/i.test(userData.message);
+        const hasSignal = !!(ht || sj) || /assignment|homework|quiz|exam|test|project|paper|lab/i.test(userData.message);
+        if (!looksGreeting && (hasSignal || userData.message.length >= 12)) {
+          helpTopic = userData.message.trim();
+        }
+      }
       // If missing details, let Gemini ask for them (no fixed follow-up text here)
       setTimeout(()=>{
         const messageContent = `<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\"><div class=\"thinking-indicator\"><div class=\"dot\"></div><div class=\"dot\"></div><div class=\"dot\"></div></div></div>`;
