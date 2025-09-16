@@ -341,9 +341,10 @@
       chatHistory.push({ role: 'model', parts: [{ text: SEED_PROMPT }] });
       loginPromptShown = false;
     }
-    // On login, update cached profile only; do not auto-open chat
+    // On login, update cached profile and mark to refresh on next open
     window.addEventListener('tbp:auth:login', async function(){
       try { const profile = await getProfile(); cachedProfile = profile; setAuthUI(!!profile); } catch {}
+      try { window.__tbp_clearOnNextOpen = true; } catch {}
     });
     async function initializeOnOpen(){
       try {
@@ -389,7 +390,14 @@
           try { const profile = await getProfile(); cachedProfile = profile; setAuthUI(!!profile); } catch { cachedProfile = null; setAuthUI(false); }
           try {
             const hasHistory = !!(chatBody && chatBody.children && chatBody.children.length > 0);
-            if (!hasHistory) { await initializeOnOpen(); }
+            const hasLoginPrompt = hasHistory && /Please log in or sign up/i.test(chatBody.textContent||'');
+            if (hasLoginPrompt || window.__tbp_clearOnNextOpen) {
+              chatBody.innerHTML = '';
+              await initializeOnOpen();
+              window.__tbp_clearOnNextOpen = false;
+            } else if (!hasHistory) {
+              await initializeOnOpen();
+            }
           } catch {}
         })();
       }
@@ -399,12 +407,19 @@
       const willOpen = !document.body.classList.contains('show-chatbot');
       document.body.classList.toggle('show-chatbot'); 
       if (willOpen) { 
-        // Initialize without clearing existing transcript if present
+        // Initialize without clearing existing transcript unless it was a login prompt
         (async ()=>{
           try { const profile = await getProfile(); cachedProfile = profile; setAuthUI(!!profile); } catch { cachedProfile = null; setAuthUI(false); }
           try {
             const hasHistory = !!(chatBody && chatBody.children && chatBody.children.length > 0);
-            if (!hasHistory) { await initializeOnOpen(); }
+            const hasLoginPrompt = hasHistory && /Please log in or sign up/i.test(chatBody.textContent||'');
+            if (hasLoginPrompt || window.__tbp_clearOnNextOpen) {
+              chatBody.innerHTML = '';
+              await initializeOnOpen();
+              window.__tbp_clearOnNextOpen = false;
+            } else if (!hasHistory) {
+              await initializeOnOpen();
+            }
           } catch {}
         })();
       }
