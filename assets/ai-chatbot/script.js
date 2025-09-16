@@ -107,7 +107,7 @@
       return 'homework';
     }
 
-    async function fetchSessionsUntil(deadlineIso, desiredType){
+    async function fetchSessionsUntil(deadlineIso, desiredType, strictType){
       try {
         const AUTH_BASE = (window && window.TBP_AUTH_BASE) ? window.TBP_AUTH_BASE.replace(/\/$/,'') : '';
         const res = await fetch(`${AUTH_BASE}/sessions`, { headers: { Accept:'application/json' } });
@@ -127,7 +127,8 @@
           .sort((a,b)=> a.start - b.start);
         if (!desiredType) return base;
         const typed = base.filter(ev => ev.type === desiredType);
-        return typed.length ? typed : base; // fall back to any session if none match type
+        if (strictType) return typed; // do not fall back when strict
+        return typed.length ? typed : base; // otherwise fall back to any session if none match
       } catch { return []; }
     }
 
@@ -489,7 +490,7 @@
           return;
         }
 
-        const list = await fetchSessionsUntil(dueIso, helpType);
+        const list = await fetchSessionsUntil(dueIso, helpType, true);
         if (list.length > 0) {
           const fmtDate = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York', weekday:'short', month:'short', day:'numeric' });
           const fmtTime = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York', hour:'numeric', minute:'2-digit' });
