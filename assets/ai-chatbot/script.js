@@ -214,8 +214,49 @@
           const ask = `MissingFields: ${missing.join(', ')}. Compose ONE concise, grammatically correct question to gather ONLY the missing info. Do NOT guess details, do NOT repeat the user's name, and do NOT start with filler like 'Okay'. Keep it under 12 words. Do NOT suggest times yet.${authRule}`;
           chatHistory.push({ role:'user', parts:[{ text: ask }] });
         } else {
-          const instruction = `StudentFirstName: ${firstName}\nSchool: ${school}\nGrade: ${grade}\nAssignmentTitle: ${helpTopic}\nHelpType: ${contextHelpType}\nSubject: ${contextSubject}\nAvailableSlotsEST (choose only from this list exactly): [${choices.map(c=>`"${c}"`).join(', ')}]\nRules:\n- If NotLoggedIn, follow the auth instruction above and stop.\n- If the list is not empty, reply with EXACTLY: Hi ${firstName}! How about <OneOfTheListedSlots>?\n- The <OneOfTheListedSlots> must be copied verbatim from the list above (no new times).\n- Prefer the earliest item in the list.\n- If the user says none of the options work, reply EXACTLY: Got it. Thanks ${firstName}. Someone will contact you through text shortly. Is there anything else I can help with?\n- If the list is empty, reply EXACTLY: It seems that there is no available session at this time for <AssignmentTitle>. Someone from our team will contact you to help with scheduling as soon as possible.${authRule}`;
-          chatHistory.push({ role:'user', parts:[{ text: instruction }] });
+          // We have enough info; render a session table like Get Help flow
+          const list = filtered;
+          const fmtDate = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York', weekday:'short', month:'short', day:'numeric' });
+          const fmtTime = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York', hour:'numeric', minute:'2-digit' });
+          if (list && list.length) {
+            const headerText = `${helpTopic ? `I see that you need help with ${helpTopic}. ` : ''}Here are the available ${(contextHelpType||'session')} times:`;
+            const rows = list.slice(0,5).map((ev,i)=>{
+              const dateStr = fmtDate.format(ev.start);
+              const timeStr = `${fmtTime.format(ev.start)} – ${fmtTime.format(ev.end)} (EST)`;
+              const titleStr = ev.title || (ev.type==='exam' ? 'Exam Prep Session' : 'Homework Prep Session');
+              return `<tr><td>${titleStr}</td><td>${dateStr}</td><td>${timeStr}</td><td><button class=\"btn btn-primary btn-sm register-session\" data-idx=\"${i}\">Register</button></td></tr>`;
+            }).join('');
+            const html = `${headerText}<br><table class=\"ai-table\"><thead><tr><th>Session</th><th>Date</th><th>Time</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+            messageElement.innerHTML = html;
+            incomingMessageDiv.classList.remove('thinking');
+            // Add follow-up with Contact us
+            const follow = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">Let me know if these times don’t work.<br><button class=\"btn btn-secondary btn-chat contact-us\" aria-label=\"Contact us for scheduling help\">Contact us</button></div>`, 'bot-message');
+            chatBody.appendChild(follow);
+            // Wire register buttons
+            incomingMessageDiv.querySelectorAll('.register-session').forEach(btn=>{
+              btn.addEventListener('click', function(){
+                try { if (window.tbpOpenEnroll) window.tbpOpenEnroll(); else document.querySelector('.floating-consult-btn')?.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true})); } catch {}
+              });
+            });
+            const btn = follow.querySelector('.contact-us');
+            if (btn) btn.addEventListener('click', async function(){
+              const ack = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">Someone will contact you shortly to help with scheduling.</div>`, 'bot-message');
+              chatBody.appendChild(ack);
+              chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+              if (window.tbpFallbackNotify) try { await window.tbpFallbackNotify(); } catch {}
+            });
+            // Early return: no Gemini call needed
+            incomingMessageDiv.classList.remove('thinking');
+            chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+            return;
+          } else {
+            // No sessions available with current constraints
+            const none = `It seems that there is no available session at this time${helpTopic?` for ${helpTopic}`:''}. Someone from our team will contact you to help with scheduling as soon as possible.`;
+            messageElement.innerText = none;
+            incomingMessageDiv.classList.remove('thinking');
+            if (window.tbpFallbackNotify) try { await window.tbpFallbackNotify(); } catch {}
+            return;
+          }
         }
       } catch {}
       const requestOptions = { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ contents: chatHistory }) };
