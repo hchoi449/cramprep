@@ -128,16 +128,13 @@
 }
 
 .time-header, .day-header {
-    background: #8B4513;
-    color: white;
+    background: #ffffff;
+    color: #8B4513;
     padding: 15px 10px;
     text-align: center;
     font-weight: 600;
     font-size: 0.9rem;
-}
-
-.day-header {
-    background: #6b3410;
+    border-bottom: 1px solid #e8e8e8;
 }
 
 .day-date {
