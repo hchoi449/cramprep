@@ -494,7 +494,7 @@
             const titleStr = ev.title || (ev.type==='exam' ? 'Exam Prep Session' : 'Homework Prep Session');
             return `<tr><td>${titleStr}</td><td>${dateStr}</td><td>${timeStr}</td><td><button class=\"btn btn-primary btn-sm register-session\" data-idx=\"${i}\">Register</button></td></tr>`;
           }).join('');
-          const html = `${headerText}<br><table class=\"ai-table\"><thead><tr><th>Session</th><th>Date</th><th>Time</th><th></th></tr></thead><tbody>${rows}</tbody></table><div style=\"margin-top:8px;color:#6b6b6b\">Let me know if these times don’t work. Someone will contact you shortly to help you with scheduling.</div>`;
+          const html = `${headerText}<br><table class=\"ai-table\"><thead><tr><th>Session</th><th>Date</th><th>Time</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
           const msg = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">${html}</div>`, 'bot-message');
           chatBody.appendChild(msg);
           chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
@@ -504,6 +504,28 @@
             btn.addEventListener('click', function(){
               try { if (window.tbpOpenEnroll) window.tbpOpenEnroll(); else document.querySelector('.floating-consult-btn')?.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true})); } catch {}
             });
+          });
+          // Follow-up message with Contact us button
+          const follow = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">Let me know if these times don’t work. <button class=\"btn btn-secondary btn-sm contact-us\">Contact us</button></div>`, 'bot-message');
+          chatBody.appendChild(follow);
+          chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+          // Local fallback sender using current context
+          async function sendFallbackNow(){
+            try {
+              const raw = localStorage.getItem('tbp_user');
+              const user = raw ? JSON.parse(raw) : {};
+              const studentName = (profile && profile.fullName) ? profile.fullName : (user && (user.fullName || user.email || 'Unknown'));
+              const due = dueIso ? new Intl.DateTimeFormat('en-US',{ month:'short', day:'numeric', year:'numeric' }).format(new Date(dueIso)) : 'Unknown';
+              const payload = { name: studentName, assignment: assignmentTitle || 'Unknown', dueDate: due };
+              await fetch('https://formspree.io/f/mvgbnkgn', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
+            } catch {}
+          }
+          const btn = follow.querySelector('.contact-us');
+          if (btn) btn.addEventListener('click', async function(){
+            const ack = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">Someone will contact you shortly to help with scheduling.</div>`, 'bot-message');
+            chatBody.appendChild(ack);
+            chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+            if (window.tbpFallbackNotify) { try { await window.tbpFallbackNotify(); } catch {} } else { await sendFallbackNow(); }
           });
         } else {
           // If due today (local EST) or past due, show past-due specific message
