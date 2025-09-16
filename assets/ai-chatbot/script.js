@@ -377,12 +377,12 @@
       // Extract structured context from any message
       const ht = detectHelpType(userData.message); if (ht && !contextHelpType) contextHelpType = ht;
       const sj = detectSubject(userData.message); if (sj && !contextSubject) contextSubject = sj;
-      const pd = detectPreferredDay(userData.message); if (pd !== null && preferredDay === null) preferredDay = pd;
-      const due = detectDueDate(userData.message); if (due && !dueDateIso) dueDateIso = due;
-      // If user provided a meaningful first message, treat it as the assignment title
-      if (!helpTopic) {
+      const pd = detectPreferredDay(userData.message); if (pd !== null) preferredDay = pd;
+      const due = detectDueDate(userData.message); if (due) dueDateIso = due;
+      // If message looks like a new request (contains assignment signals or is descriptive), capture as new assignment title
+      {
         const looksGreeting = /^(hi|hey|hello|yo|sup|good\s*(morning|afternoon|evening))\b/i.test(userData.message);
-        const hasSignal = !!(ht || sj) || /assignment|homework|quiz|exam|test|project|paper|lab/i.test(userData.message);
+        const hasSignal = !!(ht || sj || pd !== null || due) || /assignment|homework|quiz|exam|test|project|paper|lab|due/i.test(userData.message);
         if (!looksGreeting && (hasSignal || userData.message.length >= 12)) {
           helpTopic = userData.message.trim();
         }
