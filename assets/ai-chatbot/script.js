@@ -406,6 +406,15 @@
     window.tbpResetAI = resetChat;
 
     closeChatbot.addEventListener('click', ()=> { document.body.classList.remove('show-chatbot'); resetChat(); });
+    // Clear on outside click already handled on overlay; also clear on Escape
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Escape') {
+        try { document.body.classList.remove('show-chatbot'); resetChat(); } catch{}
+        try { const modal = document.querySelector('.modal.active'); if (modal) modal.classList.remove('active'); } catch{}
+        try { const drawer = document.getElementById('assignments-drawer'); if (drawer) { drawer.classList.remove('active'); drawer.setAttribute('aria-hidden','true'); } } catch{}
+        try { const tab = document.getElementById('assignments-tab'); if (tab) tab.setAttribute('aria-expanded','false'); } catch{}
+      }
+    });
     function openChatAsync(){
       const willOpen = !document.body.classList.contains('show-chatbot');
       document.body.classList.add('show-chatbot');

@@ -748,11 +748,11 @@ function renderAssignmentsList(events){
                 // infer help type from title keywords
                 const t = String(title||'').toLowerCase();
                 const helpType = /\b(exams?|tests?|assessments?|quiz(?:zes)?)\b/.test(t) ? 'exam' : 'homework';
-                // Close drawer
+                // Keep drawer open; just open Schedule AI
                 const drawer = document.getElementById('assignments-drawer');
                 const tab = document.getElementById('assignments-tab');
-                if (drawer) { drawer.classList.remove('active'); drawer.setAttribute('aria-hidden','true'); }
-                if (tab) tab.setAttribute('aria-expanded','false');
+                if (drawer) { drawer.classList.add('active'); drawer.setAttribute('aria-hidden','false'); }
+                if (tab) tab.setAttribute('aria-expanded','true');
                 // Open Schedule AI
                 if (window.tbpOpenScheduleAI) { window.tbpOpenScheduleAI(title, when ? when.toISOString() : '', helpType); }
 
