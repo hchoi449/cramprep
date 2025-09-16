@@ -319,6 +319,8 @@
     }
     // When login completes via Open login link, refresh chat and ask for help topic first
     window.addEventListener('tbp:auth:login', async function(){
+      // Only auto-open after login on timetable page
+      try { if (!document.body.classList.contains('timetable')) return; } catch {}
       try {
         document.body.classList.add('show-chatbot');
         const profile = await getProfile();
