@@ -152,9 +152,99 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Enrollment modal wiring
-    const enrollModal = document.getElementById('enrollModal');
-    const enrollForm = document.getElementById('enrollForm');
+    // Enrollment modal wiring (inject if missing so other pages can use it)
+    let enrollModal = document.getElementById('enrollModal');
+    let enrollForm = document.getElementById('enrollForm');
+    if (!enrollModal) {
+        const modalHtml = `
+        <div id="enrollModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="enrollTitle">
+            <div class="modal-overlay" data-close-modal></div>
+            <div class="modal-content">
+                <button class="modal-close" aria-label="Close" data-close-modal>&times;</button>
+                <h3 id="enrollTitle" class="section-title" style="font-size: 1.6rem;">Enrollment Request</h3>
+                <p class="section-description" style="margin-bottom: 18px;">Fill out the form and we’ll reach out shortly.</p>
+                <form id="enrollForm" novalidate>
+                    <div class="enroll-grid">
+                        <div>
+                            <label for="parentName">Parent Name <span class="required-star">*</span></label>
+                            <input id="parentName" name="parentName" type="text" placeholder="e.g., Homer Simpson" required>
+                            <div class="field-error">Parent name is required.</div>
+                        </div>
+                        <div>
+                            <label for="studentName">Student Name <span class="required-star">*</span></label>
+                            <input id="studentName" name="studentName" type="text" placeholder="e.g., Bart Simpson" required>
+                            <div class="field-error">Student name is required.</div>
+                        </div>
+                        <div>
+                            <label for="studentGrade">Student Grade <span class="required-star">*</span></label>
+                            <input id="studentGrade" name="studentGrade" type="text" placeholder="e.g., 9th or Freshman" required>
+                            <div class="field-error">Student grade is required.</div>
+                        </div>
+                        <div>
+                            <label for="school">School <span class="required-star">*</span></label>
+                            <input id="school" name="school" type="text" required>
+                            <div class="field-error">School is required.</div>
+                        </div>
+                        <div class="full">
+                            <label for="subject">Subject <span class="required-star">*</span></label>
+                            <select id="subject" name="subject" required>
+                                <option value="">Select a subject</option>
+                                <option>Algebra</option>
+                                <option>Geometry</option>
+                                <option>Pre-Calculus</option>
+                                <option>Calculus</option>
+                                <option>Physics</option>
+                                <option>Chemistry</option>
+                                <option>Biology</option>
+                                <option>Computer Science</option>
+                                <option>SAT</option>
+                                <option>ACT</option>
+                            </select>
+                            <div class="field-error">Subject is required.</div>
+                        </div>
+                        <div class="full">
+                            <label for="preferredPlan">Preferred Plan</label>
+                            <select id="preferredPlan" name="preferredPlan">
+                                <option value="">Select a plan</option>
+                                <option value="Exam Cram Sessions">Exam Cram Sessions</option>
+                                <option value="1-on-1 Tutoring">1-on-1 Tutoring</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="email">Email <span class="required-star">*</span></label>
+                            <input id="email" name="email" type="email" required>
+                            <div class="field-error">Valid email is required.</div>
+                        </div>
+                        <div>
+                            <label for="phone">Phone Number <span class="required-star">*</span></label>
+                            <input id="phone" name="phone" type="tel" inputmode="numeric" required>
+                            <div class="field-error">Enter a valid 10-digit phone number.</div>
+                        </div>
+                        <div class="full">
+                            <label for="contactPreference">Preferred Contact <span class="required-star">*</span></label>
+                            <select id="contactPreference" name="contactPreference" required>
+                                <option value="">Select preference</option>
+                                <option value="Email">Email</option>
+                                <option value="Phone">Phone</option>
+                            </select>
+                            <div class="field-error">Please choose a contact preference.</div>
+                        </div>
+                        <div class="full">
+                            <label for="comments">Additional Comments</label>
+                            <textarea id="comments" name="comments" rows="4"></textarea>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" data-close-modal>Cancel</button>
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </div>
+                </form>
+            </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        enrollModal = document.getElementById('enrollModal');
+        enrollForm = document.getElementById('enrollForm');
+    }
 
     function openModal() {
         if (!enrollModal) return;
