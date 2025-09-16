@@ -470,15 +470,15 @@
         if (list.length > 0) {
           const fmtDate = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York', weekday:'short', month:'short', day:'numeric' });
           const fmtTime = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York', hour:'numeric', minute:'2-digit' });
-          const intro = window.__tbp_hasGreeted ? '' : `Hi ${first}, `;
+          const headerText = `I see that you need help with ${assignmentTitle}. Here are the available ${(helpType||'session')} times:`;
           const rows = list.slice(0,5).map((ev,i)=>{
             const dateStr = fmtDate.format(ev.start);
             const timeStr = `${fmtTime.format(ev.start)} – ${fmtTime.format(ev.end)} (EST)`;
             const titleStr = ev.title || (ev.type==='exam' ? 'Exam Prep Session' : 'Homework Prep Session');
             return `<tr><td>${titleStr}</td><td>${dateStr}</td><td>${timeStr}</td><td><button class=\"btn btn-primary btn-sm register-session\" data-idx=\"${i}\">Register</button></td></tr>`;
           }).join('');
-          const html = `${intro}here are available ${helpType||'session'} times:<br><table class=\"ai-table\"><thead><tr><th>Session</th><th>Date</th><th>Time</th><th></th></tr></thead><tbody>${rows}</tbody></table><div style=\"margin-top:8px;color:#6b6b6b\">Let me know if these times don’t work. Someone will contact you shortly to help you with scheduling.</div>`;
-          const msg = createMessageElement(`<div class=\"message-text\">${html}</div>`, 'bot-message');
+          const html = `${headerText}<br><table class=\"ai-table\"><thead><tr><th>Session</th><th>Date</th><th>Time</th><th></th></tr></thead><tbody>${rows}</tbody></table><div style=\"margin-top:8px;color:#6b6b6b\">Let me know if these times don’t work. Someone will contact you shortly to help you with scheduling.</div>`;
+          const msg = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">${html}</div>`, 'bot-message');
           chatBody.appendChild(msg);
           chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
           window.__tbp_hasGreeted = true;
@@ -489,7 +489,21 @@
             });
           });
         } else {
-          const fallback = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">Help is on the way. Someone from our team will contact you through your email as soon as possible.</div>`, 'bot-message');
+          // If due today (local EST) or past due, show past-due specific message
+          let showPastDue = false;
+          try {
+            if (dueIso) {
+              const tz = 'America/New_York';
+              const ymdFmt = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' });
+              const todayYmd = ymdFmt.format(new Date());
+              const dueYmd = ymdFmt.format(new Date(dueIso));
+              showPastDue = (dueYmd <= todayYmd);
+            }
+          } catch {}
+          const text = showPastDue
+            ? `I see that the ${assignmentTitle} is past due. Someone will be in touch to assist you in scheduling.`
+            : `Help is on the way. Someone from our team will contact you through your email as soon as possible.`;
+          const fallback = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">${text}</div>`, 'bot-message');
           chatBody.appendChild(fallback);
           chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
           if (window.tbpFallbackNotify) try { await window.tbpFallbackNotify(); } catch {}
