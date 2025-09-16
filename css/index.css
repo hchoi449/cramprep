@@ -2028,8 +2028,8 @@ html, body { height: 100%; }
 .pill-list { display: grid; gap: 6px; }
 .pill {
     display: inline-block;
-    background: #6fb64b;
-    color: #fff;
+    background: #F5E6D3; /* tan */
+    color: #6b3410;
     padding: 10px 72px 22px 14px;
     border-radius: 12px;
     font-weight: 700;
@@ -2038,12 +2038,12 @@ html, body { height: 100%; }
 }
 
 /* Subject pastel colors */
-.pill[data-subject*="math"], .pill[data-subject*="algebra"], .pill[data-subject*="geometry"], .pill[data-subject*="calculus"] { background: #a8d5ba; color:#0f3b2e; }
-.pill[data-subject*="chem"], .pill[data-subject*="science"], .pill[data-subject*="biology"], .pill[data-subject*="physics"] { background: #bfe0ff; color:#0d2946; }
-.pill[data-subject*="english"], .pill[data-subject*="writing"] { background: #ffd6a5; color:#5a2b00; }
-.pill[data-subject*="history"], .pill[data-subject*="social"] { background: #ffe0f0; color:#5a0036; }
-.pill[data-subject*="hebrew"], .pill[data-subject*="language"] { background: #e6e0ff; color:#1e114a; }
-.pill[data-subject*="general"], .pill:not([data-subject]) { background: #d5e8ff; color:#0b2a52; }
+.pill[data-subject*="math"], .pill[data-subject*="algebra"], .pill[data-subject*="geometry"], .pill[data-subject*="calculus"],
+.pill[data-subject*="chem"], .pill[data-subject*="science"], .pill[data-subject*="biology"], .pill[data-subject*="physics"],
+.pill[data-subject*="english"], .pill[data-subject*="writing"], .pill[data-subject*="history"], .pill[data-subject*="social"],
+.pill[data-subject*="hebrew"], .pill[data-subject*="language"], .pill[data-subject*="general"], .pill:not([data-subject]) {
+    background: #F5E6D3; color:#6b3410;
+}
 
 .pill .help-btn {
     position: absolute;
@@ -2683,5 +2683,5 @@ html, body { height: 100%; }
 
 /* Assignments drawer headers: caret toggle; remove pill styles */
 #assignments-drawer .drawer-section-title{display:flex;align-items:center;gap:8px;background:transparent;border:none;border-radius:0;padding:8px 0;}
-#assignments-drawer .drawer-section-title .drawer-caret{font-size:0.9rem;opacity:0.8;cursor:pointer;}
+#assignments-drawer .drawer-section-title .drawer-caret{font-size:1.1rem;opacity:0.9;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border:2px solid #8B4513;border-radius:4px;color:#8B4513;}
 #assignments-drawer .drawer-section.collapsed .weekday-group{display:none}
