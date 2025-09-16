@@ -2087,7 +2087,7 @@ html, body { height: 100%; }
 
 /* AI Chat: session table spacing and compact register button */
 .ai-table { width: 100%; border-collapse: separate; border-spacing: 0 10px; margin: 10px 0 6px; }
-.ai-table thead th { text-align: left; font-weight: 800; color: #6b3410; font-size: 0.95rem; padding: 6px 10px; }
+.ai-table thead th { text-align: left; font-weight: 800; color: #8B4513; font-size: 0.95rem; padding: 6px 10px; }
 .ai-table tbody td { background: #f8f5f0; padding: 12px 10px; font-size: 0.95rem; color: #1a1a1a; }
 .ai-table tbody tr td:first-child { border-top-left-radius: 10px; border-bottom-left-radius: 10px; }
 .ai-table tbody tr td:last-child { border-top-right-radius: 10px; border-bottom-right-radius: 10px; }
