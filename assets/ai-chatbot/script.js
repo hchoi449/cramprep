@@ -179,8 +179,17 @@
         const school = cachedProfile && cachedProfile.school ? cachedProfile.school : 'N/A';
         const grade = cachedProfile && cachedProfile.grade ? cachedProfile.grade : 'N/A';
         const authRule = userIsAuthed ? '' : `\nIf NotLoggedIn: Reply EXACTLY: Please log in or sign up to continue scheduling.`;
-        const instruction = `StudentFirstName: ${firstName}\nSchool: ${school}\nGrade: ${grade}\nAvailableSlotsEST (choose only from this list exactly): [${choices.map(c=>`"${c}"`).join(', ')}]\nRules:\n- If NotLoggedIn, follow the auth instruction above and stop.\n- If the list is not empty, reply with EXACTLY: Hi ${firstName}! How about <OneOfTheListedSlots>?\n- The <OneOfTheListedSlots> must be copied verbatim from the list above (no new times).\n- Prefer the earliest item in the list.\n- If the user says none of the options work OR the list is empty, reply EXACTLY: Help is on the way. Someone from our team will contact you through your email as soon as possible.${authRule}`;
-        chatHistory.push({ role:'user', parts:[{ text: instruction }] });
+        const missing = [];
+        if (!helpTopic) missing.push('AssignmentTitle');
+        if (!contextSubject) missing.push('Subject');
+        if (!contextHelpType) missing.push('HelpType');
+        if (missing.length) {
+          const ask = `MissingFields: ${missing.join(', ')}. Ask EXACTLY one short follow-up to get the missing info (e.g., \"What subject and is it homework, quiz, or exam?\"). Do NOT suggest times yet.${authRule}`;
+          chatHistory.push({ role:'user', parts:[{ text: ask }] });
+        } else {
+          const instruction = `StudentFirstName: ${firstName}\nSchool: ${school}\nGrade: ${grade}\nAssignmentTitle: ${helpTopic}\nHelpType: ${contextHelpType}\nSubject: ${contextSubject}\nAvailableSlotsEST (choose only from this list exactly): [${choices.map(c=>`"${c}"`).join(', ')}]\nRules:\n- If NotLoggedIn, follow the auth instruction above and stop.\n- If the list is not empty, reply with EXACTLY: Hi ${firstName}! How about <OneOfTheListedSlots>?\n- The <OneOfTheListedSlots> must be copied verbatim from the list above (no new times).\n- Prefer the earliest item in the list.\n- If the user says none of the options work OR the list is empty, reply EXACTLY: Help is on the way. Someone from our team will contact you through your email as soon as possible.${authRule}`;
+          chatHistory.push({ role:'user', parts:[{ text: instruction }] });
+        }
       } catch {}
       const requestOptions = { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ contents: chatHistory }) };
       try {
