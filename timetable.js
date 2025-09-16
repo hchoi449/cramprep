@@ -744,13 +744,16 @@ function renderAssignmentsList(events){
                 const title = this.getAttribute('data-title') || '';
                 const whenIso = this.getAttribute('data-when') || '';
                 const when = whenIso ? new Date(whenIso) : null;
+                // infer help type from title keywords
+                const t = String(title||'').toLowerCase();
+                const helpType = /\b(exams?|tests?|assessments?|quiz(?:zes)?)\b/.test(t) ? 'exam' : 'homework';
                 // Close drawer
                 const drawer = document.getElementById('assignments-drawer');
                 const tab = document.getElementById('assignments-tab');
                 if (drawer) { drawer.classList.remove('active'); drawer.setAttribute('aria-hidden','true'); }
                 if (tab) tab.setAttribute('aria-expanded','false');
                 // Open Schedule AI
-                if (window.tbpOpenScheduleAI) { window.tbpOpenScheduleAI(title, when ? when.toISOString() : ''); }
+                if (window.tbpOpenScheduleAI) { window.tbpOpenScheduleAI(title, when ? when.toISOString() : '', helpType); }
 
                 // If no availability becomes found, send fallback form (deferred demonstration)
                 // Provide a helper function exposed on window to be called by chatbot flow when needed

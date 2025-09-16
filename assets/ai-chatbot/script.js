@@ -101,7 +101,13 @@
       } catch { return []; }
     }
 
-    async function fetchSessionsUntil(deadlineIso){
+    function categorizeEventTitle(title){
+      const t = String(title||'').toLowerCase();
+      if (/\b(exams?|tests?|assessments?|quiz(?:zes)?)\b/.test(t)) return 'exam';
+      return 'homework';
+    }
+
+    async function fetchSessionsUntil(deadlineIso, desiredType){
       try {
         const AUTH_BASE = (window && window.TBP_AUTH_BASE) ? window.TBP_AUTH_BASE.replace(/\/$/,'') : '';
         const res = await fetch(`${AUTH_BASE}/sessions`, { headers: { Accept:'application/json' } });
@@ -110,11 +116,21 @@
         const events = (j && j.events) ? j.events : [];
         const now = new Date();
         const deadline = deadlineIso ? new Date(deadlineIso) : new Date(now.getTime() + 7*86400000);
-        return events
-          .map(ev => ({ start: new Date(ev.start), end: new Date(ev.end), title: ev.title }))
+        let list = events
+          .map(ev => ({ start: new Date(ev.start), end: new Date(ev.end), title: ev.title, type: categorizeEventTitle(ev.title) }))
           .filter(ev => ev.start >= now && ev.start <= deadline)
-          .sort((a,b)=> a.start - b.start)
-          .map(ev => ev.start);
+          .sort((a,b)=> a.start - b.start);
+        if (desiredType) list = list.filter(ev => ev.type === desiredType);
+        // Fallback seed if nothing exists: create two default sessions (Exam & Homework)
+        if (!list.length) {
+          try {
+            const y = now.getFullYear();
+            const exam = { title: 'Exam Prep Session', type: 'exam', start: new Date(Date.parse(`${y}-09-17T19:00:00-04:00`)), end: new Date(Date.parse(`${y}-09-17T21:00:00-04:00`)) };
+            const hw = { title: 'Homework Prep Session', type: 'homework', start: new Date(Date.parse(`${y}-09-18T15:00:00-04:00`)), end: new Date(Date.parse(`${y}-09-18T17:00:00-04:00`)) };
+            list = [exam, hw].filter(ev => (!desiredType || ev.type===desiredType) && ev.start >= now && ev.start <= deadline).sort((a,b)=> a.start-b.start);
+          } catch {}
+        }
+        return list;
       } catch { return []; }
     }
 
@@ -412,7 +428,7 @@
     });
 
     // Public helper to open with assignment context from timetable
-    window.tbpOpenScheduleAI = async function(assignmentTitle, dueIso){
+    window.tbpOpenScheduleAI = async function(assignmentTitle, dueIso, helpType){
       try {
         document.body.classList.add('show-chatbot');
         const profile = await getProfile();
@@ -444,18 +460,28 @@
           return;
         }
 
-        const free = await fetchSessionsUntil(dueIso);
-        const fmt = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York', weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
-        const choices = free.slice(0,8).map(d=> fmt.format(d));
-
-        if (choices.length > 0) {
-          const suggestion = choices[0];
-          const intro = window.__tbp_hasGreeted ? '' : `Hi ${first}! `;
-          const txt = `${intro}I see that you need help on ${assignmentTitle}. How about ${suggestion}?`;
-          const msg = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">${txt}</div>`, 'bot-message');
+        const list = await fetchSessionsUntil(dueIso, helpType);
+        if (list.length > 0) {
+          const fmtDate = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York', weekday:'short', month:'short', day:'numeric' });
+          const fmtTime = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York', hour:'numeric', minute:'2-digit' });
+          const intro = window.__tbp_hasGreeted ? '' : `Hi ${first}, `;
+          const rows = list.slice(0,5).map((ev,i)=>{
+            const dateStr = fmtDate.format(ev.start);
+            const timeStr = `${fmtTime.format(ev.start)} – ${fmtTime.format(ev.end)} (EST)`;
+            const titleStr = ev.title || (ev.type==='exam' ? 'Exam Prep Session' : 'Homework Prep Session');
+            return `<tr><td>${titleStr}</td><td>${dateStr}</td><td>${timeStr}</td><td><button class=\"btn btn-primary btn-sm register-session\" data-idx=\"${i}\">Register</button></td></tr>`;
+          }).join('');
+          const html = `${intro}here are available ${helpType||'session'} times:<br><table class=\"ai-table\"><thead><tr><th>Session</th><th>Date</th><th>Time</th><th></th></tr></thead><tbody>${rows}</tbody></table><div style=\"margin-top:8px;color:#6b6b6b\">Let me know if these times don’t work. Someone will contact you shortly to help you with scheduling.</div>`;
+          const msg = createMessageElement(`<div class=\"message-text\">${html}</div>`, 'bot-message');
           chatBody.appendChild(msg);
           chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
           window.__tbp_hasGreeted = true;
+          // Wire register buttons
+          msg.querySelectorAll('.register-session').forEach(btn=>{
+            btn.addEventListener('click', function(){
+              try { if (window.tbpOpenEnroll) window.tbpOpenEnroll(); else document.querySelector('.floating-consult-btn')?.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true})); } catch {}
+            });
+          });
         } else {
           const fallback = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">Help is on the way. Someone from our team will contact you through your email as soon as possible.</div>`, 'bot-message');
           chatBody.appendChild(fallback);

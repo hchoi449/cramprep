@@ -300,6 +300,9 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('[data-close-modal]').forEach(el => el.addEventListener('click', closeModal));
     document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeModal(); });
 
+    // Expose enroll opener globally so other scripts (e.g., chatbox) can open it
+    try { window.tbpOpenEnroll = openModal; } catch {}
+
     // Form validation and submission
     function markValidity(field, valid) {
         const wrapper = field.closest('div');
