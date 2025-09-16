@@ -109,8 +109,9 @@ function renderWeekEvents(startOfWeek){
         if (hour < 12 && hour !== 0) return; // restrict to 12PM..12AM
         const targetCol = daySlots[dayIndex];
         const slot = document.createElement('div');
-        slot.className = `class-slot autogen ${ev.subject.toLowerCase().replace(/\s+/g,'-')}`;
-        slot.setAttribute('data-subject', ev.subject);
+        const subjSafe = (ev.subject && String(ev.subject).toLowerCase().replace(/\s+/g,'-')) || 'general';
+        slot.className = `class-slot autogen ${subjSafe}`;
+        if (ev.subject) slot.setAttribute('data-subject', ev.subject);
         slot.setAttribute('tabindex','0');
         slot.setAttribute('role','button');
         // Position mapping (EST): 12:00 => 0px, each hour => +75px (with minute precision)
