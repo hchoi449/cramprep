@@ -78,6 +78,8 @@
     let contextHelpType = null;
     let contextSubject = null;
     let loginPromptShown = false;
+    let preferredDay = null; // 0-6 (Sun-Sat)
+    let dueDateIso = null;   // ISO string if parsed
 
     const createMessageElement = (content, ...classes) => { const div = document.createElement('div'); div.classList.add('message', ...classes); div.innerHTML = content; return div; };
 
@@ -191,9 +193,14 @@
         if (contextSubject) {
           chatHistory.push({ role:'user', parts:[{ text: `Subject: ${contextSubject}` }] });
         }
-        const free = await fetchSessionsUntil();
+        const desiredType = contextHelpType;
+        const freeAll = await fetchSessionsUntil(dueDateIso, desiredType, false);
+        let filtered = freeAll;
+        if (preferredDay !== null) {
+          filtered = freeAll.filter(ev => ev.start.getDay() === preferredDay);
+        }
         const fmt = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York', weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
-        const choices = (free || []).slice(0, 8).map(d=> fmt.format(d));
+        const choices = (filtered || []).slice(0, 8).map(ev=> fmt.format(ev.start));
         const firstName = cachedProfile && cachedProfile.fullName ? (String(cachedProfile.fullName).trim().split(' ')[0] || 'there') : 'there';
         const school = cachedProfile && cachedProfile.school ? cachedProfile.school : 'N/A';
         const grade = cachedProfile && cachedProfile.grade ? cachedProfile.grade : 'N/A';
@@ -202,6 +209,7 @@
         if (!helpTopic) missing.push('AssignmentTitle');
         if (!contextSubject) missing.push('Subject');
         if (!contextHelpType) missing.push('HelpType');
+        if (preferredDay === null) missing.push('PreferredDay');
         if (missing.length) {
           const ask = `MissingFields: ${missing.join(', ')}. Compose ONE concise, grammatically correct question to gather ONLY the missing info. Do NOT guess details, do NOT repeat the user's name, and do NOT start with filler like 'Okay'. Keep it under 12 words. Do NOT suggest times yet.${authRule}`;
           chatHistory.push({ role:'user', parts:[{ text: ask }] });
@@ -256,6 +264,29 @@
       if (/\b(act)\b/.test(t)) return 'ACT';
       return null;
     }
+    function detectPreferredDay(text){
+      if (!text) return null;
+      const t = String(text).toLowerCase();
+      const days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+      for (let i=0;i<7;i++){ if (new RegExp(`\\b${days[i]}\\b`).test(t)) return i; }
+      return null;
+    }
+    function detectDueDate(text){
+      if (!text) return null;
+      const t = String(text).toLowerCase();
+      const m = t.match(/due\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/);
+      if (m){
+        const idx = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'].indexOf(m[1]);
+        if (idx>=0){
+          const now = new Date();
+          const d = new Date(now);
+          let delta = (idx - now.getDay() + 7) % 7; if (delta===0) delta=7;
+          d.setDate(now.getDate() + delta); d.setHours(23,59,59,999);
+          return d.toISOString();
+        }
+      }
+      return null;
+    }
 
     async function handleOutgoingMessage(e){
       e.preventDefault();
@@ -305,6 +336,8 @@
       // Extract structured context from any message
       const ht = detectHelpType(userData.message); if (ht && !contextHelpType) contextHelpType = ht;
       const sj = detectSubject(userData.message); if (sj && !contextSubject) contextSubject = sj;
+      const pd = detectPreferredDay(userData.message); if (pd !== null && preferredDay === null) preferredDay = pd;
+      const due = detectDueDate(userData.message); if (due && !dueDateIso) dueDateIso = due;
       // If user provided a meaningful first message, treat it as the assignment title
       if (!helpTopic) {
         const looksGreeting = /^(hi|hey|hello|yo|sup|good\s*(morning|afternoon|evening))\b/i.test(userData.message);
