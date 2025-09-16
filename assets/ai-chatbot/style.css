@@ -63,4 +63,13 @@ body.show-chatbot .chatbot-popup { opacity: 1; pointer-events: auto; transform: 
   .chat-form .file-upload-wrapper.file-uploaded #file-cancel { opacity: 0; }
 }
 
+/* Chat: compact Contact us button and spacing */
+.chat-body .message .message-text .btn-chat {
+  padding: 6px 12px !important;
+  font-size: 0.85rem !important;
+  line-height: 1 !important;
+  border-radius: 9999px !important;
+  margin-top: 8px !important; /* spacing from preceding text */
+}
+
 
