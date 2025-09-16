@@ -505,6 +505,11 @@
         }
 
         const list = await fetchSessionsUntil(dueIso, helpType, true);
+        // Always show thinking dots before any bot message
+        const thinkingContent = `<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\"><div class=\"thinking-indicator\"><div class=\"dot\"></div><div class=\"dot\"></div><div class=\"dot\"></div></div></div>`;
+        const thinkingDiv = createMessageElement(thinkingContent, 'bot-message', 'thinking');
+        chatBody.appendChild(thinkingDiv);
+        chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
         if (list.length > 0) {
           const fmtDate = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York', weekday:'short', month:'short', day:'numeric' });
           const fmtTime = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York', hour:'numeric', minute:'2-digit' });
@@ -516,9 +521,9 @@
             return `<tr><td>${titleStr}</td><td>${dateStr}</td><td>${timeStr}</td><td><button class=\"btn btn-primary btn-sm register-session\" data-idx=\"${i}\">Register</button></td></tr>`;
           }).join('');
           const html = `${headerText}<br><table class=\"ai-table\"><thead><tr><th>Session</th><th>Date</th><th>Time</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
-          const msg = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">${html}</div>`, 'bot-message');
-          chatBody.appendChild(msg);
-          chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+          // Replace thinking with the table message
+          try { thinkingDiv.querySelector('.message-text').innerHTML = html; thinkingDiv.classList.remove('thinking'); } catch { }
+          const msg = thinkingDiv;
           window.__tbp_hasGreeted = true;
           // Wire register buttons
           msg.querySelectorAll('.register-session').forEach(btn=>{
@@ -527,9 +532,11 @@
             });
           });
           // Follow-up message with Contact us button
-          const follow = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">Let me know if these times don’t work.<br><button class=\"btn btn-secondary btn-chat contact-us\" aria-label=\"Contact us for scheduling help\">Contact us</button></div>`, 'bot-message');
-          chatBody.appendChild(follow);
+          const followThinking = createMessageElement(thinkingContent, 'bot-message', 'thinking');
+          chatBody.appendChild(followThinking);
           chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+          const follow = followThinking;
+          try { follow.querySelector('.message-text').innerHTML = `Let me know if these times don’t work.<br><button class=\"btn btn-secondary btn-chat contact-us\" aria-label=\"Contact us for scheduling help\">Contact us</button>`; follow.classList.remove('thinking'); } catch {}
           // Local fallback sender using current context
           async function sendFallbackNow(){
             try {
@@ -549,6 +556,7 @@
             if (window.tbpFallbackNotify) { try { await window.tbpFallbackNotify(); } catch {} } else { await sendFallbackNow(); }
           });
         } else {
+          // Replace thinking with fallback message
           // If due today (local EST) or past due, show past-due specific message
           let showPastDue = false;
           try {
@@ -563,9 +571,7 @@
           const text = showPastDue
             ? `I see that the ${assignmentTitle} is past due. Someone will be in touch to assist you in scheduling.`
             : `It seems that there is no available session at this time. Someone from our team will contact you to help with scheduling as soon as possible.`;
-          const fallback = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">${text}</div>`, 'bot-message');
-          chatBody.appendChild(fallback);
-          chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+          try { thinkingDiv.querySelector('.message-text').innerHTML = text; thinkingDiv.classList.remove('thinking'); } catch {}
           if (window.tbpFallbackNotify) try { await window.tbpFallbackNotify(); } catch {}
         }
       } catch {}
