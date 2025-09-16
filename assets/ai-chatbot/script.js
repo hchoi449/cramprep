@@ -36,7 +36,7 @@
       overlay = document.createElement('div');
       overlay.className = 'tbp-chat-overlay';
       document.body.appendChild(overlay);
-      overlay.addEventListener('click', ()=> document.body.classList.remove('show-chatbot'));
+      overlay.addEventListener('click', ()=> { document.body.classList.remove('show-chatbot'); try { window.__tbp_clearOnNextOpen = true; } catch {} });
     }
     document.body.appendChild(root);
     wireLogic(root);
@@ -116,12 +116,18 @@
         const events = (j && j.events) ? j.events : [];
         const now = new Date();
         const deadline = deadlineIso ? new Date(deadlineIso) : new Date(now.getTime() + 7*86400000);
-        let list = events
-          .map(ev => ({ start: new Date(ev.start), end: new Date(ev.end), title: ev.title, type: categorizeEventTitle(ev.title) }))
+        const base = events
+          .map(ev => ({
+            start: new Date(ev.start),
+            end: new Date(ev.end),
+            title: ev.title,
+            type: (ev.type ? String(ev.type).toLowerCase() : categorizeEventTitle(ev.title))
+          }))
           .filter(ev => ev.start >= now && ev.start <= deadline)
           .sort((a,b)=> a.start - b.start);
-        if (desiredType) list = list.filter(ev => ev.type === desiredType);
-        return list;
+        if (!desiredType) return base;
+        const typed = base.filter(ev => ev.type === desiredType);
+        return typed.length ? typed : base; // fall back to any session if none match type
       } catch { return []; }
     }
 
@@ -506,7 +512,7 @@
             });
           });
           // Follow-up message with Contact us button
-          const follow = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">Let me know if these times don’t work. <button class=\"btn btn-secondary btn-sm contact-us\">Contact us</button></div>`, 'bot-message');
+          const follow = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">Let me know if these times don’t work.<br><button class=\"btn btn-secondary btn-chat contact-us\" aria-label=\"Contact us for scheduling help\">Contact us</button></div>`, 'bot-message');
           chatBody.appendChild(follow);
           chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
           // Local fallback sender using current context
@@ -557,7 +563,7 @@
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', mount);
+  document.addEventListener('DOMContentLoaded', mount);
   } else {
     // DOM is already ready (script loaded late) – mount immediately
     try { mount(); } catch {}
