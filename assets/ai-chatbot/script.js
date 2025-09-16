@@ -362,6 +362,7 @@
         // Wire open-login link to trigger login modal
         const link = msg.querySelector('.open-login');
         if (link) link.addEventListener('click', function(e){ e.preventDefault();
+          try { document.body.classList.remove('show-chatbot'); } catch {}
           try {
             const a = document.querySelector('.student-login-link');
             if (a) a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
