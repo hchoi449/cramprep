@@ -2682,3 +2682,11 @@ html, body { height: 100%; }
     white-space: nowrap;
     text-align: center;
 }
+
+/* Assignments drawer headers: caret toggle; remove pill styles */
+#assignments-drawer .drawer-section-title{
+    display:flex;align-items:center;gap:8px;cursor:pointer;
+    background:transparent;border:none;border-radius:0;padding:8px 0;
+}
+#assignments-drawer .drawer-section-title .drawer-caret{font-size:0.9rem;opacity:0.8}
+#assignments-drawer .drawer-section.collapsed .weekday{display:none}

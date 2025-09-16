@@ -524,12 +524,26 @@ function setupAssignmentsDrawer(){
         const onTab = tab.contains(e.target);
         if (!withinDrawer && !onTab) toggle(false);
     });
-    // Collapsible headers
+    // Collapsible headers: click caret (or entire title) to toggle; default expanded
     try {
-        const exTitle = document.querySelector('#section-exams .drawer-section-title');
-        const hwTitle = document.querySelector('#section-homework .drawer-section-title');
-        if (exTitle) exTitle.addEventListener('click', function(){ const s = document.getElementById('section-exams'); if (s) s.classList.toggle('collapsed'); });
-        if (hwTitle) hwTitle.addEventListener('click', function(){ const s = document.getElementById('section-homework'); if (s) s.classList.toggle('collapsed'); });
+        function wireToggle(id){
+            const title = document.querySelector(`#${id} .drawer-section-title`);
+            if (!title) return;
+            title.addEventListener('click', function(){
+                const s = document.getElementById(id);
+                if (!s) return;
+                const isCollapsed = s.classList.toggle('collapsed');
+                const caret = title.querySelector('.drawer-caret');
+                if (caret) caret.textContent = isCollapsed ? '▸' : '▾';
+            });
+            // ensure default expanded caret
+            const caret = title.querySelector('.drawer-caret');
+            if (caret) caret.textContent = '▾';
+            const s = document.getElementById(id);
+            if (s) s.classList.remove('collapsed');
+        }
+        wireToggle('section-exams');
+        wireToggle('section-homework');
     } catch {}
 }
 
