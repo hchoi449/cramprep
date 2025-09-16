@@ -439,20 +439,18 @@
         const free = await fetchSessionsUntil(dueIso);
         const fmt = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York', weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
         const choices = free.slice(0,8).map(d=> fmt.format(d));
-        const slotsStr = choices.join(', ');
 
-        const isLoggedIn = !!profile;
-        const baseInfo = `StudentFirstName: ${first}\nAssignmentTitle: ${assignmentTitle}\nDueISO: ${dueIso ? new Date(dueIso).toISOString() : 'N/A'}`;
-        const studentInfo = isLoggedIn ? `\nSchool: ${profile.school || 'N/A'}\nGrade: ${profile.grade || 'N/A'}` : '';
-        const authRule = isLoggedIn ? '' : `\nIf NotLoggedIn: Reply EXACTLY: Please log in or sign up to continue scheduling.`;
-        // Strict, single-message prompt: model should output only the suggestion line
-        const instruction = `${baseInfo}${studentInfo}\nAvailableSlotsEST (choose only from this list exactly): [${choices.map(c=>`\"${c}\"`).join(', ')}]\nRules:\n- If NotLoggedIn, follow the auth instruction above and stop.\n- If the list is not empty, reply with EXACTLY: Hi ${first}! How about <OneOfTheListedSlots> for your ${assignmentTitle}?\n- The <OneOfTheListedSlots> must be copied verbatim from the list above (no new times).\n- Prefer the earliest item in the list.\n- Use format Mon, Sep 15, 1:00 PM. No extra text.\n- If the user says none of the options work OR the list is empty, reply EXACTLY: Help is on the way. Someone from our team will contact you through your email as soon as possible.${authRule}`;
-        userData.message = instruction;
-        const thinking = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\"><div class=\"thinking-indicator\"><div class=\"dot\"></div><div class=\"dot\"></div><div class=\"dot\"></div></div></div>`, 'bot-message', 'thinking');
-        chatBody.appendChild(thinking);
-        chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
-        await generateBotResponse(thinking);
-        if (!free.length && window.tbpFallbackNotify) try { await window.tbpFallbackNotify(); } catch {}
+        if (choices.length > 0) {
+          const suggestion = choices[0];
+          const msg = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">Hi ${first}! I see that you need help on ${assignmentTitle}. How about ${suggestion}?</div>`, 'bot-message');
+          chatBody.appendChild(msg);
+          chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+        } else {
+          const fallback = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">Help is on the way. Someone from our team will contact you through your email as soon as possible.</div>`, 'bot-message');
+          chatBody.appendChild(fallback);
+          chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+          if (window.tbpFallbackNotify) try { await window.tbpFallbackNotify(); } catch {}
+        }
       } catch {}
     };
 
