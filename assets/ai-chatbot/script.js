@@ -201,7 +201,7 @@
           const ask = `MissingFields: ${missing.join(', ')}. Compose ONE concise, grammatically correct question to gather ONLY the missing info. Do NOT guess details, do NOT repeat the user's name, and do NOT start with filler like 'Okay'. Keep it under 12 words. Do NOT suggest times yet.${authRule}`;
           chatHistory.push({ role:'user', parts:[{ text: ask }] });
         } else {
-          const instruction = `StudentFirstName: ${firstName}\nSchool: ${school}\nGrade: ${grade}\nAssignmentTitle: ${helpTopic}\nHelpType: ${contextHelpType}\nSubject: ${contextSubject}\nAvailableSlotsEST (choose only from this list exactly): [${choices.map(c=>`"${c}"`).join(', ')}]\nRules:\n- If NotLoggedIn, follow the auth instruction above and stop.\n- If the list is not empty, reply with EXACTLY: Hi ${firstName}! How about <OneOfTheListedSlots>?\n- The <OneOfTheListedSlots> must be copied verbatim from the list above (no new times).\n- Prefer the earliest item in the list.\n- If the user says none of the options work, reply EXACTLY: Got it. Thanks ${firstName}. Someone will contact you through text shortly. Is there anything else I can help with?\n- If the list is empty, reply EXACTLY: Help is on the way. Someone from our team will contact you through your email as soon as possible.${authRule}`;
+          const instruction = `StudentFirstName: ${firstName}\nSchool: ${school}\nGrade: ${grade}\nAssignmentTitle: ${helpTopic}\nHelpType: ${contextHelpType}\nSubject: ${contextSubject}\nAvailableSlotsEST (choose only from this list exactly): [${choices.map(c=>`"${c}"`).join(', ')}]\nRules:\n- If NotLoggedIn, follow the auth instruction above and stop.\n- If the list is not empty, reply with EXACTLY: Hi ${firstName}! How about <OneOfTheListedSlots>?\n- The <OneOfTheListedSlots> must be copied verbatim from the list above (no new times).\n- Prefer the earliest item in the list.\n- If the user says none of the options work, reply EXACTLY: Got it. Thanks ${firstName}. Someone will contact you through text shortly. Is there anything else I can help with?\n- If the list is empty, reply EXACTLY: It seems that there is no available session at this time. Someone from our team will contact you to help with scheduling as soon as possible.${authRule}`;
           chatHistory.push({ role:'user', parts:[{ text: instruction }] });
         }
       } catch {}
@@ -215,7 +215,7 @@
         messageElement.innerText = constrained || '...';
         chatHistory.push({ role:'model', parts:[{ text: constrained }] });
         // If model signals fallback, trigger notify
-        if (/Help is on the way\. Someone from our team will contact you through your email as soon as possible\./i.test(constrained) || /contact you through text shortly/i.test(constrained)) {
+        if (/no available session at this time/i.test(constrained) || /contact you through text shortly/i.test(constrained)) {
           if (window.tbpFallbackNotify) try { await window.tbpFallbackNotify(); } catch {}
         }
       } catch (err) {
@@ -557,7 +557,7 @@
           } catch {}
           const text = showPastDue
             ? `I see that the ${assignmentTitle} is past due. Someone will be in touch to assist you in scheduling.`
-            : `Help is on the way. Someone from our team will contact you through your email as soon as possible.`;
+            : `It seems that there is no available session at this time. Someone from our team will contact you to help with scheduling as soon as possible.`;
           const fallback = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">${text}</div>`, 'bot-message');
           chatBody.appendChild(fallback);
           chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
