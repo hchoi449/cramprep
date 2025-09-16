@@ -206,7 +206,7 @@
           const ask = `MissingFields: ${missing.join(', ')}. Compose ONE concise, grammatically correct question to gather ONLY the missing info. Do NOT guess details, do NOT repeat the user's name, and do NOT start with filler like 'Okay'. Keep it under 12 words. Do NOT suggest times yet.${authRule}`;
           chatHistory.push({ role:'user', parts:[{ text: ask }] });
         } else {
-          const instruction = `StudentFirstName: ${firstName}\nSchool: ${school}\nGrade: ${grade}\nAssignmentTitle: ${helpTopic}\nHelpType: ${contextHelpType}\nSubject: ${contextSubject}\nAvailableSlotsEST (choose only from this list exactly): [${choices.map(c=>`"${c}"`).join(', ')}]\nRules:\n- If NotLoggedIn, follow the auth instruction above and stop.\n- If the list is not empty, reply with EXACTLY: Hi ${firstName}! How about <OneOfTheListedSlots>?\n- The <OneOfTheListedSlots> must be copied verbatim from the list above (no new times).\n- Prefer the earliest item in the list.\n- If the user says none of the options work, reply EXACTLY: Got it. Thanks ${firstName}. Someone will contact you through text shortly. Is there anything else I can help with?\n- If the list is empty, reply EXACTLY: It seems that there is no available session at this time. Someone from our team will contact you to help with scheduling as soon as possible.${authRule}`;
+          const instruction = `StudentFirstName: ${firstName}\nSchool: ${school}\nGrade: ${grade}\nAssignmentTitle: ${helpTopic}\nHelpType: ${contextHelpType}\nSubject: ${contextSubject}\nAvailableSlotsEST (choose only from this list exactly): [${choices.map(c=>`"${c}"`).join(', ')}]\nRules:\n- If NotLoggedIn, follow the auth instruction above and stop.\n- If the list is not empty, reply with EXACTLY: Hi ${firstName}! How about <OneOfTheListedSlots>?\n- The <OneOfTheListedSlots> must be copied verbatim from the list above (no new times).\n- Prefer the earliest item in the list.\n- If the user says none of the options work, reply EXACTLY: Got it. Thanks ${firstName}. Someone will contact you through text shortly. Is there anything else I can help with?\n- If the list is empty, reply EXACTLY: It seems that there is no available session at this time for <AssignmentTitle>. Someone from our team will contact you to help with scheduling as soon as possible.${authRule}`;
           chatHistory.push({ role:'user', parts:[{ text: instruction }] });
         }
       } catch {}
@@ -570,7 +570,7 @@
           } catch {}
           const text = showPastDue
             ? `I see that the ${assignmentTitle} is past due. Someone will be in touch to assist you in scheduling.`
-            : `It seems that there is no available session at this time. Someone from our team will contact you to help with scheduling as soon as possible.`;
+            : `It seems that there is no available session at this time for ${assignmentTitle}. Someone from our team will contact you to help with scheduling as soon as possible.`;
           try { thinkingDiv.querySelector('.message-text').innerHTML = text; thinkingDiv.classList.remove('thinking'); } catch {}
           if (window.tbpFallbackNotify) try { await window.tbpFallbackNotify(); } catch {}
         }
