@@ -2038,24 +2038,30 @@ html, body { height: 100%; }
 }
 
 /* Subject pastel colors */
-/* Subject color-coding: tan + pastel white shades */
+/* Subject color-coding: Calming Times palette */
+/* Desert Sand #E2C3B0 */
 .pill[data-subject*="math"], .pill[data-subject*="algebra"], .pill[data-subject*="geometry"], .pill[data-subject*="calculus"] {
-    background: #EBD8C0; color:#6b3410;
+    background: #E2C3B0; color:#6b3410;
 }
+/* Unbleached Silk #F7D9C5 */
 .pill[data-subject*="chem"], .pill[data-subject*="science"], .pill[data-subject*="biology"], .pill[data-subject*="physics"] {
-    background: #EFDCC9; color:#6b3410;
+    background: #F7D9C5; color:#6b3410;
 }
+/* Antique White #FAF0DA */
 .pill[data-subject*="english"], .pill[data-subject*="writing"] {
-    background: #FAF3EA; color:#6b3410;
+    background: #FAF0DA; color:#6b3410;
 }
+/* Columbia Blue #C9E4DE */
 .pill[data-subject*="history"], .pill[data-subject*="social"] {
-    background: #F7EBDD; color:#6b3410;
+    background: #C9E4DE; color:#6b3410;
 }
+/* Crystal #A9D1D9 */
 .pill[data-subject*="hebrew"], .pill[data-subject*="language"] {
-    background: #FFF9F0; color:#6b3410;
+    background: #A9D1D9; color:#6b3410;
 }
+/* Default */
 .pill[data-subject*="general"], .pill:not([data-subject]) {
-    background: #F5E6D3; color:#6b3410;
+    background: #FAF0DA; color:#6b3410;
 }
 
 .pill .help-btn {
