@@ -121,15 +121,6 @@
           .filter(ev => ev.start >= now && ev.start <= deadline)
           .sort((a,b)=> a.start - b.start);
         if (desiredType) list = list.filter(ev => ev.type === desiredType);
-        // Fallback seed if nothing exists: create two default sessions (Exam & Homework)
-        if (!list.length) {
-          try {
-            const y = now.getFullYear();
-            const exam = { title: 'Exam Prep Session', type: 'exam', start: new Date(Date.parse(`${y}-09-17T19:00:00-04:00`)), end: new Date(Date.parse(`${y}-09-17T21:00:00-04:00`)) };
-            const hw = { title: 'Homework Prep Session', type: 'homework', start: new Date(Date.parse(`${y}-09-18T15:00:00-04:00`)), end: new Date(Date.parse(`${y}-09-18T17:00:00-04:00`)) };
-            list = [exam, hw].filter(ev => (!desiredType || ev.type===desiredType) && ev.start >= now && ev.start <= deadline).sort((a,b)=> a.start-b.start);
-          } catch {}
-        }
         return list;
       } catch { return []; }
     }
