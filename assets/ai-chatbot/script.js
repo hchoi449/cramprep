@@ -380,7 +380,10 @@
       if (willOpen) {
         (async ()=>{
           try { const profile = await getProfile(); cachedProfile = profile; setAuthUI(!!profile); } catch { cachedProfile = null; setAuthUI(false); }
-          try { await initializeOnOpen(); } catch {}
+          try {
+            const hasHistory = !!(chatBody && chatBody.children && chatBody.children.length > 0);
+            if (!hasHistory) { await initializeOnOpen(); }
+          } catch {}
         })();
       }
     }
@@ -389,10 +392,13 @@
       const willOpen = !document.body.classList.contains('show-chatbot');
       document.body.classList.toggle('show-chatbot'); 
       if (willOpen) { 
-        // Initialize without blocking UI open
+        // Initialize without clearing existing transcript if present
         (async ()=>{
           try { const profile = await getProfile(); cachedProfile = profile; setAuthUI(!!profile); } catch { cachedProfile = null; setAuthUI(false); }
-          try { await initializeOnOpen(); } catch {}
+          try {
+            const hasHistory = !!(chatBody && chatBody.children && chatBody.children.length > 0);
+            if (!hasHistory) { await initializeOnOpen(); }
+          } catch {}
         })();
       }
     });
