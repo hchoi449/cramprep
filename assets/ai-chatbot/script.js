@@ -260,33 +260,20 @@
       // Extract structured context from any message
       const ht = detectHelpType(userData.message); if (ht && !contextHelpType) contextHelpType = ht;
       const sj = detectSubject(userData.message); if (sj && !contextSubject) contextSubject = sj;
-      if (!contextHelpType || !contextSubject) {
-        const askWhat = !contextHelpType && !contextSubject
-          ? 'Which subject is this for, and is it homework, quiz, or exam?'
-          : (!contextSubject ? 'Which subject is this for?' : 'Is this for homework, a quiz, or an exam?');
-        const ask2 = createMessageElement(`<div class=\"message-text\">${askWhat}</div>`, 'bot-message');
-        chatBody.appendChild(ask2);
-        chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
-        hasAskedHelp = true;
-        return;
-      }
+      // If missing details, let Gemini ask for them (no fixed follow-up text here)
       setTimeout(()=>{
         const messageContent = `<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\"><div class=\"thinking-indicator\"><div class=\"dot\"></div><div class=\"dot\"></div><div class=\"dot\"></div></div></div>`;
         const incomingMessageDiv = createMessageElement(messageContent, 'bot-message', 'thinking');
         chatBody.appendChild(incomingMessageDiv);
         chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
-        // If a help topic was captured, bias the next response with it
-        if (helpTopic) {
-          const firstName = cachedProfile && cachedProfile.fullName ? (String(cachedProfile.fullName).trim().split(' ')[0] || 'there') : 'there';
-          userData.message = `HelpTopic: ${helpTopic}\nStudentFirstName: ${firstName}`;
-        }
-        // Include structured context for the model
-        if (contextHelpType || contextSubject) {
-          const parts = [];
-          if (contextHelpType) parts.push(`HelpType: ${contextHelpType}`);
-          if (contextSubject) parts.push(`Subject: ${contextSubject}`);
-          userData.message += `\n${parts.join('\n')}`;
-        }
+        // Bias with any known context; otherwise Gemini will ask for specifics
+        const firstName = cachedProfile && cachedProfile.fullName ? (String(cachedProfile.fullName).trim().split(' ')[0] || 'there') : 'there';
+        const parts = [];
+        if (helpTopic) parts.push(`HelpTopic: ${helpTopic}`);
+        parts.push(`StudentFirstName: ${firstName}`);
+        if (contextHelpType) parts.push(`HelpType: ${contextHelpType}`);
+        if (contextSubject) parts.push(`Subject: ${contextSubject}`);
+        userData.message = parts.join('\n');
         generateBotResponse(incomingMessageDiv);
       }, 600);
     }
