@@ -310,11 +310,17 @@
 }
 
 .month-day-header {
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 8px;
-    font-size: 0.9rem;
+    font-weight: 700;
+    background: #8B4513;
+    color: #ffffff;
+    margin-bottom: 10px;
+    font-size: 0.95rem;
     text-align: center;
+    border-radius: 10px;
+    height: 36px;
+    display: flex;
+    align-items: center; /* vertical centering */
+    justify-content: center;
 }
 
 .month-day.other-month {
@@ -328,12 +334,13 @@
 }
 
 .month-class {
-    background: #8B4513;
-    color: white;
-    padding: 4px 6px;
-    border-radius: 4px;
-    font-size: 0.7rem;
-    margin-bottom: 2px;
+    background: #F3E6D6; /* tan */
+    color: #6b3410; /* brand brown text */
+    padding: 6px 8px;
+    border-radius: 10px;
+    border: 1px solid rgba(0,0,0,0.06);
+    font-size: 0.75rem;
+    margin-bottom: 4px;
     cursor: pointer;
     transition: all 0.3s ease;
 }
