@@ -122,7 +122,9 @@
         const j = await res.json();
         const events = (j && j.events) ? j.events : [];
         const now = new Date();
-        const deadline = deadlineIso ? new Date(deadlineIso) : new Date(now.getTime() + 7*86400000);
+        let deadline = deadlineIso ? new Date(deadlineIso) : new Date(now.getTime() + 7*86400000);
+        // If a due date is provided, treat the deadline as the end of that calendar day
+        if (deadlineIso) { const end = new Date(deadline); end.setHours(23,59,59,999); deadline = end; }
         const base = events
           .map(ev => ({
             start: new Date(ev.start),
