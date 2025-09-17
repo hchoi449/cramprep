@@ -49,14 +49,26 @@
       </div>
     </header>
 
-    <section class="timetable-hero" style="padding:140px 0 40px;">
+    <section class="timetable-hero" style="padding:140px 0 20px;">
       <div class="container">
         <h1 class="timetable-title">Problem Sets</h1>
         <p class="timetable-subtitle">Interactive exercises powered by a Perseus-style renderer</p>
       </div>
     </section>
 
-    <main class="ps-container">
+    <!-- Feature A: Rotating Books Shelf -->
+    <div class="ps-shelf" id="psShelf" aria-label="Subjects">
+      <div class="book" tabindex="0" data-subject="algebra-1" style="left:20%;top:55%">Algebra I</div>
+      <div class="book" tabindex="0" data-subject="geometry" style="left:40%;top:45%">Geometry</div>
+      <div class="book" tabindex="0" data-subject="algebra-2" style="left:60%;top:52%">Algebra II</div>
+      <div class="book" tabindex="0" data-subject="precalculus" style="left:50%;top:30%">Pre‑Calculus</div>
+      <div class="book" tabindex="0" data-subject="calculus" style="left:78%;top:58%">Calculus</div>
+    </div>
+    <div class="ps-shelf-controls">
+      <button class="ps-open-btn" id="psOpenBtn" aria-label="Open subject">Open</button>
+    </div>
+
+    <main class="ps-container" id="psApp" hidden>
       <button class="ps-toggle" aria-label="Toggle lessons" onclick="document.querySelector('.ps-sidebar').classList.toggle('active')"><i class="bi bi-list"></i> Lessons</button>
       <aside class="ps-sidebar" id="psSidebar"></aside>
       <section class="ps-content">
@@ -66,9 +78,7 @@
           <button class="btn btn-primary" id="psPracticeBtn">Practice</button>
           <button class="btn btn-secondary" id="psLiveBtn">Live Session</button>
         </div>
-        <div class="ps-body" id="psBody">
-          <p>Select a lesson from the left to begin.</p>
-        </div>
+        <div class="ps-body" id="psBody"></div>
       </section>
     </main>
 
@@ -94,25 +104,76 @@
     </footer>
 
     <script>
-      // Seed data (could be external JSON)
+      // Subject → Subtopics → Lessons; each lesson has notes and MC questions
       const COURSES = [
-        { id:'algebra-1', title:'Algebra 1', lessons:[
-          { slug:'linear-equations-basics', title:'Linear Equations — Basics', locked:false, body:`# Linear Equations (Basics)\nSolve for x: 2x + 5 = 13.`, progress:0.2 },
-          { slug:'slope-intercept', title:'Slope-Intercept Form', locked:false, body:`# Slope-Intercept\nThe form is y = mx + b.`, progress:0.0 },
-          { slug:'systems', title:'Systems of Equations', locked:true, body:`# Systems of Equations\nLocked preview.`, progress:0.0 },
+        { id:'algebra-1', title:'Algebra I', subtopics:[
+          { id:'preliminaries', title:'Preliminaries', lessons:[
+            { slug:'integer-exponents-basics', title:'Integer Exponents — Basics', locked:false,
+              notes:`# Integer Exponents — Basics\nRules: a^m · a^n = a^{m+n}, (a^m)^n = a^{mn}, a^{-n}=1/a^n.`,
+              questions:[
+                { id:'q1', stem:'Simplify: a^3 · a^4', options:['a^7','a^{12}','a','7a'], correct:0, explanation:'Add exponents when multiplying same base: 3+4=7.', tags:['exponents','algebra1'] },
+                { id:'q2', stem:'Simplify: (x^2)^3', options:['x^5','x^6','x^9','6x^2'], correct:1, explanation:'Power to a power: multiply exponents 2·3=6.', tags:['exponents'] },
+                { id:'q3', stem:'Simplify: y^{-2}', options:['-y^2','1/y^2','y^2','-1/y^2'], correct:1, explanation:'Negative exponent means reciprocal: 1/y^2.', tags:['exponents'] }
+              ]
+            },
+            { slug:'rational-exponents-intro', title:'Rational Exponents — Intro', locked:false,
+              notes:`# Rational Exponents\nDefinition: a^{m/n} = n√(a^m) = (n√a)^m.`,
+              questions:[
+                { id:'q1', stem:'Rewrite x^{1/2}', options:['x^2','2x','√x','1/x^2'], correct:2, explanation:'x^{1/2} is square root of x.', tags:['rational exponents'] },
+                { id:'q2', stem:'Simplify: (27)^{2/3}', options:['9','6','3','27^{1/3}'], correct:0, explanation:'Cube root of 27 is 3; 3^2=9.', tags:['rational exponents'] }
+              ]
+            }
+          ]},
+          { id:'polynomials', title:'Polynomials', lessons:[
+            { slug:'adding-like-terms', title:'Adding Like Terms', locked:false,
+              notes:`# Adding Like Terms\nCombine coefficients of same variable powers.`,
+              questions:[
+                { id:'q1', stem:'Simplify: 3x + 5x', options:['8','8x','x^8','2x'], correct:1, explanation:'3x + 5x = (3+5)x = 8x.', tags:['polynomials'] },
+                { id:'q2', stem:'Simplify: 2x^2 + 7x^2', options:['9x','9x^2','x^4','14x^2'], correct:1, explanation:'Add coefficients: 2+7=9, keep x^2.', tags:['polynomials'] }
+              ]
+            }
+          ]}
         ]},
-        { id:'algebra-2', title:'Algebra 2', lessons:[
-          { slug:'quadratics', title:'Quadratics', locked:false, body:`# Quadratics\nComplete the square.`, progress:0.0 },
+        { id:'geometry', title:'Geometry', subtopics:[
+          { id:'triangles', title:'Triangles & Congruence', lessons:[
+            { slug:'triangle-sum', title:'Triangle Angle Sum', locked:false,
+              notes:`# Triangle Angle Sum\nInterior angles of a triangle sum to 180°.`,
+              questions:[
+                { id:'q1', stem:'If two angles are 50° and 60°, the third is', options:['70°','60°','90°','120°'], correct:0, explanation:'180 - (50+60) = 70°.', tags:['triangles'] }
+              ]
+            }
+          ]}
         ]},
-        { id:'geometry', title:'Geometry', lessons:[
-          { slug:'triangles', title:'Triangles', locked:false, body:`# Triangles\nBasic triangle properties.`, progress:0.0 },
+        { id:'algebra-2', title:'Algebra II', subtopics:[
+          { id:'quadratics', title:'Quadratics & Complex', lessons:[
+            { slug:'vertex-form', title:'Vertex Form Intro', locked:false,
+              notes:`# Vertex Form\ny = a(x-h)^2 + k`,
+              questions:[
+                { id:'q1', stem:'Vertex of y = (x-3)^2+2 is', options:['(3,2)','(-3,2)','(2,3)','(3,-2)'], correct:0, explanation:'h=3, k=2', tags:['quadratics'] }
+              ]
+            }
+          ]}
         ]},
-        { id:'precalculus', title:'Pre-Calculus', lessons:[
-          { slug:'functions', title:'Functions', locked:false, body:`# Functions\nDomain and range.`, progress:0.0 },
+        { id:'precalculus', title:'Pre-Calculus', subtopics:[
+          { id:'functions', title:'Functions & Graphs', lessons:[
+            { slug:'domain-range', title:'Domain & Range Basics', locked:false,
+              notes:`# Domain & Range\nConsider restrictions like division by zero, even roots.`,
+              questions:[
+                { id:'q1', stem:'Domain of f(x)=1/(x-2)', options:['x≠2','x≥2','x≤2','all real x'], correct:0, explanation:'Denominator cannot be zero.', tags:['functions'] }
+              ]
+            }
+          ]}
         ]},
-        { id:'calculus', title:'Calculus', lessons:[
-          { slug:'derivatives', title:'Derivatives', locked:false, body:`# Derivatives\nThe derivative measures rate of change.`, progress:0.0 },
-        ]},
+        { id:'calculus', title:'Calculus', subtopics:[
+          { id:'limits', title:'Limits & Continuity', lessons:[
+            { slug:'limit-basics', title:'Limit Basics', locked:false,
+              notes:`# Limits\nlim_{x→a} f(x) describes approaching behavior.`,
+              questions:[
+                { id:'q1', stem:'lim_{x→0} (2x) = ?', options:['0','1','2','DNE'], correct:0, explanation:'2x → 0 as x→0.', tags:['limits'] }
+              ]
+            }
+          ]}
+        ]}
       ];
 
       function saveProgress(key, value){ try { localStorage.setItem(key, JSON.stringify(value)); } catch{} }
@@ -126,16 +187,31 @@
           const progKey = `ps-progress-${course.id}`;
           const progVal = getProgress(progKey, 0);
           const bar = document.createElement('div'); bar.className='ps-progress'; bar.innerHTML = `<div style="width:${Math.round(progVal*100)}%"></div>`; root.appendChild(bar);
-          course.lessons.forEach(lesson => {
-            const row = document.createElement('div'); row.className='ps-lesson'; row.dataset.slug = `${course.id}/${lesson.slug}`;
-            const left = document.createElement('div');
-            left.style.display='inline-flex'; left.style.alignItems='center';
-            if (lesson.locked) { const i=document.createElement('i'); i.className='bi bi-lock ps-lock'; left.appendChild(i); }
-            const t=document.createElement('span'); t.textContent=lesson.title; left.appendChild(t);
-            const right = document.createElement('div'); right.className='status'; right.textContent = lesson.locked? 'Locked' : (lesson.progress>0? 'In Progress':'Start');
-            row.appendChild(left); row.appendChild(right);
-            row.addEventListener('click', ()=> loadLesson(course.id, lesson.slug));
-            root.appendChild(row);
+
+          (course.subtopics||[]).forEach(st => {
+            const stHdr = document.createElement('div');
+            stHdr.className = 'ps-lesson';
+            stHdr.style.fontWeight='700'; stHdr.style.background='#fff';
+            stHdr.innerHTML = `<span>${st.title}</span><i class="bi bi-caret-down-fill"></i>`;
+            root.appendChild(stHdr);
+            const ul = document.createElement('div'); ul.style.margin='6px 0 10px'; ul.style.paddingLeft='8px'; root.appendChild(ul);
+            let expanded = true;
+            function toggle(){ expanded = !expanded; ul.style.display = expanded ? '' : 'none'; stHdr.querySelector('i').className = expanded ? 'bi bi-caret-down-fill' : 'bi bi-caret-right-fill'; }
+            stHdr.addEventListener('click', toggle);
+
+            (st.lessons||[]).forEach(lesson => {
+              const row = document.createElement('div'); row.className='ps-lesson'; row.dataset.slug = `${course.id}/${st.id}/${lesson.slug}`;
+              const left = document.createElement('div');
+              left.style.display='inline-flex'; left.style.alignItems='center';
+              if (lesson.locked) { const i=document.createElement('i'); i.className='bi bi-lock ps-lock'; left.appendChild(i); }
+              const t=document.createElement('span'); t.textContent=lesson.title; left.appendChild(t);
+              const right = document.createElement('div'); right.className='status';
+              const score = getProgress(`ps-best-${course.id}-${st.id}-${lesson.slug}`, 0);
+              right.innerHTML = lesson.locked? 'Locked' : (score>0? `<span class="ps-badge"><i class="bi bi-check-circle"></i>${Math.round(score*100)}%</span>`:'Start');
+              row.appendChild(left); row.appendChild(right);
+              row.addEventListener('click', ()=> loadLesson(course.id, st.id, lesson.slug));
+              ul.appendChild(row);
+            });
           });
         });
       }
@@ -148,21 +224,82 @@
           .replace(/\n/g, '<br/>');
       }
 
-      function loadLesson(courseId, slug){
-        const course = COURSES.find(c=>c.id===courseId);
-        if (!course) return;
-        const lesson = course.lessons.find(l=>l.slug===slug);
-        if (!lesson || lesson.locked) return;
-        document.getElementById('psBreadcrumb').textContent = `${course.title} / ${lesson.title}`;
+      function loadLesson(courseId, subtopicId, lessonSlug){
+        const course = COURSES.find(c=>c.id===courseId); if (!course) return;
+        const subtopic = (course.subtopics||[]).find(s=>s.id===subtopicId) || (course.subtopics||[])[0]; if (!subtopic) return;
+        const lesson = (subtopic.lessons||[]).find(l=>l.slug===lessonSlug) || subtopic.lessons[0]; if (!lesson || lesson.locked) return;
+
+        document.getElementById('psBreadcrumb').textContent = `${course.title} / ${subtopic.title} / ${lesson.title}`;
         document.getElementById('psTitle').textContent = lesson.title;
-        document.getElementById('psBody').innerHTML = mdToHtml(lesson.body);
-        // mark some progress
-        lesson.progress = Math.max(lesson.progress, 0.25);
-        saveProgress(`ps-progress-${courseId}`, averageProgress(course.lessons));
+        renderLessonContent(course, subtopic, lesson);
+
+        // compute overall course progress as average of best lesson scores across subtopics
+        const allLessons = course.subtopics.flatMap(st=> st.lessons || []);
+        const avg = allLessons.length ? allLessons.reduce((s,l)=> s + getProgress(`ps-best-${course.id}-${subtopic.id === (course.subtopics[0]||{}).id ? subtopic.id : (course.subtopics.find(st=> st.lessons.includes(l))||{}).id}-${l.slug}`, 0), 0) / allLessons.length : 0;
+        saveProgress(`ps-progress-${courseId}`, avg);
         renderSidebar();
-        // default actions
-        document.getElementById('psPracticeBtn').onclick = ()=> alert('Practice coming soon.');
-        document.getElementById('psLiveBtn').onclick = ()=> window.location.href = 'timetable.html';
+        history.replaceState(null, '', `problem-sets.html#/${courseId}/${subtopic.id}/${lesson.slug}`);
+      }
+
+      function renderLessonContent(course, subtopic, lesson){
+        const body = document.getElementById('psBody');
+        body.innerHTML = '';
+        const notes = document.createElement('div');
+        notes.innerHTML = mdToHtml(lesson.notes||'');
+        body.appendChild(notes);
+
+        if ((lesson.questions||[]).length){
+          const quiz = document.createElement('div'); quiz.style.marginTop='16px';
+          const h = document.createElement('h4'); h.textContent = 'Problem Set'; quiz.appendChild(h);
+          const results = document.createElement('div'); results.style.margin='8px 0'; quiz.appendChild(results);
+
+          let scoreBest = getProgress(`ps-best-${course.id}-${subtopic.id}-${lesson.slug}`, 0);
+          function renderQuiz(){
+            const qWrap = document.createElement('div'); qWrap.className='ps-quiz';
+            let correctCount = 0; let answered = 0; results.textContent='';
+            (lesson.questions).forEach((q, qi)=>{
+              const card = document.createElement('div'); card.className='ps-q-card';
+              const stem = document.createElement('div'); stem.className='ps-stem'; stem.textContent = `${qi+1}. ${q.stem}`; card.appendChild(stem);
+              const opts = document.createElement('div'); opts.className='ps-opts';
+              const order = _.shuffle(q.options.map((opt, idx)=> ({opt, idx})));
+              order.forEach((pair, oi)=>{
+                const btn = document.createElement('button'); btn.type='button'; btn.className='ps-opt'; btn.textContent = pair.opt; btn.setAttribute('aria-pressed','false');
+                btn.addEventListener('click', ()=>{
+                  if (btn.dataset.locked==='1') return;
+                  [...opts.children].forEach(ch=>{ ch.classList.remove('sel'); ch.setAttribute('aria-pressed','false'); });
+                  btn.classList.add('sel'); btn.setAttribute('aria-pressed','true');
+                  btn.dataset.chosen = pair.idx;
+                });
+                opts.appendChild(btn);
+              });
+              card.appendChild(opts);
+              const submit = document.createElement('button'); submit.className='btn btn-primary'; submit.textContent='Submit';
+              const explain = document.createElement('div'); explain.className='ps-explain';
+              submit.addEventListener('click', ()=>{
+                const chosenBtn = [...opts.children].find(ch=> ch.classList.contains('sel'));
+                if (!chosenBtn){ results.textContent='Please select an answer before submitting.'; results.style.color='#8B4513'; return; }
+                const chosen = Number(chosenBtn.dataset.chosen);
+                answered++; const correct = chosen === q.correct; if (correct) correctCount++;
+                [...opts.children].forEach((ch,i)=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
+                submit.disabled = true;
+                explain.innerHTML = correct ? `<span style="color:#155e2b"><i class='bi bi-check-circle'></i> Correct.</span> ${q.explanation}` : `<span style="color:#991b1b"><i class='bi bi-x-circle'></i> Incorrect.</span> ${q.explanation}`;
+                if (answered === lesson.questions.length){
+                  const pct = correctCount / lesson.questions.length; results.innerHTML = `Score: ${Math.round(pct*100)}%`;
+                  if (pct > scoreBest){ scoreBest = pct; saveProgress(`ps-best-${course.id}-${subtopic.id}-${lesson.slug}`, scoreBest); renderSidebar(); }
+                  const retry = document.createElement('button'); retry.className='btn btn-secondary'; retry.style.marginLeft='8px'; retry.textContent='Retry';
+                  retry.addEventListener('click', ()=>{ body.scrollIntoView({behavior:'smooth',block:'start'}); quiz.innerHTML=''; quiz.appendChild(h); quiz.appendChild(results); renderQuiz(); });
+                  results.appendChild(retry);
+                }
+              });
+              card.appendChild(submit);
+              card.appendChild(explain);
+              qWrap.appendChild(card);
+            });
+            quiz.appendChild(qWrap);
+          }
+          renderQuiz();
+          body.appendChild(quiz);
+        }
       }
 
       function averageProgress(arr){
@@ -170,10 +307,55 @@
         return arr.reduce((s,l)=> s + (l.progress||0), 0) / arr.length;
       }
 
-      // Initialize
-      renderSidebar();
-      // default to first lesson
-      try { const c=COURSES[0]; if (c) loadLesson(c.id, c.lessons[0].slug); } catch{}
+      // ===== Rotating shelf interactions =====
+      const shelf = document.getElementById('psShelf');
+      const openBtn = document.getElementById('psOpenBtn');
+      let focusEl = null; let clickTimer = null;
+      function setFocus(el){
+        if (focusEl) focusEl.dataset.focus = 'false';
+        focusEl = el; if (focusEl) focusEl.dataset.focus = 'true';
+      }
+      shelf.querySelectorAll('.book').forEach(book=>{
+        book.addEventListener('click', (e)=>{
+          if (clickTimer){ clearTimeout(clickTimer); clickTimer=null; // treat as double-click
+            enterSubject(book.dataset.subject); return; }
+          setFocus(book);
+          clickTimer = setTimeout(()=>{ clickTimer=null; }, 250);
+        });
+        book.addEventListener('dblclick', ()=> enterSubject(book.dataset.subject));
+        book.addEventListener('keydown', (e)=>{
+          if (e.key==='Enter' || e.key===' '){ e.preventDefault(); if (focusEl===book && clickTimer){ clearTimeout(clickTimer); clickTimer=null; enterSubject(book.dataset.subject); } else { setFocus(book); clickTimer=setTimeout(()=>{ clickTimer=null; },250);} }
+          if (e.key==='ArrowRight'){ const next = book.nextElementSibling || shelf.firstElementChild; setFocus(next); next.focus(); }
+          if (e.key==='ArrowLeft'){ const prev = book.previousElementSibling || shelf.lastElementChild; setFocus(prev); prev.focus(); }
+        });
+      });
+      openBtn.addEventListener('click', ()=>{ if (focusEl) enterSubject(focusEl.dataset.subject); else enterSubject('algebra-1'); });
+
+      function enterSubject(subjectId){
+        // show app and render sidebar; default lesson of that subject
+        document.getElementById('psApp').hidden = false;
+        renderSidebar();
+        const c = COURSES.find(c=>c.id===subjectId) || COURSES[0];
+        if (c) loadLesson(c.id, c.subtopics[0].id, c.subtopics[0].lessons[0].slug);
+        // reduced-motion friendly: simple fade out shelf
+        shelf.style.display='none';
+        document.querySelector('.ps-shelf-controls').style.display='none';
+        history.replaceState(null, '', `problem-sets.html#/${subjectId}/${c.subtopics[0].id}/${c.subtopics[0].lessons[0].slug}`);
+      }
+
+      // deep-link (hash)
+      try {
+        const hash = (location.hash||'').replace('#','');
+        if (hash){
+          const parts = hash.replace(/^\/?/, '').split('/');
+          if (parts.length >= 4){
+            document.getElementById('psApp').hidden = false; renderSidebar();
+            loadLesson(parts[1], parts[2], parts[3]);
+            document.getElementById('psShelf').style.display='none';
+            document.querySelector('.ps-shelf-controls').style.display='none';
+          } else if (parts.length === 1 && parts[0]) { enterSubject(parts[0]); }
+        }
+      } catch{}
     </script>
     <script src="index.js"></script>
   </body>

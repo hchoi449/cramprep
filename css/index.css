@@ -1300,6 +1300,28 @@ body.home .logo .tbp-star {
 }
 .back-to-top-btn .bi { font-size: 1.1rem; }
 
+/* Problem Sets — Rotating Books Shelf */
+.ps-shelf { position: relative; max-width: 1200px; margin: 120px auto 20px; padding: 0 20px; height: 340px; display:flex; align-items:center; justify-content:center; }
+.ps-shelf .book { position:absolute; width: 160px; height: 220px; background: #F5E6D3; color:#6b3410; border:2px solid #8B4513; border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,.15); display:flex; align-items:center; justify-content:center; font-weight:800; text-align:center; padding:12px; cursor:pointer; transform: translate(-50%, -50%) rotate(0deg) scale(1); transition: transform .6s cubic-bezier(.22,.61,.36,1), box-shadow .3s ease, filter .3s ease; will-change: transform; }
+.ps-shelf .book:focus { outline: 3px solid #8B4513; }
+.ps-shelf .book[data-focus="true"] { box-shadow: 0 16px 36px rgba(0,0,0,.22); transform: translate(-50%, -60%) scale(1.08); z-index: 3; }
+.ps-shelf-controls { margin: 10px auto 0; display:flex; gap:10px; align-items:center; justify-content:center; }
+.ps-open-btn { background:#8B4513; color:#fff; border:none; border-radius:10px; padding:10px 14px; cursor:pointer; }
+@media (prefers-reduced-motion: reduce){ .ps-shelf .book { transition: transform .2s ease; } }
+
+/* Problem Sets — Left rail badges */
+.ps-badge { display:inline-flex; align-items:center; gap:6px; font-size:.75rem; color:#155e2b; background:#dcfce7; border:1px solid #bbf7d0; border-radius:9999px; padding:2px 8px; }
+
+/* Problem Sets — Quiz UI */
+.ps-quiz { display:flex; flex-direction:column; gap:14px; }
+.ps-q-card { border:1px solid #e5e7eb; border-radius:12px; padding:12px; background:#fff; }
+.ps-stem { font-weight:700; color:#1a1a1a; margin-bottom:10px; }
+.ps-opts { display:grid; grid-template-columns:1fr; gap:8px; margin-bottom:10px; }
+.ps-opt { text-align:left; border:1px solid #e5e7eb; background:#F5E6D3; color:#6b3410; border-radius:10px; padding:10px 12px; cursor:pointer; }
+.ps-opt.sel { outline:2px solid #8B4513; background:#f8efe3; }
+.ps-opt.locked { opacity:.7; cursor:default; }
+.ps-explain { margin-top:8px; color:#1f2937; }
+
 .floating-consult-btn .bi {
     font-size: 1rem;
 }
