@@ -1986,6 +1986,8 @@ html, body { height: 100%; }
 }
 
 #assignments-drawer.active .drawer-body { animation: drawerContentIn .4s ease both; }
+#assignments-tab { transition: transform .35s cubic-bezier(.22,.61,.36,1); }
+body.drawer-open #assignments-tab { transform: translate(calc(-360px), -50%); }
 
 @keyframes drawerContentIn {
     from { opacity: 0; transform: translateX(12px); }

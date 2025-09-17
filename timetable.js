@@ -518,11 +518,13 @@ function setupAssignmentsDrawer(){
             drawer.classList.add('active');
             tab.setAttribute('aria-expanded','true');
             drawer.setAttribute('aria-hidden','false');
+            try { document.body.classList.add('drawer-open'); } catch {}
             refreshAssignmentsForCurrentWeek();
         } else {
             drawer.classList.remove('active');
             tab.setAttribute('aria-expanded','false');
             drawer.setAttribute('aria-hidden','true');
+            try { document.body.classList.remove('drawer-open'); } catch {}
         }
     };
     tab.addEventListener('click', ()=> toggle());
