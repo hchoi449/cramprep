@@ -12,6 +12,7 @@
     <!-- Perseus dependencies (Khan Academy open-source) -->
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
     <!-- Light-weight stand-in: we’ll use a simplified renderer approach that emulates Perseus style -->
@@ -105,7 +106,7 @@
         { id:'algebra-1', title:'Algebra I', subtopics:[
           { id:'preliminaries', title:'Preliminaries', lessons:[
             { slug:'integer-exponents-basics', title:'Integer Exponents — Basics', locked:false,
-              notes:`# Integer Exponents — Basics\nRules: a^m · a^n = a^{m+n}, (a^m)^n = a^{mn}, a^{-n}=1/a^n.`,
+              notes:`# Integer Exponents — Basics\nRules: $a^m\\cdot a^n = a^{m+n}$, $(a^m)^n = a^{mn}$, $a^{-n}=1/a^n$.`,
               questions:[
                 { id:'q1', stem:'Simplify: a^3 · a^4', options:['a^7','a^{12}','a','7a'], correct:0, explanation:'Add exponents when multiplying same base: 3+4=7.', tags:['exponents','algebra1'] },
                 { id:'q2', stem:'Simplify: (x^2)^3', options:['x^5','x^6','x^9','6x^2'], correct:1, explanation:'Power to a power: multiply exponents 2·3=6.', tags:['exponents'] },
@@ -113,7 +114,7 @@
               ]
             },
             { slug:'rational-exponents-intro', title:'Rational Exponents — Intro', locked:false,
-              notes:`# Rational Exponents\nDefinition: a^{m/n} = n√(a^m) = (n√a)^m.`,
+              notes:`# Rational Exponents\nDefinition: $a^{m/n} = \\sqrt[n]{a^m} = (\\sqrt[n]{a})^m$.`,
               questions:[
                 { id:'q1', stem:'Rewrite x^{1/2}', options:['x^2','2x','√x','1/x^2'], correct:2, explanation:'x^{1/2} is square root of x.', tags:['rational exponents'] },
                 { id:'q2', stem:'Simplify: (27)^{2/3}', options:['9','6','3','27^{1/3}'], correct:0, explanation:'Cube root of 27 is 3; 3^2=9.', tags:['rational exponents'] }
@@ -143,7 +144,7 @@
         { id:'algebra-2', title:'Algebra II', subtopics:[
           { id:'quadratics', title:'Quadratics & Complex', lessons:[
             { slug:'vertex-form', title:'Vertex Form Intro', locked:false,
-              notes:`# Vertex Form\ny = a(x-h)^2 + k`,
+              notes:`# Vertex Form\n$y = a(x-h)^2 + k$`,
               questions:[
                 { id:'q1', stem:'Vertex of y = (x-3)^2+2 is', options:['(3,2)','(-3,2)','(2,3)','(3,-2)'], correct:0, explanation:'h=3, k=2', tags:['quadratics'] }
               ]
@@ -163,7 +164,7 @@
         { id:'calculus', title:'Calculus', subtopics:[
           { id:'limits', title:'Limits & Continuity', lessons:[
             { slug:'limit-basics', title:'Limit Basics', locked:false,
-              notes:`# Limits\nlim_{x→a} f(x) describes approaching behavior.`,
+              notes:`# Limits\n$\\lim_{x\\to a} f(x)$ describes approaching behavior.`,
               questions:[
                 { id:'q1', stem:'lim_{x→0} (2x) = ?', options:['0','1','2','DNE'], correct:0, explanation:'2x → 0 as x→0.', tags:['limits'] }
               ]
@@ -257,6 +258,7 @@
         const notes = document.createElement('div');
         notes.innerHTML = mdToHtml(lesson.notes||'');
         body.appendChild(notes);
+        try { if (window.renderMathInElement) { renderMathInElement(notes, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false}] }); } } catch{}
 
         if ((lesson.questions||[]).length){
           const quiz = document.createElement('div'); quiz.style.marginTop='16px';
@@ -270,6 +272,7 @@
             (lesson.questions).forEach((q, qi)=>{
               const card = document.createElement('div'); card.className='ps-q-card';
               const stem = document.createElement('div'); stem.className='ps-stem'; stem.textContent = `${qi+1}. ${q.stem}`; card.appendChild(stem);
+              try { if (window.renderMathInElement) { renderMathInElement(stem, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false}] }); } } catch{}
               const opts = document.createElement('div'); opts.className='ps-opts';
               const order = _.shuffle(q.options.map((opt, idx)=> ({opt, idx})));
               order.forEach((pair, oi)=>{
