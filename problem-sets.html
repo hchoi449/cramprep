@@ -319,10 +319,9 @@
         BOOKS.forEach(b => {
           const tile = document.createElement('div'); tile.className='ps-book-tile';
           const cover = document.createElement('div'); cover.className='ps-book-cover'; cover.textContent=b.label; tile.appendChild(cover);
-          const meta = document.createElement('div'); meta.className='ps-book-meta';
-          const title = document.createElement('div'); title.className='ps-book-title'; title.textContent=b.label; meta.appendChild(title);
-          const btn = document.createElement('button'); btn.className='ps-open-btn'; btn.textContent='Open'; btn.addEventListener('click', ()=> enterSubject(b.id)); meta.appendChild(btn);
-          tile.appendChild(meta);
+          const actions = document.createElement('div'); actions.className='ps-book-actions';
+          const btn = document.createElement('button'); btn.className='ps-open-btn'; btn.textContent='Open'; btn.addEventListener('click', ()=> enterSubject(b.id)); actions.appendChild(btn);
+          tile.appendChild(actions);
           grid.appendChild(tile);
         });
       }
