@@ -116,8 +116,8 @@
             { slug:'rational-exponents-intro', title:'Rational Exponents — Intro', locked:false,
               notes:`# Rational Exponents\nDefinition: $a^{m/n} = \\sqrt[n]{a^m} = (\\sqrt[n]{a})^m$.`,
               questions:[
-                { id:'q1', stem:'Rewrite x^{1/2}', options:['x^2','2x','√x','1/x^2'], correct:2, explanation:'x^{1/2} is square root of x.', tags:['rational exponents'] },
-                { id:'q2', stem:'Simplify: (27)^{2/3}', options:['9','6','3','27^{1/3}'], correct:0, explanation:'Cube root of 27 is 3; 3^2=9.', tags:['rational exponents'] }
+                { id:'q1', stem:'Rewrite $x^{1/2}$', options:['$x^2$','$2x$','$\\sqrt{x}$','$1/x^2$'], correct:2, explanation:'$x^{1/2}$ is the square root of $x$.', tags:['rational exponents'] },
+                { id:'q2', stem:'Simplify: $(27)^{2/3}$', options:['$9$','$6$','$3$','$27^{1/3}$'], correct:0, explanation:'Cube root of $27$ is $3$; $3^2=9$.', tags:['rational exponents'] }
               ]
             }
           ]},
@@ -125,8 +125,8 @@
             { slug:'adding-like-terms', title:'Adding Like Terms', locked:false,
               notes:`# Adding Like Terms\nCombine coefficients of same variable powers.`,
               questions:[
-                { id:'q1', stem:'Simplify: 3x + 5x', options:['8','8x','x^8','2x'], correct:1, explanation:'3x + 5x = (3+5)x = 8x.', tags:['polynomials'] },
-                { id:'q2', stem:'Simplify: 2x^2 + 7x^2', options:['9x','9x^2','x^4','14x^2'], correct:1, explanation:'Add coefficients: 2+7=9, keep x^2.', tags:['polynomials'] }
+                { id:'q1', stem:'Simplify: $3x + 5x$', options:['$8$','$8x$','$x^8$','$2x$'], correct:1, explanation:'$3x + 5x = (3+5)x = 8x$.', tags:['polynomials'] },
+                { id:'q2', stem:'Simplify: $2x^2 + 7x^2$', options:['$9x$','$9x^2$','$x^4$','$14x^2$'], correct:1, explanation:'Add coefficients: $2+7=9$, keep $x^2$.', tags:['polynomials'] }
               ]
             }
           ]}
@@ -136,7 +136,7 @@
             { slug:'triangle-sum', title:'Triangle Angle Sum', locked:false,
               notes:`# Triangle Angle Sum\nInterior angles of a triangle sum to 180°.`,
               questions:[
-                { id:'q1', stem:'If two angles are 50° and 60°, the third is', options:['70°','60°','90°','120°'], correct:0, explanation:'180 - (50+60) = 70°.', tags:['triangles'] }
+                { id:'q1', stem:'If two angles are $50^\\circ$ and $60^\\circ$, the third is', options:['$70^\\circ$','$60^\\circ$','$90^\\circ$','$120^\\circ$'], correct:0, explanation:'$180^\\circ - (50^\\circ+60^\\circ) = 70^\\circ$.', tags:['triangles'] }
               ]
             }
           ]}
@@ -286,6 +286,7 @@
                 opts.appendChild(btn);
               });
               card.appendChild(opts);
+              try { if (window.renderMathInElement) { renderMathInElement(opts, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false}] }); } } catch{}
               const submit = document.createElement('button'); submit.className='btn btn-primary'; submit.textContent='Submit';
               const explain = document.createElement('div'); explain.className='ps-explain';
               submit.addEventListener('click', ()=>{
