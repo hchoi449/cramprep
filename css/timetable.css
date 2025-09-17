@@ -315,10 +315,6 @@
     margin-bottom: 8px;
     font-size: 0.9rem;
     text-align: center;
-    display: flex;
-    align-items: center; /* vertical centering */
-    justify-content: center;
-    min-height: 32px;
 }
 
 .month-day.other-month {
