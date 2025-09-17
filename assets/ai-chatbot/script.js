@@ -168,10 +168,11 @@
 
     function renderLoginPromptOnce(){
       if (loginPromptShown) return;
-      const div = createMessageElement(`<div class=\"message-text\">Please log in or sign up to continue scheduling. <a href=\"#\" class=\"open-login\">Open login</a></div>`, 'bot-message');
+      const div = createMessageElement(`<div class=\"message-text\">Please log in or sign up to continue scheduling.<br><button class=\"btn btn-secondary btn-chat open-login-btn\" aria-label=\"Open login\">Open login</button></div>`, 'bot-message');
       chatBody.appendChild(div);
-      const link = div.querySelector('.open-login');
-      if (link) link.addEventListener('click', function(e){ e.preventDefault();
+      const btnOpen = div.querySelector('.open-login-btn');
+      if (btnOpen) btnOpen.addEventListener('click', function(e){ e.preventDefault();
+        try { document.body.classList.remove('show-chatbot'); } catch {}
         try {
           const a = document.querySelector('.student-login-link');
           if (a) a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
@@ -529,7 +530,7 @@
         const msg = document.createElement('div');
         msg.className = 'message bot-message';
         if (!profile) {
-          msg.innerHTML = `<div class=\"message-text\">Please log in or sign up to continue scheduling. <a href=\"#\" class=\"open-login\">Open login</a></div>`;
+          msg.innerHTML = `<div class=\"message-text\">Please log in or sign up to continue scheduling.<br><button class=\"btn btn-secondary btn-chat open-login-btn\" aria-label=\"Open login\">Open login</button></div>`;
         } else {
           const nm = (profile && profile.fullName ? String(profile.fullName).trim() : '') || '';
           const first = (nm.split(' ')[0] || nm || 'there');
@@ -543,8 +544,8 @@
         }
         chatBody.appendChild(msg);
         // Wire open-login link to trigger login modal
-        const link = msg.querySelector('.open-login');
-        if (link) link.addEventListener('click', function(e){ e.preventDefault();
+        const loginBtn = msg.querySelector('.open-login-btn');
+        if (loginBtn) loginBtn.addEventListener('click', function(e){ e.preventDefault();
           try { document.body.classList.remove('show-chatbot'); } catch {}
           try {
             const a = document.querySelector('.student-login-link');
