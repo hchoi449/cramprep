@@ -59,11 +59,8 @@
     </section>
 
     <!-- Feature A: 3D Rotating Books Carousel (React + Framer Motion UMD) -->
-    <div class="ps-carousel" id="psShelf" aria-label="Subjects">
-      <div class="ps-carousel-rotator" id="psCarouselRotator" data-paused="0">
-        <div class="ps-carousel-stage" id="psCarouselStage"></div>
-      </div>
-      <div class="ps-open-overlay" id="psOpenOverlay"><button class="ps-open-btn" id="psOpenBtn" aria-label="Open subject">Open</button></div>
+    <div id="psShelf" aria-label="Subjects">
+      <div class="ps-books-grid" id="psBooksGrid"></div>
     </div>
 
     <main class="ps-container" id="psApp" hidden>
@@ -309,8 +306,7 @@
       // ===== 3D Carousel with keyboard/click/double-click =====
       const shelf = document.getElementById('psShelf');
       const openBtn = document.getElementById('psOpenBtn');
-      const rotator = document.getElementById('psCarouselRotator');
-      const stage = document.getElementById('psCarouselStage');
+      const grid = document.getElementById('psBooksGrid');
       const BOOKS = [
         { id:'algebra-1', label:'Algebra I' },
         { id:'geometry', label:'Geometry' },
@@ -318,66 +314,19 @@
         { id:'precalculus', label:'Pre‑Calculus' },
         { id:'calculus', label:'Calculus' },
       ];
-      let index = 0; let lastClickTs = 0;
-      function renderCarousel(){
-        const radius = 380; const cardW = 180; const cardH = 240;
-        const angleStep = (2*Math.PI)/BOOKS.length;
-        stage.innerHTML = '';
-        rotator.style.transform = `translate(-50%, -50%) rotateY(${(-index*angleStep)}rad) scale(0.75)`;
-        BOOKS.forEach((b,i)=>{
-          const angle = i*angleStep;
-          const x = Math.sin(angle)*radius;
-          const z = Math.cos(angle)*radius;
-          const y = 0;
-          const div = document.createElement('div');
-          div.className='ps-book-card';
-          div.dataset.subject=b.id;
-          div.style.transform = `translate3d(${x}px, ${y}px, ${z}px) rotateY(${angle}rad)`;
-          const focused = i===index; div.dataset.focus = focused ? 'true':'false';
-          div.style.zIndex = String(1000 + Math.round(z));
-          div.style.transform += focused? ' scale(1.12)': '';
-          const label = document.createElement('div'); label.className='ps-book-label'; label.textContent=b.label; div.appendChild(label);
-          div.tabIndex = 0;
-          div.addEventListener('click', ()=>{
-            const now = Date.now();
-            if (i===index && now - lastClickTs < 250){ enterSubject(b.id); return; }
-            rotator.setAttribute('data-paused','1');
-            lastClickTs = now; index = i; renderCarousel();
-          });
-          div.addEventListener('dblclick', ()=>{ if (i===index) enterSubject(b.id); });
-          div.addEventListener('keydown', (e)=>{
-            if (e.key==='Enter' || e.key===' '){ e.preventDefault(); if (i===index){ enterSubject(b.id); } else { rotator.setAttribute('data-paused','1'); index=i; renderCarousel(); } }
-            if (e.key==='ArrowRight'){ e.preventDefault(); rotator.setAttribute('data-paused','1'); index=(index+1)%BOOKS.length; renderCarousel(); }
-            if (e.key==='ArrowLeft'){ e.preventDefault(); rotator.setAttribute('data-paused','1'); index=(index-1+BOOKS.length)%BOOKS.length; renderCarousel(); }
-          });
-          stage.appendChild(div);
+      function renderGrid(){
+        grid.innerHTML = '';
+        BOOKS.forEach(b => {
+          const tile = document.createElement('div'); tile.className='ps-book-tile';
+          const cover = document.createElement('div'); cover.className='ps-book-cover'; cover.textContent=b.label; tile.appendChild(cover);
+          const meta = document.createElement('div'); meta.className='ps-book-meta';
+          const title = document.createElement('div'); title.className='ps-book-title'; title.textContent=b.label; meta.appendChild(title);
+          const btn = document.createElement('button'); btn.className='ps-open-btn'; btn.textContent='Open'; btn.addEventListener('click', ()=> enterSubject(b.id)); meta.appendChild(btn);
+          tile.appendChild(meta);
+          grid.appendChild(tile);
         });
-        // place Open button under focused book
-        requestAnimationFrame(positionOpenOverlay);
       }
-      renderCarousel();
-      shelf.addEventListener('keydown', (e)=>{
-        if (e.key==='ArrowRight'){ index=(index+1)%BOOKS.length; renderCarousel(); }
-        if (e.key==='ArrowLeft'){ index=(index-1+BOOKS.length)%BOOKS.length; renderCarousel(); }
-      });
-      openBtn.addEventListener('click', ()=>{ const b=BOOKS[index]; enterSubject(b.id); });
-
-      // Position the Open button under the focused book
-      const openOverlay = document.getElementById('psOpenOverlay');
-      function positionOpenOverlay(){
-        try {
-          const focused = stage.querySelector('.ps-book-card[data-focus="true"]');
-          if (!focused) return;
-          const bookRect = focused.getBoundingClientRect();
-          const shelfRect = shelf.getBoundingClientRect();
-          const cx = bookRect.left + bookRect.width/2 - shelfRect.left;
-          const top = bookRect.bottom - shelfRect.top + 14;
-          openOverlay.style.left = cx + 'px';
-          openOverlay.style.top = top + 'px';
-          openOverlay.style.transform = 'translateX(-50%)';
-        } catch{}
-      }
-      window.addEventListener('resize', positionOpenOverlay);
+      renderGrid();
 
       function enterSubject(subjectId){
         // show app and render sidebar; default lesson of that subject
@@ -385,9 +334,8 @@
         renderSidebar();
         const c = COURSES.find(c=>c.id===subjectId) || COURSES[0];
         if (c) loadLesson(c.id, c.subtopics[0].id, c.subtopics[0].lessons[0].slug);
-        // hide shelf and stop spin
-        shelf.style.display='none'; rotator.setAttribute('data-paused','1');
-        document.querySelector('.ps-carousel-controls').style.display='none';
+        // hide shelf grid after selection
+        shelf.style.display='none';
         history.replaceState(null, '', `problem-sets.html#/${subjectId}/${c.subtopics[0].id}/${c.subtopics[0].lessons[0].slug}`);
       }
 

@@ -1322,19 +1322,15 @@ body.home .logo .tbp-star {
 .ps-opt.locked { opacity:.7; cursor:default; }
 .ps-explain { margin-top:8px; color:#1f2937; }
 
-/* Problem Sets — 3D Book Carousel */
-.ps-carousel { position:relative; height:560px; max-width:1200px; margin:90px auto 320px; perspective: 1200px; }
-.ps-carousel-rotator { position:absolute; left:50%; top:50%; transform-style: preserve-3d; will-change: transform; transition: transform .7s cubic-bezier(.16,.84,.44,1); animation: ps-slow-spin 48s linear infinite; }
-.ps-carousel-rotator[data-paused="1"]{ animation-play-state: paused; }
-.ps-carousel-stage { position:absolute; left:0; top:0; transform-style: preserve-3d; will-change: transform; }
-.ps-book-card { position:absolute; width: 180px; height: 240px; background:#F5E6D3; color:#6b3410; border:2px solid #8B4513; border-radius:14px; box-shadow: 0 18px 40px rgba(0,0,0,.18); display:flex; align-items:center; justify-content:center; font-weight:800; text-align:center; padding:14px; user-select:none; transform-style: preserve-3d; }
-.ps-book-card[data-focus="true"]{ box-shadow: 0 28px 60px rgba(0,0,0,.28); }
-.ps-book-label { pointer-events:none; transform: translateZ(2px); }
-.ps-carousel-controls { display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:10px; }
+/* Problem Sets — Books Grid */
+.ps-books-grid { max-width:1200px; margin: 80px auto 220px; padding: 0 20px; display:grid; grid-template-columns: repeat(3, minmax(240px, 1fr)); gap: 28px 32px; }
+@media(max-width: 980px){ .ps-books-grid{ grid-template-columns: repeat(2, minmax(220px, 1fr)); } }
+@media(max-width: 620px){ .ps-books-grid{ grid-template-columns: 1fr; } }
+.ps-book-tile { display:flex; flex-direction:column; gap:10px; }
+.ps-book-cover { height: 320px; border:2px solid #8B4513; background: radial-gradient(120% 100% at 40% 30%, #f5e6d3 0%, #efe1cf 45%, #ead7c2 100%); border-radius:16px; box-shadow: 0 18px 40px rgba(0,0,0,.12); display:flex; align-items:center; justify-content:center; color:#6b3410; font-weight:800; font-size:1.2rem; text-align:center; }
+.ps-book-meta { display:flex; align-items:center; justify-content:space-between; }
+.ps-book-title { color:#1a1a1a; font-weight:700; }
 .ps-open-btn { background:#8B4513; color:#fff; border:none; border-radius:10px; padding:10px 14px; cursor:pointer; }
-.ps-open-overlay { position:absolute; left:50%; transform: translateX(-50%); top: calc(50% + 150px); z-index:1500; pointer-events:auto; }
-
-@keyframes ps-slow-spin { from { transform: translate(-50%, -50%) rotateY(0deg) scale(0.75); } to { transform: translate(-50%, -50%) rotateY(-360deg) scale(0.75); } }
 
 .floating-consult-btn .bi {
     font-size: 1rem;
