@@ -60,7 +60,9 @@
 
     <!-- Feature A: 3D Rotating Books Carousel (React + Framer Motion UMD) -->
     <div class="ps-carousel" id="psShelf" aria-label="Subjects">
-      <div class="ps-carousel-stage" id="psCarouselStage"></div>
+      <div class="ps-carousel-rotator" id="psCarouselRotator" data-paused="0">
+        <div class="ps-carousel-stage" id="psCarouselStage"></div>
+      </div>
       <div class="ps-open-overlay"><button class="ps-open-btn" id="psOpenBtn" aria-label="Open subject">Open</button></div>
     </div>
 
@@ -307,6 +309,7 @@
       // ===== 3D Carousel with keyboard/click/double-click =====
       const shelf = document.getElementById('psShelf');
       const openBtn = document.getElementById('psOpenBtn');
+      const rotator = document.getElementById('psCarouselRotator');
       const stage = document.getElementById('psCarouselStage');
       const BOOKS = [
         { id:'algebra-1', label:'Algebra I' },
@@ -317,10 +320,11 @@
       ];
       let index = 0; let lastClickTs = 0;
       function renderCarousel(){
-        const radius = 420; const cardW = 180; const cardH = 240;
+        const radius = 380; const cardW = 180; const cardH = 240;
         const angleStep = (2*Math.PI)/BOOKS.length;
         stage.innerHTML = '';
-        stage.style.transform = `translate(-50%, -50%) rotateY(${(-index*angleStep)}rad)`;
+        rotator.setAttribute('data-paused','1');
+        rotator.style.transform = `translate(-50%, -50%) rotateY(${(-index*angleStep)}rad) scale(0.75)`;
         BOOKS.forEach((b,i)=>{
           const angle = i*angleStep;
           const x = Math.sin(angle)*radius;
@@ -362,8 +366,8 @@
         renderSidebar();
         const c = COURSES.find(c=>c.id===subjectId) || COURSES[0];
         if (c) loadLesson(c.id, c.subtopics[0].id, c.subtopics[0].lessons[0].slug);
-        // reduced-motion friendly: simple fade out shelf
-        shelf.style.display='none';
+        // hide shelf and stop spin
+        shelf.style.display='none'; rotator.setAttribute('data-paused','1');
         document.querySelector('.ps-carousel-controls').style.display='none';
         history.replaceState(null, '', `problem-sets.html#/${subjectId}/${c.subtopics[0].id}/${c.subtopics[0].lessons[0].slug}`);
       }
