@@ -1281,6 +1281,21 @@ body.home .logo .tbp-star {
     gap: 10px;
 }
 
+/* Floating Back-to-Top Arrow */
+.floating-top-btn {
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    z-index: 1000;
+    padding: 12px 14px !important;
+    border-radius: 9999px !important;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.floating-top-btn .bi { font-size: 1.1rem; }
+
 .floating-consult-btn .bi {
     font-size: 1rem;
 }
