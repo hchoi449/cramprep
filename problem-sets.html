@@ -178,37 +178,51 @@
       function renderSidebar(){
         const root = document.getElementById('psSidebar');
         root.innerHTML = '';
-        COURSES.forEach(course => {
-          const h = document.createElement('div'); h.className='ps-section-title'; h.textContent = course.title; root.appendChild(h);
-          const progKey = `ps-progress-${course.id}`;
-          const progVal = getProgress(progKey, 0);
-          const bar = document.createElement('div'); bar.className='ps-progress'; bar.innerHTML = `<div style="width:${Math.round(progVal*100)}%"></div>`; root.appendChild(bar);
+        // Course selector
+        const selectWrap = document.createElement('div'); selectWrap.style.margin='4px 0 10px';
+        const select = document.createElement('select'); select.style.width='100%'; select.style.padding='8px'; select.style.borderRadius='8px'; select.style.border='1px solid #e5e7eb';
+        COURSES.forEach(c=>{ const opt=document.createElement('option'); opt.value=c.id; opt.textContent=c.title; if (c.id===currentCourseId) opt.selected=true; select.appendChild(opt); });
+        selectWrap.appendChild(select); root.appendChild(selectWrap);
 
-          (course.subtopics||[]).forEach(st => {
-            const stHdr = document.createElement('div');
-            stHdr.className = 'ps-lesson';
-            stHdr.style.fontWeight='700'; stHdr.style.background='#fff';
-            stHdr.innerHTML = `<span>${st.title}</span><i class="bi bi-caret-down-fill"></i>`;
-            root.appendChild(stHdr);
-            const ul = document.createElement('div'); ul.style.margin='6px 0 10px'; ul.style.paddingLeft='8px'; root.appendChild(ul);
-            let expanded = true;
-            function toggle(){ expanded = !expanded; ul.style.display = expanded ? '' : 'none'; stHdr.querySelector('i').className = expanded ? 'bi bi-caret-down-fill' : 'bi bi-caret-right-fill'; }
-            stHdr.addEventListener('click', toggle);
+        const course = COURSES.find(c=>c.id===currentCourseId) || COURSES[0];
+        const h = document.createElement('div'); h.className='ps-section-title'; h.textContent = course.title; root.appendChild(h);
+        const progKey = `ps-progress-${course.id}`;
+        const progVal = getProgress(progKey, 0);
+        const bar = document.createElement('div'); bar.className='ps-progress'; bar.innerHTML = `<div style="width:${Math.round(progVal*100)}%"></div>`; root.appendChild(bar);
 
-            (st.lessons||[]).forEach(lesson => {
-              const row = document.createElement('div'); row.className='ps-lesson'; row.dataset.slug = `${course.id}/${st.id}/${lesson.slug}`;
-              const left = document.createElement('div');
-              left.style.display='inline-flex'; left.style.alignItems='center';
-              if (lesson.locked) { const i=document.createElement('i'); i.className='bi bi-lock ps-lock'; left.appendChild(i); }
-              const t=document.createElement('span'); t.textContent=lesson.title; left.appendChild(t);
-              const right = document.createElement('div'); right.className='status';
-              const score = getProgress(`ps-best-${course.id}-${st.id}-${lesson.slug}`, 0);
-              right.innerHTML = lesson.locked? 'Locked' : (score>0? `<span class="ps-badge"><i class="bi bi-check-circle"></i>${Math.round(score*100)}%</span>`:'Start');
-              row.appendChild(left); row.appendChild(right);
-              row.addEventListener('click', ()=> loadLesson(course.id, st.id, lesson.slug));
-              ul.appendChild(row);
-            });
+        (course.subtopics||[]).forEach(st => {
+          const stHdr = document.createElement('div');
+          stHdr.className = 'ps-lesson';
+          stHdr.style.fontWeight='700'; stHdr.style.background='#fff';
+          stHdr.innerHTML = `<span>${st.title}</span><i class="bi bi-caret-down-fill"></i>`;
+          root.appendChild(stHdr);
+          const ul = document.createElement('div'); ul.style.margin='6px 0 10px'; ul.style.paddingLeft='8px'; root.appendChild(ul);
+          let expanded = true;
+          function toggle(){ expanded = !expanded; ul.style.display = expanded ? '' : 'none'; stHdr.querySelector('i').className = expanded ? 'bi bi-caret-down-fill' : 'bi bi-caret-right-fill'; }
+          stHdr.addEventListener('click', toggle);
+
+          (st.lessons||[]).forEach(lesson => {
+            const row = document.createElement('div'); row.className='ps-lesson'; row.dataset.slug = `${course.id}/${st.id}/${lesson.slug}`;
+            const left = document.createElement('div');
+            left.style.display='inline-flex'; left.style.alignItems='center';
+            if (lesson.locked) { const i=document.createElement('i'); i.className='bi bi-lock ps-lock'; left.appendChild(i); }
+            const t=document.createElement('span'); t.textContent=lesson.title; left.appendChild(t);
+            const right = document.createElement('div'); right.className='status';
+            const score = getProgress(`ps-best-${course.id}-${st.id}-${lesson.slug}`, 0);
+            right.innerHTML = lesson.locked? 'Locked' : (score>0? `<span class="ps-badge"><i class="bi bi-check-circle"></i>${Math.round(score*100)}%</span>`:'Start');
+            row.appendChild(left); row.appendChild(right);
+            row.addEventListener('click', ()=> loadLesson(course.id, st.id, lesson.slug));
+            ul.appendChild(row);
           });
+        });
+
+        select.addEventListener('change', ()=>{
+          currentCourseId = select.value;
+          renderSidebar();
+          const c = COURSES.find(x=>x.id===currentCourseId);
+          if (c && c.subtopics && c.subtopics[0] && c.subtopics[0].lessons && c.subtopics[0].lessons[0]){
+            loadLesson(c.id, c.subtopics[0].id, c.subtopics[0].lessons[0].slug);
+          }
         });
       }
 
@@ -327,10 +341,11 @@
       }
       renderGrid();
 
+      let currentCourseId = null;
       function enterSubject(subjectId){
         // show app and render sidebar; default lesson of that subject
         document.getElementById('psApp').hidden = false;
-        renderSidebar();
+        currentCourseId = subjectId; renderSidebar();
         const c = COURSES.find(c=>c.id===subjectId) || COURSES[0];
         if (c) loadLesson(c.id, c.subtopics[0].id, c.subtopics[0].lessons[0].slug);
         // hide shelf grid after selection
@@ -344,10 +359,9 @@
         if (hash){
           const parts = hash.replace(/^\/?/, '').split('/');
           if (parts.length >= 4){
-            document.getElementById('psApp').hidden = false; renderSidebar();
+            document.getElementById('psApp').hidden = false; currentCourseId = parts[1]; renderSidebar();
             loadLesson(parts[1], parts[2], parts[3]);
             document.getElementById('psShelf').style.display='none';
-            document.querySelector('.ps-carousel-controls').style.display='none';
           }
         }
       } catch{}
