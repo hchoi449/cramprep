@@ -56,16 +56,10 @@
       </div>
     </section>
 
-    <!-- Feature A: Rotating Books Shelf -->
-    <div class="ps-shelf" id="psShelf" aria-label="Subjects">
-      <div class="book" tabindex="0" data-subject="algebra-1" style="left:20%;top:55%">Algebra I</div>
-      <div class="book" tabindex="0" data-subject="geometry" style="left:40%;top:45%">Geometry</div>
-      <div class="book" tabindex="0" data-subject="algebra-2" style="left:60%;top:52%">Algebra II</div>
-      <div class="book" tabindex="0" data-subject="precalculus" style="left:50%;top:30%">Pre‑Calculus</div>
-      <div class="book" tabindex="0" data-subject="calculus" style="left:78%;top:58%">Calculus</div>
-    </div>
-    <div class="ps-shelf-controls">
-      <button class="ps-open-btn" id="psOpenBtn" aria-label="Open subject">Open</button>
+    <!-- Feature A: 3D Rotating Books Carousel (React + Framer Motion UMD) -->
+    <div class="ps-carousel-controls"><button class="ps-open-btn" id="psOpenBtn" aria-label="Open subject">Open</button></div>
+    <div class="ps-carousel" id="psShelf" aria-label="Subjects">
+      <div class="ps-carousel-stage" id="psCarouselStage"></div>
     </div>
 
     <main class="ps-container" id="psApp" hidden>
@@ -103,6 +97,7 @@
       </div>
     </footer>
 
+    <script src="https://cdn.jsdelivr.net/npm/framer-motion@10.18.0/dist/framer-motion.umd.js"></script>
     <script>
       // Subject → Subtopics → Lessons; each lesson has notes and MC questions
       const COURSES = [
@@ -307,29 +302,57 @@
         return arr.reduce((s,l)=> s + (l.progress||0), 0) / arr.length;
       }
 
-      // ===== Rotating shelf interactions =====
+      // ===== 3D Carousel with keyboard/click/double-click =====
       const shelf = document.getElementById('psShelf');
       const openBtn = document.getElementById('psOpenBtn');
-      let focusEl = null; let clickTimer = null;
-      function setFocus(el){
-        if (focusEl) focusEl.dataset.focus = 'false';
-        focusEl = el; if (focusEl) focusEl.dataset.focus = 'true';
+      const stage = document.getElementById('psCarouselStage');
+      const BOOKS = [
+        { id:'algebra-1', label:'Algebra I' },
+        { id:'geometry', label:'Geometry' },
+        { id:'algebra-2', label:'Algebra II' },
+        { id:'precalculus', label:'Pre‑Calculus' },
+        { id:'calculus', label:'Calculus' },
+      ];
+      let index = 0; let lastClickTs = 0;
+      function renderCarousel(){
+        const radius = 420; const cardW = 180; const cardH = 240;
+        const angleStep = (2*Math.PI)/BOOKS.length;
+        stage.innerHTML = '';
+        stage.style.transform = `translate(-50%, -50%) rotateY(${(-index*angleStep)}rad)`;
+        BOOKS.forEach((b,i)=>{
+          const angle = i*angleStep;
+          const x = Math.sin(angle)*radius;
+          const z = Math.cos(angle)*radius;
+          const y = 0;
+          const div = document.createElement('div');
+          div.className='ps-book-card';
+          div.dataset.subject=b.id;
+          div.style.transform = `translate3d(${x}px, ${y}px, ${z}px) rotateY(${angle}rad)`;
+          const focused = i===index; div.dataset.focus = focused ? 'true':'false';
+          div.style.zIndex = String(1000 + Math.round(z));
+          div.style.transform += focused? ' scale(1.1)': '';
+          const label = document.createElement('div'); label.className='ps-book-label'; label.textContent=b.label; div.appendChild(label);
+          div.tabIndex = 0;
+          div.addEventListener('click', ()=>{
+            const now = Date.now();
+            if (i===index && now - lastClickTs < 250){ enterSubject(b.id); return; }
+            lastClickTs = now; index = i; renderCarousel();
+          });
+          div.addEventListener('dblclick', ()=>{ if (i===index) enterSubject(b.id); });
+          div.addEventListener('keydown', (e)=>{
+            if (e.key==='Enter' || e.key===' '){ e.preventDefault(); if (i===index){ enterSubject(b.id); } else { index=i; renderCarousel(); } }
+            if (e.key==='ArrowRight'){ e.preventDefault(); index=(index+1)%BOOKS.length; renderCarousel(); }
+            if (e.key==='ArrowLeft'){ e.preventDefault(); index=(index-1+BOOKS.length)%BOOKS.length; renderCarousel(); }
+          });
+          stage.appendChild(div);
+        });
       }
-      shelf.querySelectorAll('.book').forEach(book=>{
-        book.addEventListener('click', (e)=>{
-          if (clickTimer){ clearTimeout(clickTimer); clickTimer=null; // treat as double-click
-            enterSubject(book.dataset.subject); return; }
-          setFocus(book);
-          clickTimer = setTimeout(()=>{ clickTimer=null; }, 250);
-        });
-        book.addEventListener('dblclick', ()=> enterSubject(book.dataset.subject));
-        book.addEventListener('keydown', (e)=>{
-          if (e.key==='Enter' || e.key===' '){ e.preventDefault(); if (focusEl===book && clickTimer){ clearTimeout(clickTimer); clickTimer=null; enterSubject(book.dataset.subject); } else { setFocus(book); clickTimer=setTimeout(()=>{ clickTimer=null; },250);} }
-          if (e.key==='ArrowRight'){ const next = book.nextElementSibling || shelf.firstElementChild; setFocus(next); next.focus(); }
-          if (e.key==='ArrowLeft'){ const prev = book.previousElementSibling || shelf.lastElementChild; setFocus(prev); prev.focus(); }
-        });
+      renderCarousel();
+      shelf.addEventListener('keydown', (e)=>{
+        if (e.key==='ArrowRight'){ index=(index+1)%BOOKS.length; renderCarousel(); }
+        if (e.key==='ArrowLeft'){ index=(index-1+BOOKS.length)%BOOKS.length; renderCarousel(); }
       });
-      openBtn.addEventListener('click', ()=>{ if (focusEl) enterSubject(focusEl.dataset.subject); else enterSubject('algebra-1'); });
+      openBtn.addEventListener('click', ()=>{ const b=BOOKS[index]; enterSubject(b.id); });
 
       function enterSubject(subjectId){
         // show app and render sidebar; default lesson of that subject
@@ -339,7 +362,7 @@
         if (c) loadLesson(c.id, c.subtopics[0].id, c.subtopics[0].lessons[0].slug);
         // reduced-motion friendly: simple fade out shelf
         shelf.style.display='none';
-        document.querySelector('.ps-shelf-controls').style.display='none';
+        document.querySelector('.ps-carousel-controls').style.display='none';
         history.replaceState(null, '', `problem-sets.html#/${subjectId}/${c.subtopics[0].id}/${c.subtopics[0].lessons[0].slug}`);
       }
 
@@ -352,7 +375,7 @@
             document.getElementById('psApp').hidden = false; renderSidebar();
             loadLesson(parts[1], parts[2], parts[3]);
             document.getElementById('psShelf').style.display='none';
-            document.querySelector('.ps-shelf-controls').style.display='none';
+            document.querySelector('.ps-carousel-controls').style.display='none';
           } else if (parts.length === 1 && parts[0]) { enterSubject(parts[0]); }
         }
       } catch{}
