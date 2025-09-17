@@ -624,6 +624,16 @@
         document.body.classList.add('show-chatbot');
         const profile = await getProfile();
         const raw = localStorage.getItem('tbp_user');
+        // If chat still shows a stale login prompt but the user is now authenticated, clear it
+        try {
+          if (profile) {
+            const hasLoginPrompt = /Please log in or sign up/i.test(chatBody.textContent||'');
+            if (hasLoginPrompt) {
+              chatBody.innerHTML = '';
+              loginPromptShown = false;
+            }
+          }
+        } catch {}
         let first = 'there';
         try {
           if (profile && profile.fullName) {
