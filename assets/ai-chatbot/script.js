@@ -331,6 +331,28 @@
       return null;
     }
 
+    // Parse time-of-day like "4pm", "4 pm", "16:00", "4:30pm" → {hour, minute}
+    function parseTimeOfDay(text){
+      if (!text) return null;
+      const t = String(text).toLowerCase();
+      let m = t.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/);
+      if (m) {
+        let h = parseInt(m[1],10);
+        const min = m[2] ? parseInt(m[2],10) : 0;
+        const ap = m[3];
+        if (ap === 'pm' && h !== 12) h += 12;
+        if (ap === 'am' && h === 12) h = 0;
+        return { hour: h, minute: min };
+      }
+      m = t.match(/\b(\d{1,2}):(\d{2})\b/);
+      if (m) {
+        const h = parseInt(m[1],10);
+        const min = parseInt(m[2],10);
+        if (h>=0 && h<=23 && min>=0 && min<=59) return { hour: h, minute: min };
+      }
+      return null;
+    }
+
     async function handleOutgoingMessage(e){
       e.preventDefault();
       // Block sending if not authenticated
@@ -356,6 +378,43 @@
         const mixedTime = (new RegExp(`(${negative.source}).*(${timePhrases.source})`,'i').test(msg)) || (new RegExp(`(${timePhrases.source}).*(${negative.source})`,'i').test(msg));
         const mixedPronoun = (new RegExp(`(${negative.source}).*(${pronounPhrases.source})`,'i').test(msg)) || (new RegExp(`(${pronounPhrases.source}).*(${negative.source})`,'i').test(msg));
         if (mixedTime || mixedPronoun || notWorkPhrases.test(msg)) {
+          const tod = parseTimeOfDay(userData.message);
+          // Try to propose alternatives near the requested time and day/type if available
+          try {
+            const desiredType = contextHelpType;
+            const pool = await fetchSessionsUntil(dueDateIso, desiredType, false);
+            let candidates = pool;
+            if (preferredDay !== null) candidates = candidates.filter(ev => ev.start.getDay() === preferredDay);
+            if (tod) {
+              // Find sessions within +-3 hours of the requested time-of-day
+              candidates = candidates.filter(ev => {
+                const evH = ev.start.getHours();
+                const evM = ev.start.getMinutes();
+                const deltaMin = Math.abs((evH*60+evM) - (tod.hour*60 + tod.minute));
+                return deltaMin <= 180; // 3 hours window
+              });
+            }
+            if (candidates && candidates.length) {
+              const fmtDate = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York', weekday:'short', month:'short', day:'numeric' });
+              const fmtTime = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York', hour:'numeric', minute:'2-digit' });
+              const rows = candidates.slice(0,5).map((ev,i)=>{
+                const dateStr = fmtDate.format(ev.start);
+                const timeStr = `${fmtTime.format(ev.start)} – ${fmtTime.format(ev.end)} (EST)`;
+                const titleStr = ev.title || (ev.type==='exam' ? 'Exam Prep Session' : 'Homework Prep Session');
+                return `<tr><td>${titleStr}</td><td>${dateStr}</td><td>${timeStr}</td><td><button class=\"btn btn-primary btn-sm register-session\" data-idx=\"${i}\">Register</button></td></tr>`;
+              }).join('');
+              const table = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">Here are some alternatives around your time:<br><table class=\"ai-table\"><thead><tr><th>Session</th><th>Date</th><th>Time</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`, 'bot-message');
+              chatBody.appendChild(table);
+              chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
+              // Wire register buttons
+              table.querySelectorAll('.register-session').forEach(btn=>{
+                btn.addEventListener('click', function(){
+                  try { if (window.tbpOpenEnroll) window.tbpOpenEnroll(); else document.querySelector('.floating-consult-btn')?.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true})); } catch {}
+                });
+              });
+              return;
+            }
+          } catch {}
           const nm = (cachedProfile && cachedProfile.fullName ? String(cachedProfile.fullName).trim() : '') || '';
           const first = (nm.split(' ')[0] || nm || 'there');
           const reply = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">Got it. Thanks ${first}. Someone will contact you through text shortly. Is there anything else I can help with?</div>`, 'bot-message');
