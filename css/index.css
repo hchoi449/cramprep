@@ -1329,6 +1329,9 @@ body.home .logo .tbp-star {
 .ps-book-tile { display:flex; flex-direction:column; gap:10px; align-items:stretch; }
 .ps-book-cover { width:100%; aspect-ratio: 2 / 3; border:2px solid #8B4513; background: radial-gradient(120% 100% at 40% 30%, #f5e6d3 0%, #efe1cf 45%, #ead7c2 100%); border-radius:16px; box-shadow: 0 18px 40px rgba(0,0,0,.12); display:flex; align-items:center; justify-content:center; color:#6b3410; font-weight:800; font-size:1.2rem; text-align:center; }
 .ps-book-actions { display:flex; align-items:center; justify-content:center; }
+
+/* Outline box inside sidebar */
+#psOutline { border:1px solid #e5e7eb; border-radius:12px; padding:12px; background:#fff; }
 .ps-open-btn { background:#8B4513; color:#fff; border:none; border-radius:10px; padding:10px 14px; cursor:pointer; }
 
 .floating-consult-btn .bi {
