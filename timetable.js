@@ -159,6 +159,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // AI chat UI removed; button retained for future integration
     try { setupAssignmentsDrawer(); } catch {}
+
+    // Open assignments drawer if URL param drawer=open is present
+    try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('drawer') === 'open') {
+            const tab = document.getElementById('assignments-tab');
+            if (tab) tab.click(); // triggers the same toggle logic and ensures tab stays in sync
+        }
+    } catch {}
 });
 
 // Initialize timetable functionality
