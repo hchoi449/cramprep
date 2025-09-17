@@ -310,11 +310,17 @@
 }
 
 .month-day-header {
-    font-weight: 600;
-    color: #333;
+    font-weight: 700;
+    background: #8B4513; /* brand brown */
+    color: #ffffff;
     margin-bottom: 8px;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     text-align: center;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center; /* vertical centering */
+    justify-content: center;
 }
 
 .month-day.other-month {
