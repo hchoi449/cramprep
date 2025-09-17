@@ -110,6 +110,12 @@ body.ai-curriculum .logo svg {
     height: 56px;
     width: auto;
 }
+/* Match logo size on Problem Sets page */
+body.problem-sets .logo img,
+body.problem-sets .logo svg {
+    height: 56px;
+    width: auto;
+}
 
 /* Star hover animation */
 .logo .tbp-star {
