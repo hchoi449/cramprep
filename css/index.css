@@ -1282,11 +1282,9 @@ body.home .logo .tbp-star {
 }
 
 /* Floating Back-to-Top Arrow */
-.floating-top-btn {
-    position: fixed;
-    bottom: 24px;
-    left: 24px;
-    z-index: 1000;
+/* Centered Back-to-Top Button above footer */
+.back-to-top-center { display:flex; align-items:center; justify-content:center; padding: 30px 0 10px; }
+.back-to-top-btn {
     padding: 12px 14px !important;
     border-radius: 9999px !important;
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
@@ -1294,7 +1292,7 @@ body.home .logo .tbp-star {
     align-items: center;
     justify-content: center;
 }
-.floating-top-btn .bi { font-size: 1.1rem; }
+.back-to-top-btn .bi { font-size: 1.1rem; }
 
 .floating-consult-btn .bi {
     font-size: 1rem;
