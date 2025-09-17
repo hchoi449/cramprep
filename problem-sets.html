@@ -16,7 +16,7 @@
     <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
     <!-- Light-weight stand-in: we’ll use a simplified renderer approach that emulates Perseus style -->
     <style>
-      .ps-container{display:grid;grid-template-columns:380px minmax(0,1fr);gap:28px;width:min(96vw, 1600px);max-width:1600px;margin:140px auto 80px;padding:0 20px}
+      .ps-container{display:grid;grid-template-columns:420px minmax(0,1fr);gap:32px;width:min(98vw, 1680px);max-width:1680px;margin:140px auto 80px;padding:0 24px}
       .ps-sidebar{position:sticky;top:96px;align-self:start;height:calc(100vh - 140px);overflow:auto;border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fff}
       .ps-section-title{font-size:1.1rem;font-weight:800;color:#8B4513;margin:8px 0 6px}
       .ps-lesson{display:flex;align-items:center;justify-content:space-between;border:1px solid #eee;border-radius:10px;padding:8px 10px;margin:6px 0;background:#F5E6D3;color:#6b3410;cursor:pointer}
@@ -30,7 +30,7 @@
       .ps-actions{display:flex;gap:8px;margin-bottom:12px}
       .ps-actions .btn{padding:10px 14px;border-radius:10px}
       .ps-body{line-height:1.7;color:#1a1a1a}
-      @media(max-width:1200px){.ps-container{grid-template-columns:340px minmax(0,1fr);gap:24px}}
+      @media(max-width:1200px){.ps-container{grid-template-columns:360px minmax(0,1fr);gap:28px}}
       @media(max-width:900px){.ps-container{grid-template-columns:1fr;width:100%;padding:0 16px}.ps-sidebar{position:relative;top:auto;height:auto;overflow:visible}.ps-toggle{display:none}}
       /* Ensure hidden state always respected */
       #psApp[hidden]{display:none !important}
