@@ -31,6 +31,8 @@
       .ps-actions .btn{padding:10px 14px;border-radius:10px}
       .ps-body{line-height:1.7;color:#1a1a1a}
       @media(max-width:900px){.ps-container{grid-template-columns:1fr}.ps-sidebar{position:fixed;left:0;top:0;bottom:0;width:78%;max-width:360px;transform:translateX(-105%);transition:transform .3s ease;z-index:1200}.ps-sidebar.active{transform:translateX(0)}.ps-toggle{position:fixed;top:96px;left:10px;z-index:1300;background:#F5E6D3;color:#6b3410;border:none;border-radius:8px;padding:10px 12px;box-shadow:0 8px 20px rgba(0,0,0,.15)}}
+      /* Ensure hidden state always respected */
+      #psApp[hidden]{display:none !important}
     </style>
   </head>
   <body class="problem-sets">
@@ -376,7 +378,7 @@
             loadLesson(parts[1], parts[2], parts[3]);
             document.getElementById('psShelf').style.display='none';
             document.querySelector('.ps-carousel-controls').style.display='none';
-          } else if (parts.length === 1 && parts[0]) { enterSubject(parts[0]); }
+          }
         }
       } catch{}
     </script>
