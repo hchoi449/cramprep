@@ -351,9 +351,11 @@
         const msg = userData.message.toLowerCase();
         const negative = /(don'?t|do not|won'?t|cannot|can\'t|no|not)/i;
         const timePhrases = /(time|times|option|options|slot|slots|schedule|availability|these\s+times|those\s+times)/i;
-        const notWorkPhrases = /(don'?t work|do not work|won'?t work|not work|don'?t fit|do not fit|don'?t match|do not match|can'?t make|can not make|don'?t have|none work|none of these|none of them|don'?t\s*(really)?\s*work\s*(for\s*me)?)/i;
-        const mixedOrder = (new RegExp(`(${negative.source}).*(${timePhrases.source})`,'i').test(msg)) || (new RegExp(`(${timePhrases.source}).*(${negative.source})`,'i').test(msg));
-        if (mixedOrder || notWorkPhrases.test(msg)) {
+        const pronounPhrases = /(it|that|this|they|them|those|these|that\s+one|this\s+one|that\s+time|this\s+time)/i;
+        const notWorkPhrases = /(don'?t work|do not work|won'?t work|not work|don'?t fit|do not fit|don'?t match|do not match|can'?t make|can not make|don'?t have|none work|none of these|none of them|don'?t\s*(really)?\s*work\s*(for\s*me)?|won'?t\s*do)/i;
+        const mixedTime = (new RegExp(`(${negative.source}).*(${timePhrases.source})`,'i').test(msg)) || (new RegExp(`(${timePhrases.source}).*(${negative.source})`,'i').test(msg));
+        const mixedPronoun = (new RegExp(`(${negative.source}).*(${pronounPhrases.source})`,'i').test(msg)) || (new RegExp(`(${pronounPhrases.source}).*(${negative.source})`,'i').test(msg));
+        if (mixedTime || mixedPronoun || notWorkPhrases.test(msg)) {
           const nm = (cachedProfile && cachedProfile.fullName ? String(cachedProfile.fullName).trim() : '') || '';
           const first = (nm.split(' ')[0] || nm || 'there');
           const reply = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">Got it. Thanks ${first}. Someone will contact you through text shortly. Is there anything else I can help with?</div>`, 'bot-message');
