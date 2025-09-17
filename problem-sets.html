@@ -16,8 +16,8 @@
     <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
     <!-- Light-weight stand-in: we’ll use a simplified renderer approach that emulates Perseus style -->
     <style>
-      .ps-container{display:block;max-width:1200px;margin:140px auto 80px;padding:0 20px}
-      .ps-sidebar{position:relative;top:auto;height:auto;overflow:visible;border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fff;margin-bottom:16px}
+      .ps-container{display:grid;grid-template-columns:280px 1fr;gap:24px;max-width:1200px;margin:140px auto 80px;padding:0 20px}
+      .ps-sidebar{position:sticky;top:96px;height:calc(100vh - 140px);overflow:auto;border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fff}
       .ps-section-title{font-size:1.1rem;font-weight:800;color:#8B4513;margin:8px 0 6px}
       .ps-lesson{display:flex;align-items:center;justify-content:space-between;border:1px solid #eee;border-radius:10px;padding:8px 10px;margin:6px 0;background:#F5E6D3;color:#6b3410;cursor:pointer}
       .ps-lesson .status{font-size:.75rem;background:#fff;border:1px solid #e5e7eb;border-radius:9999px;padding:2px 8px}
@@ -30,8 +30,7 @@
       .ps-actions{display:flex;gap:8px;margin-bottom:12px}
       .ps-actions .btn{padding:10px 14px;border-radius:10px}
       .ps-body{line-height:1.7;color:#1a1a1a}
-      @media(max-width:900px){.ps-container{display:block}.ps-sidebar{position:relative;left:auto;top:auto;bottom:auto;width:auto;max-width:none;transform:none;transition:none;z-index:auto}.ps-sidebar.active{transform:none}.ps-toggle{display:none}}
-      .ps-toggle{display:none}
+      @media(max-width:900px){.ps-container{grid-template-columns:1fr}.ps-sidebar{position:fixed;left:0;top:0;bottom:0;width:78%;max-width:360px;transform:translateX(-105%);transition:transform .3s ease;z-index:1200}.ps-sidebar.active{transform:translateX(0)}.ps-toggle{position:fixed;top:96px;left:10px;z-index:1300;background:#F5E6D3;color:#6b3410;border:none;border-radius:8px;padding:10px 12px;box-shadow:0 8px 20px rgba(0,0,0,.15)}}
     </style>
   </head>
   <body class="problem-sets">
