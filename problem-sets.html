@@ -63,7 +63,7 @@
       <div class="ps-carousel-rotator" id="psCarouselRotator" data-paused="0">
         <div class="ps-carousel-stage" id="psCarouselStage"></div>
       </div>
-      <div class="ps-open-overlay"><button class="ps-open-btn" id="psOpenBtn" aria-label="Open subject">Open</button></div>
+      <div class="ps-open-overlay" id="psOpenOverlay"><button class="ps-open-btn" id="psOpenBtn" aria-label="Open subject">Open</button></div>
     </div>
 
     <main class="ps-container" id="psApp" hidden>
@@ -323,7 +323,6 @@
         const radius = 380; const cardW = 180; const cardH = 240;
         const angleStep = (2*Math.PI)/BOOKS.length;
         stage.innerHTML = '';
-        rotator.setAttribute('data-paused','1');
         rotator.style.transform = `translate(-50%, -50%) rotateY(${(-index*angleStep)}rad) scale(0.75)`;
         BOOKS.forEach((b,i)=>{
           const angle = i*angleStep;
@@ -342,16 +341,19 @@
           div.addEventListener('click', ()=>{
             const now = Date.now();
             if (i===index && now - lastClickTs < 250){ enterSubject(b.id); return; }
+            rotator.setAttribute('data-paused','1');
             lastClickTs = now; index = i; renderCarousel();
           });
           div.addEventListener('dblclick', ()=>{ if (i===index) enterSubject(b.id); });
           div.addEventListener('keydown', (e)=>{
-            if (e.key==='Enter' || e.key===' '){ e.preventDefault(); if (i===index){ enterSubject(b.id); } else { index=i; renderCarousel(); } }
-            if (e.key==='ArrowRight'){ e.preventDefault(); index=(index+1)%BOOKS.length; renderCarousel(); }
-            if (e.key==='ArrowLeft'){ e.preventDefault(); index=(index-1+BOOKS.length)%BOOKS.length; renderCarousel(); }
+            if (e.key==='Enter' || e.key===' '){ e.preventDefault(); if (i===index){ enterSubject(b.id); } else { rotator.setAttribute('data-paused','1'); index=i; renderCarousel(); } }
+            if (e.key==='ArrowRight'){ e.preventDefault(); rotator.setAttribute('data-paused','1'); index=(index+1)%BOOKS.length; renderCarousel(); }
+            if (e.key==='ArrowLeft'){ e.preventDefault(); rotator.setAttribute('data-paused','1'); index=(index-1+BOOKS.length)%BOOKS.length; renderCarousel(); }
           });
           stage.appendChild(div);
         });
+        // place Open button under focused book
+        requestAnimationFrame(positionOpenOverlay);
       }
       renderCarousel();
       shelf.addEventListener('keydown', (e)=>{
@@ -359,6 +361,23 @@
         if (e.key==='ArrowLeft'){ index=(index-1+BOOKS.length)%BOOKS.length; renderCarousel(); }
       });
       openBtn.addEventListener('click', ()=>{ const b=BOOKS[index]; enterSubject(b.id); });
+
+      // Position the Open button under the focused book
+      const openOverlay = document.getElementById('psOpenOverlay');
+      function positionOpenOverlay(){
+        try {
+          const focused = stage.querySelector('.ps-book-card[data-focus="true"]');
+          if (!focused) return;
+          const bookRect = focused.getBoundingClientRect();
+          const shelfRect = shelf.getBoundingClientRect();
+          const cx = bookRect.left + bookRect.width/2 - shelfRect.left;
+          const top = bookRect.bottom - shelfRect.top + 14;
+          openOverlay.style.left = cx + 'px';
+          openOverlay.style.top = top + 'px';
+          openOverlay.style.transform = 'translateX(-50%)';
+        } catch{}
+      }
+      window.addEventListener('resize', positionOpenOverlay);
 
       function enterSubject(subjectId){
         // show app and render sidebar; default lesson of that subject
