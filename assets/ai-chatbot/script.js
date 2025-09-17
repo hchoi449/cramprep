@@ -349,16 +349,29 @@
       // Detect "these times don't work" intent and short-circuit with custom message
       try {
         const msg = userData.message.toLowerCase();
-        const negative = /(don'?t|do not|won'?t|cannot|can\'t|no)/i;
-        const timePhrases = /(time|times|options|slots|schedule|availability)/i;
-        const notWorkPhrases = /(don'?t work|do not work|won'?t work|not work|don'?t fit|don'?t match|can'?t make|can not make|don'?t have|none work|none of these|none of them)/i;
-        if ((negative.test(msg) && timePhrases.test(msg)) || notWorkPhrases.test(msg)) {
+        const negative = /(don'?t|do not|won'?t|cannot|can\'t|no|not)/i;
+        const timePhrases = /(time|times|option|options|slot|slots|schedule|availability|these\s+times|those\s+times)/i;
+        const notWorkPhrases = /(don'?t work|do not work|won'?t work|not work|don'?t fit|do not fit|don'?t match|do not match|can'?t make|can not make|don'?t have|none work|none of these|none of them|don'?t\s*(really)?\s*work\s*(for\s*me)?)/i;
+        const mixedOrder = (new RegExp(`(${negative.source}).*(${timePhrases.source})`,'i').test(msg)) || (new RegExp(`(${timePhrases.source}).*(${negative.source})`,'i').test(msg));
+        if (mixedOrder || notWorkPhrases.test(msg)) {
           const nm = (cachedProfile && cachedProfile.fullName ? String(cachedProfile.fullName).trim() : '') || '';
           const first = (nm.split(' ')[0] || nm || 'there');
           const reply = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">Got it. Thanks ${first}. Someone will contact you through text shortly. Is there anything else I can help with?</div>`, 'bot-message');
           chatBody.appendChild(reply);
           chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
-          if (window.tbpFallbackNotify) try { await window.tbpFallbackNotify(); } catch {}
+          if (window.tbpFallbackNotify) {
+            try { await window.tbpFallbackNotify(); } catch {}
+          } else {
+            // Fallback submit if helper not present
+            try {
+              const raw = localStorage.getItem('tbp_user');
+              const user = raw ? JSON.parse(raw) : {};
+              const studentName = (cachedProfile && cachedProfile.fullName) ? cachedProfile.fullName : (user && (user.fullName || user.email || 'Unknown'));
+              const due = (typeof dueDateIso === 'string' && dueDateIso) ? new Intl.DateTimeFormat('en-US',{ month:'short', day:'numeric', year:'numeric' }).format(new Date(dueDateIso)) : 'Unknown';
+              const payload = { name: studentName, assignment: helpTopic || 'Unknown', dueDate: due };
+              await fetch('https://formspree.io/f/mvgbnkgn', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
+            } catch {}
+          }
           return;
         }
       } catch {}
