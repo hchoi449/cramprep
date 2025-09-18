@@ -14,7 +14,7 @@
       .settings-wrap{width:min(96vw, 1000px);min-height:calc(100vh - 220px);margin:120px auto 0;padding:0 20px 80px}
       .settings-title{font-size:1.8rem;font-weight:800;color:#1a1a1a;margin:0}
       .settings-sub{color:#6b6b6b;margin:6px 0 0}
-      .settings-card{border:1px solid #e5e7eb;border-radius:12px;background:#fff;max-width:640px;margin:0 auto;min-height:560px}
+      .settings-card{border:1px solid #e5e7eb;border-radius:12px;background:#fff;max-width:640px;margin:0 auto;min-height:800px}
       .settings-head{padding:16px 16px;border-bottom:1px solid #f0f0f0}
       .settings-list{display:flex;flex-direction:column}
       .setting-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #f0f0f0}
@@ -111,7 +111,13 @@
           sEmail:'tbp_set_email', sSms:'tbp_set_sms', sAnnouncements:'tbp_set_ann',
           sNewsletters:'tbp_set_news', sDonations:'tbp_set_donate', sStreaks:'tbp_set_streaks'
         };
-        function get(k){ try{ return localStorage.getItem(k)==='1'; }catch{return false;} }
+        function get(k){
+          try{
+            const v = localStorage.getItem(k);
+            if (v === null){ localStorage.setItem(k,'1'); return true; }
+            return v === '1';
+          } catch{ return true; }
+        }
         function set(k,v){ try{ localStorage.setItem(k, v?'1':'0'); }catch{} }
         Object.keys(keys).forEach(id=>{
           const el = document.getElementById(id);
