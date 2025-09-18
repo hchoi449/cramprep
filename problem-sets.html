@@ -675,12 +675,10 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         if (!apiKey) throw new Error('No Gemini key');
         const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
         const topic = `${course.title} → ${subtopic.title} → ${lesson.title}`;
-        const sys = `You are a math problem generator for Pre‑Algebra/Algebra students. Output STRICT JSON only.`;
-        const user = `Create ${count} multiple‑choice questions for the lesson: ${topic}.
-Distribute difficulties evenly across easy, medium, hard and include a 'difficulty' field with one of ["easy","medium","hard"].
-Each problem: stem (LaTeX allowed), options (4 choices as LaTeX strings), correct (index 0-3), explanation (LaTeX).
-If graphing is relevant (e.g., coordinate plane/lines/functions), include a 'graph' field with { expressions: [{ id: 'g1', latex: 'y=x+1' }, ...] } (Desmos LaTeX). Ensure variety so content differs each call.
-Return STRICT JSON exactly: { "problems": [ { "stem": string, "options": [string,string,string,string], "correct": number, "explanation": string, "difficulty": "easy"|"medium"|"hard", "graph"?: { "expressions": [{"id": string, "latex": string}] } } ... ] } with NO prose.`;
+        const sys = `You are a math problem generator for middle/high school math. Output STRICT JSON only.`;
+        const nonce = `${Date.now()}-${Math.floor(Math.random()*1e6)}`;
+        const guidance = lessonGuidance(course, subtopic, lesson);
+        const user = `Seed: ${nonce}\nCreate ${count} multiple‑choice questions for the lesson: ${topic}.\nCoverage: ${guidance}.\nRequirements:\n- Tag each problem with 'difficulty' ∈ {easy, medium, hard}; evenly distribute across difficulties.\n- Strong variation across forms: numeric computation, short word problems, expression evaluation, equation solving, and (when applicable) graph interpretation/creation.\n- Vary constants and structures; avoid repeated templates.\n- Use LaTeX in stems/options/explanations where appropriate.\n- Provide 4 options; 'correct' is the index (0-3).\n- If graphing is relevant, include graph: { expressions: [{ id: 'g1', latex: 'y=x+1' }, ...] } (Desmos LaTeX).\nReturn STRICT JSON exactly: { "problems": [ { "stem": string, "options": [string,string,string,string], "correct": number, "explanation": string, "difficulty": "easy"|"medium"|"hard", "graph"?: { "expressions": [{"id": string, "latex": string}] } } ] } with NO prose.`;
         const body = { contents:[ { role:'user', parts:[ { text: sys + "\n\n" + user } ] } ] };
         const res = await fetch(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) });
         const j = await res.json();
@@ -699,6 +697,56 @@ Return STRICT JSON exactly: { "problems": [ { "stem": string, "options": [string
         return '';
       }
 
+      function lessonGuidance(course, subtopic, lesson){
+        const t = `${(course&&course.title)||''} ${(subtopic&&subtopic.title)||''} ${(lesson&&lesson.title)||''}`.toLowerCase();
+        if (t.includes('place value') || t.includes('rounding')) return 'Place value to millions and thousandths; rounding to given place; estimation sums/differences/products.';
+        if (t.includes('integers')) return 'Integer addition, subtraction, multiplication, division; sign rules; order of operations with integers.';
+        if (t.includes('absolute value')) return 'Absolute value as distance; compare integers/opposites; simple equations with |x|.';
+        if (t.includes('properties')) return 'Commutative, associative, distributive properties; simplify expressions using properties.';
+        if (t.includes('divisibility') || t.includes('prime')) return 'Divisibility tests (2,3,4,5,6,9,10); prime vs composite; prime factorization; factor trees.';
+        if (t.includes('gcf')) return 'Find greatest common factor by prime factors or divisors; apply to simplify expressions and fractions.';
+        if (t.includes('lcm')) return 'Least common multiple by listing or prime powers; common denominators; applications.';
+        if (t.includes('equivalent fractions') || t.includes('simplifying')) return 'Equivalent fractions; reduce to simplest form; generate equivalents; compare fractions.';
+        if (t.includes('add/subtract fractions')) return 'Add/subtract proper/improper and mixed numbers; common denominators; simplify results.';
+        if (t.includes('multiply/divide fractions')) return 'Multiply/divide fractions and mixed numbers; reciprocals; cancel common factors; applications.';
+        if (t.includes('word problems') && t.includes('fraction')) return 'Fraction word problems; part‑whole; multi‑step with mixed numbers; units.';
+        if (t.includes('operations with decimals')) return 'Decimal addition/subtraction/multiplication/division; place value alignment; estimation.';
+        if (t.includes('convert fractions') || t.includes('decimals')) return 'Convert fractions↔decimals via division/termination/repeating; compare and order.';
+        if (t.includes('percent of a number')) return 'Percent of a number; find part/whole/percent; multi‑step contexts.';
+        if (t.includes('discount') || t.includes('percent change')) return 'Markup/markdown, tax, tip; percent increase/decrease; multi‑step.';
+        if (t.includes('simple interest')) return 'Simple interest I=Prt; compute interest and total; units and time conversion.';
+        if (t.includes('unit rate') || t.includes('ratios')) return 'Ratios, rates, unit rate; equivalent ratios; word problems; scaling.';
+        if (t.includes('proportional') || t.includes('proportions')) return 'Proportional relationships; tables; constant of proportionality; solve proportions.';
+        if (t.includes('scale drawings') || t.includes('maps')) return 'Scale factors; map distances; convert between actual and scaled measurements.';
+        if (t.includes('variables') || t.includes('evaluating expressions')) return 'Substitute values; evaluate expressions; use order of operations.';
+        if (t.includes('combining like terms')) return 'Combine like terms; coefficients; simplify multi‑term expressions; distribute then combine.';
+        if (t.includes('distributive')) return 'Apply a(b+c)=ab+ac; factor simple expressions; mental math with distributive property.';
+        if (t.includes('writing expressions')) return 'Translate phrases to algebraic expressions; identify operation words; structure.';
+        if (t.includes('one-step equations')) return 'Solve one‑step linear equations with integers/fractions/decimals; check solutions.';
+        if (t.includes('two-step equations')) return 'Solve two‑step linear equations; inverse operations; check solutions.';
+        if (t.includes('inequalities')) return 'Solve one‑step inequalities; graph on number line; open/closed circles; test points.';
+        if (t.includes('pemdas')) return 'Order of operations with integers/fractions/decimals; nested parentheses.';
+        if (t.includes('integer exponents')) return 'Squares, cubes; exponent rules (intro); evaluate simple powers.';
+        if (t.includes('roots')) return 'Square/cube roots conceptually; perfect squares/cubes; estimate roots.';
+        if (t.includes('scientific notation')) return 'Write/interpret scientific notation; convert standard↔scientific; operations (intro).';
+        if (t.includes('points, lines, angles')) return 'Angle types and measures; complementary/supplementary/vertical; compute unknowns.';
+        if (t.includes('triangles') || t.includes('quadrilaterals')) return 'Classify triangles/quadrilaterals; interior angle sums; missing angles.';
+        if (t.includes('perimeter & area') || t.includes('area') || t.includes('perimeter')) return 'Perimeter and area of rectangles, triangles, parallelograms, circles; composite figures.';
+        if (t.includes('surface') || t.includes('volume')) return 'Surface area and volume of rectangular prisms and intro cylinders; nets.';
+        if (t.includes('pythagorean')) return 'Pythagorean theorem; find missing side; simple applications on grid.';
+        if (t.includes('plotting points')) return 'Plot in all quadrants; identify coordinates; reflect across axes.';
+        if (t.includes('tables → graphs') || t.includes('pattern')) return 'From tables to graphs; identify linear patterns; describe rules.';
+        if (t.includes('arithmetic sequences')) return 'Arithmetic sequences; common difference; nth term (intro).';
+        if (t.includes('mean, median, mode')) return 'Compute mean/median/mode/range; interpret; outliers effect.';
+        if (t.includes('dot plots') || t.includes('histograms') || t.includes('box plots')) return 'Create/read dot plots, histograms, box plots; compare distributions.';
+        if (t.includes('theoretical') || t.includes('experimental probability')) return 'Compute simple probabilities; fractions/percents; run experiments vs theory.';
+        if (t.includes('compound probability')) return 'Independent events; product rule; simple tree diagrams.';
+        if (t.includes('customary') || t.includes('metric')) return 'Unit identification and conversions within systems; relative sizes.';
+        if (t.includes('unit conversions') || t.includes('dimensional')) return 'Unit conversions via dimensional analysis; set up conversion factors.';
+        if (t.includes('rates as “per”') || t.includes('rates as "per"')) return 'Interpret per units (mph, $/lb, etc.); compute totals and rates.';
+        return 'Create varied problems matching this lesson topic with appropriate coverage.';
+      }
+
       function parseJsonFromText(t){
         if (!t) return null;
         // try fenced block
@@ -709,14 +757,56 @@ Return STRICT JSON exactly: { "problems": [ { "stem": string, "options": [string
 
       function fallbackProblems(lesson, count){
         const out = [];
+        const slug = (lesson && lesson.slug || '').toLowerCase();
+        function rand(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
         for (let i=0;i<count;i++){
-          const n = i+1;
-          const stem = `Solve $x+${n}=${n*2}$.`;
-          const ans = n; const opts = [ans, ans+1, ans-1, ans+2].map(v=> `$${v}$`);
-          out.push({ stem, options: opts, correct:0, explanation:`$x=${ans}$` });
-        }
-        if (/graph|plot|coordinate|line/i.test(lesson.slug)){
-          out[0].graph = { expressions:[ { id:'l1', latex:'y=x+1' } ] };
+          if (slug.includes('place-value')){
+            const n = rand(1000,999999);
+            const place = ['nearest ten','nearest hundred','nearest thousand'][rand(0,2)];
+            const rounded = place==='nearest ten'? Math.round(n/10)*10 : place==='nearest hundred'? Math.round(n/100)*100 : Math.round(n/1000)*1000;
+            out.push({ stem:`Round $${n}$ to the ${place}.`, options:[`$${rounded}$`,`$${rounded+ (place==='nearest ten'?10:place==='nearest hundred'?100:1000)}$`,`$${rounded-(place==='nearest ten'?10:place==='nearest hundred'?100:1000)}$`,`$${rounded + (place==='nearest ten'?5:place==='nearest hundred'?50:500)}$`], correct:0, explanation:`Rounding to the ${place} gives $${rounded}$.`, difficulty: i< count/3?'easy': i< 2*count/3?'medium':'hard' });
+          } else if (slug.includes('integer-operations')){
+            const a = rand(-20,20), b = rand(-20,20); const op = ['+','-','×','÷'][rand(0,3)];
+            let ans; if (op==='+') ans=a+b; else if (op==='-') ans=a-b; else if (op==='×') ans=a*b; else { const bb = b||1; ans = Math.trunc(a/bb); }
+            const opts = [ans, ans+1, ans-1, ans+2].map(v=> `$${v}$`);
+            out.push({ stem:`Compute $${a} ${op} ${b}$.`, options: _.shuffle(opts), correct:0, explanation:`$= ${ans}$`, difficulty: i< count/3?'easy': i< 2*count/3?'medium':'hard' });
+          } else if (slug.includes('absolute-value')){
+            const a = rand(-15,15); const ans = Math.abs(a);
+            out.push({ stem:`Evaluate $|${a}|$.`, options:[`$${ans}$`,`$${-ans}$`,`$${ans+1}$`,`$${ans-1}$`], correct:0, explanation:`Distance from 0 is $${ans}$.`, difficulty: i< count/3?'easy': i< 2*count/3?'medium':'hard' });
+          } else if (slug.includes('equivalent-simplifying')){
+            const a = rand(2,12), b = a*rand(2,10); const c = rand(2,12), d = c*rand(2,10);
+            const g = (x,y)=> y? g(y, x%y): x; const num = b/g(b,a), den = a/g(b,a);
+            out.push({ stem:`Simplify $\frac{${b}}{${a}}$.`, options:[`$\\dfrac{${num}}{${den}}$`,`$\\dfrac{${num+1}}{${den}}$`,`$\\dfrac{${num}}{${den+1}}$`,`$\\dfrac{${num-1}}{${den-1}}$`], correct:0, explanation:`Divide numerator and denominator by GCF.`, difficulty: i< count/3?'easy': i< 2*count/3?'medium':'hard' });
+          } else if (slug.includes('decimal-operations')){
+            const a = (rand(10,999)/10).toFixed(1), b = (rand(10,999)/10).toFixed(1);
+            const op = ['+','-','×'][rand(0,2)];
+            let ans = op==='+'? (Number(a)+Number(b)) : op==='-'? (Number(a)-Number(b)) : (Number(a)*Number(b));
+            ans = Number(ans.toFixed(2));
+            const opts = [ans, Number((ans+0.1).toFixed(2)), Number((ans-0.1).toFixed(2)), Number((ans+1).toFixed(2))].map(v=> `$${v}$`);
+            out.push({ stem:`Compute $${a} ${op} ${b}$.`, options: _.shuffle(opts), correct:0, explanation:`$= ${ans}$.`, difficulty: i< count/3?'easy': i< 2*count/3?'medium':'hard' });
+          } else if (slug.includes('convert-percent')){
+            const p = rand(5,95);
+            out.push({ stem:`Convert $${p}\%$ to a decimal.`, options:[`$${(p/100).toFixed(2)}$`,`$${p}$`,`$${(p*100)}$`,`$${(100/p).toFixed(2)}$`], correct:0, explanation:`Divide by $100$: $${(p/100).toFixed(2)}$.`, difficulty: i< count/3?'easy': i< 2*count/3?'medium':'hard' });
+          } else if (slug.includes('one-step-equations')){
+            const a = rand(2,12), x = rand(-10,10), b = a*x; const form = rand(0,1)? `${a}x=${b}` : `x+${a}=${a+x}`;
+            const ans = x;
+            out.push({ stem:`Solve $${form}$.`, options:[`$${ans}$`,`$${ans+1}$`,`$${ans-1}$`,`$${ans+2}$`], correct:0, explanation:`Inverse operations give $x=${ans}$.`, difficulty: i< count/3?'easy': i< 2*count/3?'medium':'hard' });
+          } else if (slug.includes('pemdas')){
+            const a = rand(1,9), b = rand(1,9), c = rand(1,9);
+            const stem = `$${a}+(${b}\times ${c})$`;
+            const ans = a + b*c;
+            out.push({ stem:`Evaluate ${stem}.`, options:[`$${ans}$`,`$${a*b+c}$`,`$${a+b+c}$`,`$${(a+b)*c}$`], correct:0, explanation:`Multiply first: ${b}×${c}=${b*c}, then add ${a}.`, difficulty: i< count/3?'easy': i< 2*count/3?'medium':'hard' });
+          } else if (slug.includes('plotting-points') || slug.includes('coordinate')){
+            const x = rand(-5,5), y = rand(-5,5);
+            const graph = { expressions:[ { id:'p1', latex:`(x-${x})^2+(y-${y})^2=0` } ] };
+            out.push({ stem:`Which point is shown?`, options:[`$(${x},${y})$`,`$(${y},${x})$`,`$(${x},${-y})$`,`$(${y},${-x})$`], correct:0, explanation:`Coordinates read (x,y).`, difficulty: i< count/3?'easy': i< 2*count/3?'medium':'hard', graph });
+          } else {
+            // generic linear solve
+            const n = rand(1,10);
+            const stem = `Solve $x+${n}=${n*2}$.`;
+            const ans = n; const opts = [ans, ans+1, ans-1, ans+2].map(v=> `$${v}$`);
+            out.push({ stem, options: _.shuffle(opts), correct:0, explanation:`$x=${ans}$`, difficulty: i< count/3?'easy': i< 2*count/3?'medium':'hard' });
+          }
         }
         return out;
       }
