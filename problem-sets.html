@@ -536,7 +536,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         body.appendChild(notes);
         try { if (window.renderMathInElement) { renderMathInElement(notes, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false}] }); } } catch{}
 
-        // Generate 10 problems (increasing difficulty). Prefer Gemini; fallback to local generator.
+        // Generate 10 problems adaptively using Gemini (no caching to keep problems fresh each load).
         let problems = Array.isArray(lesson.questions) && lesson.questions.length ? lesson.questions : [];
         const cacheKey = `ps-problems-${course.id}-${subtopic.id}-${lesson.slug}`;
         if (!problems.length){
@@ -548,33 +548,70 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         if (!problems.length){
           const waiting = document.createElement('div'); waiting.textContent = 'Generating problems…'; waiting.style.margin = '12px 0'; body.appendChild(waiting);
           try {
-            problems = await generateProblemsForLesson(course, subtopic, lesson, 10);
-            try { localStorage.setItem(cacheKey, JSON.stringify(problems)); } catch{}
+            problems = await generateProblemsForLesson(course, subtopic, lesson, 30); // get a pool
           } catch {
-            problems = fallbackProblems(lesson, 10);
+            problems = fallbackProblems(lesson, 30);
           } finally {
             waiting.remove();
           }
         }
 
         if (problems.length){
+          // Remove any existing quiz container for this lesson to avoid duplicates
+          const existingQuiz = document.getElementById(`ps-quiz-${course.id}-${subtopic.id}-${lesson.slug}`);
+          if (existingQuiz && existingQuiz.parentNode) existingQuiz.parentNode.removeChild(existingQuiz);
           const quiz = document.createElement('div'); quiz.style.marginTop='16px';
-          const h = document.createElement('h4'); h.textContent = 'Problem Set (10)'; quiz.appendChild(h);
+          quiz.className = 'ps-quiz-root';
+          quiz.id = `ps-quiz-${course.id}-${subtopic.id}-${lesson.slug}`;
+          const h = document.createElement('h4'); h.textContent = 'Adaptive Problem Set (10)'; quiz.appendChild(h);
           const nav = document.createElement('div'); nav.style.display='flex'; nav.style.gap='8px'; nav.style.margin='8px 0';
           const idxLabel = document.createElement('div'); idxLabel.textContent = '1 / ' + problems.length; nav.appendChild(idxLabel);
           quiz.appendChild(nav);
 
-          const stage = document.createElement('div'); stage.className='ps-q-stage'; quiz.appendChild(stage);
+          const stage = document.createElement('div'); stage.className='ps-q-stage'; stage.innerHTML=''; quiz.appendChild(stage);
           const results = document.createElement('div'); results.style.margin='8px 0'; quiz.appendChild(results);
 
           let scoreBest = getProgress(`ps-best-${course.id}-${subtopic.id}-${lesson.slug}`, 0);
-          let current = 0; let correctCount = 0;
+          let step = 0; let correctCount = 0;
+          // group problems by difficulty
+          const groups = { easy:[], medium:[], hard:[] };
+          problems.forEach((p, idx)=>{
+            const d = String((p.difficulty||'').toLowerCase());
+            if (d==='easy' || d==='medium' || d==='hard') groups[d].push({p, idx});
+            else {
+              // heuristics: earlier problems easier
+              const g = idx < problems.length/3 ? 'easy' : (idx < 2*problems.length/3 ? 'medium' : 'hard');
+              groups[g].push({p, idx});
+            }
+          });
+          const used = new Set();
+          let currentDifficulty = 'easy';
 
-          function renderOne(i){
+          function pickNextProblem(){
+            const order = currentDifficulty==='easy' ? ['easy','medium','hard'] : (currentDifficulty==='medium' ? ['medium','easy','hard'] : ['hard','medium','easy']);
+            for (const g of order){
+              const pool = groups[g].filter(x=> !used.has(x.idx));
+              if (pool.length){
+                const choice = pool[Math.floor(Math.random()*pool.length)];
+                used.add(choice.idx);
+                return { q: choice.p, idx: choice.idx, g };
+              }
+            }
+            return null;
+          }
+
+          function renderOne(){
+            // ensure single-question rendering
             stage.innerHTML = '';
-            const q = problems[i];
+            const picked = pickNextProblem();
+            if (!picked){
+              const pct = correctCount / Math.max(1, step); results.innerHTML = `Score: ${Math.round(pct*100)}%`;
+              if (pct > scoreBest){ scoreBest = pct; saveProgress(`ps-best-${course.id}-${subtopic.id}-${lesson.slug}`, scoreBest); renderSidebar(); }
+              return;
+            }
+            const q = picked.q;
             const card = document.createElement('div'); card.className='ps-q-card'; stage.appendChild(card);
-            const stem = document.createElement('div'); stem.className='ps-stem'; stem.textContent = `${i+1}. ${q.stem}`; card.appendChild(stem);
+            const stem = document.createElement('div'); stem.className='ps-stem'; stem.textContent = `${step+1}. ${q.stem}`; card.appendChild(stem);
             try { if (window.renderMathInElement) { renderMathInElement(stem, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false}] }); } } catch{}
 
             // Desmos container if graph is requested
@@ -603,21 +640,31 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
               const chosenBtn = [...opts.children].find(ch=> ch.classList.contains('sel'));
               if (!chosenBtn){ results.textContent='Please select an answer before submitting.'; results.style.color='#8B4513'; return; }
               const chosen = Number(chosenBtn.dataset.chosen);
-              const correct = chosen === q.correct; if (correct) correctCount++;
+              const correct = chosen === q.correct; if (correct) { correctCount++; }
               [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
               submit.disabled = true; next.disabled = false;
               explain.innerHTML = correct ? `<span style="color:#155e2b"><i class='bi bi-check-circle'></i> Correct.</span> ${q.explanation||''}` : `<span style=\"color:#991b1b\"><i class='bi bi-x-circle'></i> Incorrect.</span> ${q.explanation||''}`;
+              // adapt difficulty
+              if (correct){
+                currentDifficulty = currentDifficulty==='easy' ? 'medium' : (currentDifficulty==='medium' ? 'hard' : 'hard');
+              } else {
+                currentDifficulty = currentDifficulty==='hard' ? 'medium' : (currentDifficulty==='medium' ? 'easy' : 'easy');
+              }
             });
             next.addEventListener('click', ()=>{
-              if (!next.disabled){ current++; if (current < problems.length){ idxLabel.textContent = `${current+1} / ${problems.length}`; renderOne(current); }
-              else {
-                const pct = correctCount / problems.length; results.innerHTML = `Score: ${Math.round(pct*100)}%`;
-                if (pct > scoreBest){ scoreBest = pct; saveProgress(`ps-best-${course.id}-${subtopic.id}-${lesson.slug}`, scoreBest); renderSidebar(); }
-              } }
+              if (!next.disabled){
+                step++;
+                if (step < 10){ idxLabel.textContent = `${step+1} / 10`; renderOne(); }
+                else {
+                  const pct = correctCount / 10; results.innerHTML = `Score: ${Math.round(pct*100)}%`;
+                  if (pct > scoreBest){ scoreBest = pct; saveProgress(`ps-best-${course.id}-${subtopic.id}-${lesson.slug}`, scoreBest); renderSidebar(); }
+                }
+              }
             });
             card.appendChild(submit); card.appendChild(next); card.appendChild(explain);
           }
-          renderOne(0);
+          idxLabel.textContent = `1 / 10`;
+          renderOne();
           body.appendChild(quiz);
         }
       }
@@ -630,8 +677,10 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         const topic = `${course.title} → ${subtopic.title} → ${lesson.title}`;
         const sys = `You are a math problem generator for Pre‑Algebra/Algebra students. Output STRICT JSON only.`;
         const user = `Create ${count} multiple‑choice questions for the lesson: ${topic}.
-Each question should include: stem (LaTeX allowed), options (4 choices as LaTeX strings), correct (index 0-3), explanation (LaTeX). Order questions from easy to hard. If graphing is relevant to this lesson (e.g., coordinate plane, lines, functions), include a 'graph' field with { expressions: [{ id: 'g1', latex: 'y=x+1' }, ...] } using Desmos LaTeX.
-Return STRICT JSON of the form { "problems": [ { "stem": string, "options": [string,string,string,string], "correct": number, "explanation": string, "graph"?: { "expressions": [{"id": string, "latex": string}] } } ... ] } with NO prose.`;
+Distribute difficulties evenly across easy, medium, hard and include a 'difficulty' field with one of ["easy","medium","hard"].
+Each problem: stem (LaTeX allowed), options (4 choices as LaTeX strings), correct (index 0-3), explanation (LaTeX).
+If graphing is relevant (e.g., coordinate plane/lines/functions), include a 'graph' field with { expressions: [{ id: 'g1', latex: 'y=x+1' }, ...] } (Desmos LaTeX). Ensure variety so content differs each call.
+Return STRICT JSON exactly: { "problems": [ { "stem": string, "options": [string,string,string,string], "correct": number, "explanation": string, "difficulty": "easy"|"medium"|"hard", "graph"?: { "expressions": [{"id": string, "latex": string}] } } ... ] } with NO prose.`;
         const body = { contents:[ { role:'user', parts:[ { text: sys + "\n\n" + user } ] } ] };
         const res = await fetch(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) });
         const j = await res.json();
