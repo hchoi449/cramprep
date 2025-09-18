@@ -536,11 +536,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         body.appendChild(notes);
         try { if (window.renderMathInElement) { renderMathInElement(notes, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false}] }); } } catch{}
 
-        // Generate initial 1-2 problems immediately (prefer Gemini with short timeout), then fetch the rest in the background
-        let initialProblems = [];
-        try {
-          initialProblems = await generateWithTimeout(course, subtopic, lesson, 2, 3500);
-        } catch { initialProblems = fallbackProblems(lesson, 2); }
+        // Generate initial 1-2 problems immediately, then fetch the rest in the background
+        const initialProblems = fallbackProblems(lesson, 2);
         let problems = initialProblems.slice();
         const groups = { easy:[], medium:[], hard:[] };
         let globalId = 0; const used = new Set();
@@ -578,9 +575,6 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           quiz.className = 'ps-quiz-root';
           quiz.id = `ps-quiz-${course.id}-${subtopic.id}-${lesson.slug}`;
           const h = document.createElement('h4'); h.textContent = 'Adaptive Problem Set (10)'; quiz.appendChild(h);
-          const regen = document.createElement('button'); regen.className='btn btn-secondary'; regen.textContent='Regenerate'; regen.style.marginLeft='8px';
-          regen.addEventListener('click', ()=>{ try { window.tbpRegenerateLesson && window.tbpRegenerateLesson(course.id, subtopic.id, lesson.slug); } catch{} });
-          quiz.appendChild(regen);
           const nav = document.createElement('div'); nav.style.display='flex'; nav.style.gap='8px'; nav.style.margin='8px 0';
           const idxLabel = document.createElement('div'); idxLabel.textContent = '1 / ' + problems.length; nav.appendChild(idxLabel);
           quiz.appendChild(nav);
@@ -696,19 +690,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         return probs.slice(0, count).map(p=>({ stem: String(p.stem||''), options: (p.options||[]).slice(0,4).map(String), correct: Number(p.correct||0), explanation: String(p.explanation||''), graph: p.graph && p.graph.expressions ? { expressions: p.graph.expressions } : undefined }));
       }
 
-      // Helper: short-timeout generation for initial problems
-      async function generateWithTimeout(course, subtopic, lesson, count, ms){
-        const controller = new AbortController();
-        const t = setTimeout(()=> controller.abort(), ms);
-        try {
-          const p = generateProblemsForLesson(course, subtopic, lesson, count);
-          const res = await Promise.race([
-            p,
-            new Promise((_, rej)=> setTimeout(()=> rej(new Error('timeout')), ms))
-          ]);
-          return res;
-        } finally { clearTimeout(t); }
-      }
+      
 
       function getGeminiKey(){
         try { if (window.TBP_GEMINI_API_KEY) return window.TBP_GEMINI_API_KEY; } catch{}
