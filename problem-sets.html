@@ -108,6 +108,60 @@
     <script>
       // Subject → Subtopics → Lessons; each lesson has notes and MC questions
       const COURSES = [
+        { id:'algebra-1', title:'Pre-Algebra', subtopics:[
+          { id:'numbers-operations', title:'Numbers & Operations', lessons:[
+            { slug:'overview', title:'Overview', locked:false,
+              notes:`# Numbers & Operations\n- Place value; rounding & estimation\n- Integers: add/subtract/multiply/divide\n- Absolute value & opposites\n- Properties: commutative, associative, distributive` }
+          ]},
+          { id:'factors-multiples', title:'Factors & Multiples', lessons:[
+            { slug:'overview', title:'Overview', locked:false,
+              notes:`# Factors & Multiples\n- Divisibility rules; prime vs composite\n- Prime factorization\n- Greatest common factor (GCF)\n- Least common multiple (LCM)` }
+          ]},
+          { id:'fractions', title:'Fractions', lessons:[
+            { slug:'overview', title:'Overview', locked:false,
+              notes:`# Fractions\n- Equivalent fractions; simplifying\n- Add/subtract fractions & mixed numbers\n- Multiply/divide fractions & mixed numbers\n- Fraction word problems` }
+          ]},
+          { id:'decimals', title:'Decimals', lessons:[
+            { slug:'overview', title:'Overview', locked:false,
+              notes:`# Decimals\n- Place value; rounding\n- Operations with decimals\n- Convert fractions ↔ decimals` }
+          ]},
+          { id:'percents', title:'Percents', lessons:[
+            { slug:'overview', title:'Overview', locked:false,
+              notes:`# Percents\n- Convert percent ↔ decimal ↔ fraction\n- Percent of a number\n- Discount, tax, tip; percent change\n- Simple interest (intro)` }
+          ]},
+          { id:'ratios-rates-proportions', title:'Ratios, Rates & Proportions', lessons:[
+            { slug:'overview', title:'Overview', locked:false,
+              notes:`# Ratios, Rates & Proportions\n- Ratios & unit rate\n- Proportional relationships & tables\n- Scale drawings & maps\n- Constant of proportionality` }
+          ]},
+          { id:'expressions', title:'Expressions & Properties', lessons:[
+            { slug:'overview', title:'Overview', locked:false,
+              notes:`# Expressions & Properties\n- Variables & evaluating expressions\n- Combining like terms\n- Distributive property\n- Writing expressions from word phrases` }
+          ]},
+          { id:'equations-inequalities', title:'Equations & Inequalities', lessons:[
+            { slug:'overview', title:'Overview', locked:false,
+              notes:`# Equations & Inequalities\n- One-step equations\n- Two-step equations\n- One-step inequalities; graph on a number line\n- Word problems → equations/inequalities` }
+          ]},
+          { id:'order-exponents', title:'Order of Operations & Exponents (Intro)', lessons:[
+            { slug:'overview', title:'Overview', locked:false,
+              notes:`# Order of Operations & Exponents (Intro)\n- PEMDAS with integers/fractions/decimals\n- Integer exponents; squares & cubes\n- Square/cube roots (conceptual)\n- Scientific notation (intro)` }
+          ]},
+          { id:'geometry-foundations', title:'Geometry Foundations', lessons:[
+            { slug:'overview', title:'Overview', locked:false,
+              notes:`# Geometry Foundations\n- Points, lines, angles; angle pairs (complementary, supplementary, vertical)\n- Triangles & quadrilaterals (classification, interior angles)\n- Perimeter & area (rectangles, triangles, parallelograms, circles)\n- Surface area & volume (rectangular prisms; intro cylinders)\n- Pythagorean Theorem (intro & simple applications)` }
+          ]},
+          { id:'coordinate-plane', title:'Coordinate Plane & Patterns', lessons:[
+            { slug:'overview', title:'Overview', locked:false,
+              notes:`# Coordinate Plane & Patterns\n- Plotting points in all quadrants\n- Tables → graphs; pattern rules\n- Arithmetic sequences (intro)` }
+          ]},
+          { id:'statistics-probability', title:'Statistics & Probability', lessons:[
+            { slug:'overview', title:'Overview', locked:false,
+              notes:`# Statistics & Probability\n- Mean, median, mode, range\n- Dot plots, histograms, box plots (reading & making)\n- Theoretical vs experimental probability (single events)\n- Simple compound probability (independent events)` }
+          ]},
+          { id:'measurement-conversions', title:'Measurement & Conversions', lessons:[
+            { slug:'overview', title:'Overview', locked:false,
+              notes:`# Measurement & Conversions\n- Customary & metric units\n- Unit conversions; dimensional analysis (intro)\n- Rates as “per” (mph, $/lb, etc.)` }
+          ]},
+        ]},
         { id:'geometry', title:'Geometry', subtopics:[
           { id:'triangles', title:'Triangles & Congruence', lessons:[
             { slug:'triangle-sum', title:'Triangle Angle Sum', locked:false,
