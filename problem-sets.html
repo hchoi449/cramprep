@@ -18,6 +18,8 @@
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Desmos Graphing Calculator API -->
+    <script src="https://www.desmos.com/api/v1.6/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"></script>
     <!-- Light-weight stand-in: we’ll use a simplified renderer approach that emulates Perseus style -->
     <style>
       .ps-container{display:grid;grid-template-columns:420px minmax(0,1fr);gap:32px;width:min(98vw, 1680px);max-width:1680px;margin:60px auto 40px;padding:0 24px}
@@ -527,65 +529,96 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
       function renderLessonContent(course, subtopic, lesson){
         const body = document.getElementById('psBody');
         body.innerHTML = '';
+        // Overview block for the lesson (short intro)
         const notes = document.createElement('div');
-        notes.innerHTML = mdToHtml(lesson.notes||'');
+        const intro = (lesson.notes && lesson.notes.trim()) ? lesson.notes.trim() : 'Quick overview will be generated for this lesson.';
+        notes.innerHTML = mdToHtml(intro);
         body.appendChild(notes);
         try { if (window.renderMathInElement) { renderMathInElement(notes, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false}] }); } } catch{}
 
-        if ((lesson.questions||[]).length){
+        // Generate 10 problems (increasing difficulty). If lesson.questions exists, use it; otherwise synthesize.
+        const problems = Array.isArray(lesson.questions) && lesson.questions.length ? lesson.questions : generateProblemsForLesson(course.id, subtopic.id, lesson.slug, 10);
+
+        if (problems.length){
           const quiz = document.createElement('div'); quiz.style.marginTop='16px';
-          const h = document.createElement('h4'); h.textContent = 'Problem Set'; quiz.appendChild(h);
+          const h = document.createElement('h4'); h.textContent = 'Problem Set (10)'; quiz.appendChild(h);
+          const nav = document.createElement('div'); nav.style.display='flex'; nav.style.gap='8px'; nav.style.margin='8px 0';
+          const idxLabel = document.createElement('div'); idxLabel.textContent = '1 / ' + problems.length; nav.appendChild(idxLabel);
+          quiz.appendChild(nav);
+
+          const stage = document.createElement('div'); stage.className='ps-q-stage'; quiz.appendChild(stage);
           const results = document.createElement('div'); results.style.margin='8px 0'; quiz.appendChild(results);
 
           let scoreBest = getProgress(`ps-best-${course.id}-${subtopic.id}-${lesson.slug}`, 0);
-          function renderQuiz(){
-            const qWrap = document.createElement('div'); qWrap.className='ps-quiz';
-            let correctCount = 0; let answered = 0; results.textContent='';
-            (lesson.questions).forEach((q, qi)=>{
-              const card = document.createElement('div'); card.className='ps-q-card';
-              const stem = document.createElement('div'); stem.className='ps-stem'; stem.textContent = `${qi+1}. ${q.stem}`; card.appendChild(stem);
-              try { if (window.renderMathInElement) { renderMathInElement(stem, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false}] }); } } catch{}
-              const opts = document.createElement('div'); opts.className='ps-opts';
-              const order = _.shuffle(q.options.map((opt, idx)=> ({opt, idx})));
-              order.forEach((pair, oi)=>{
-                const btn = document.createElement('button'); btn.type='button'; btn.className='ps-opt'; btn.textContent = pair.opt; btn.setAttribute('aria-pressed','false');
-                btn.addEventListener('click', ()=>{
-                  if (btn.dataset.locked==='1') return;
-                  [...opts.children].forEach(ch=>{ ch.classList.remove('sel'); ch.setAttribute('aria-pressed','false'); });
-                  btn.classList.add('sel'); btn.setAttribute('aria-pressed','true');
-                  btn.dataset.chosen = pair.idx;
-                });
-                opts.appendChild(btn);
+          let current = 0; let correctCount = 0;
+
+          function renderOne(i){
+            stage.innerHTML = '';
+            const q = problems[i];
+            const card = document.createElement('div'); card.className='ps-q-card'; stage.appendChild(card);
+            const stem = document.createElement('div'); stem.className='ps-stem'; stem.textContent = `${i+1}. ${q.stem}`; card.appendChild(stem);
+            try { if (window.renderMathInElement) { renderMathInElement(stem, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false}] }); } } catch{}
+
+            // Desmos container if graph is requested
+            if (q.graph){
+              const graphDiv = document.createElement('div'); graphDiv.style.height='280px'; graphDiv.style.border='1px solid #eee'; graphDiv.style.borderRadius='10px'; graphDiv.style.margin='10px 0'; card.appendChild(graphDiv);
+              try { const calc = Desmos.GraphingCalculator(graphDiv, { expressions:false }); (q.graph.expressions||[]).forEach(expr=> calc.setExpression(expr)); } catch{}
+            }
+
+            const opts = document.createElement('div'); opts.className='ps-opts'; card.appendChild(opts);
+            const order = _.shuffle(q.options.map((opt, idx)=> ({opt, idx})));
+            order.forEach(pair=>{
+              const btn = document.createElement('button'); btn.type='button'; btn.className='ps-opt'; btn.textContent = pair.opt; btn.setAttribute('aria-pressed','false');
+              btn.addEventListener('click', ()=>{
+                if (btn.dataset.locked==='1') return;
+                [...opts.children].forEach(ch=>{ ch.classList.remove('sel'); ch.setAttribute('aria-pressed','false'); });
+                btn.classList.add('sel'); btn.setAttribute('aria-pressed','true');
+                btn.dataset.chosen = pair.idx;
               });
-              card.appendChild(opts);
-              try { if (window.renderMathInElement) { renderMathInElement(opts, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false}] }); } } catch{}
-              const submit = document.createElement('button'); submit.className='btn btn-primary'; submit.textContent='Submit';
-              const explain = document.createElement('div'); explain.className='ps-explain';
-              submit.addEventListener('click', ()=>{
-                const chosenBtn = [...opts.children].find(ch=> ch.classList.contains('sel'));
-                if (!chosenBtn){ results.textContent='Please select an answer before submitting.'; results.style.color='#8B4513'; return; }
-                const chosen = Number(chosenBtn.dataset.chosen);
-                answered++; const correct = chosen === q.correct; if (correct) correctCount++;
-                [...opts.children].forEach((ch,i)=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
-                submit.disabled = true;
-                explain.innerHTML = correct ? `<span style="color:#155e2b"><i class='bi bi-check-circle'></i> Correct.</span> ${q.explanation}` : `<span style="color:#991b1b"><i class='bi bi-x-circle'></i> Incorrect.</span> ${q.explanation}`;
-                if (answered === lesson.questions.length){
-                  const pct = correctCount / lesson.questions.length; results.innerHTML = `Score: ${Math.round(pct*100)}%`;
-                  if (pct > scoreBest){ scoreBest = pct; saveProgress(`ps-best-${course.id}-${subtopic.id}-${lesson.slug}`, scoreBest); renderSidebar(); }
-                  const retry = document.createElement('button'); retry.className='btn btn-secondary'; retry.style.marginLeft='8px'; retry.textContent='Retry';
-                  retry.addEventListener('click', ()=>{ body.scrollIntoView({behavior:'smooth',block:'start'}); quiz.innerHTML=''; quiz.appendChild(h); quiz.appendChild(results); renderQuiz(); });
-                  results.appendChild(retry);
-                }
-              });
-              card.appendChild(submit);
-              card.appendChild(explain);
-              qWrap.appendChild(card);
+              opts.appendChild(btn);
             });
-            quiz.appendChild(qWrap);
+            try { if (window.renderMathInElement) { renderMathInElement(opts, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false}] }); } } catch{}
+            const submit = document.createElement('button'); submit.className='btn btn-primary'; submit.textContent='Submit';
+            const next = document.createElement('button'); next.className='btn btn-secondary'; next.textContent='Next'; next.disabled = true; next.style.marginLeft='8px';
+            const explain = document.createElement('div'); explain.className='ps-explain';
+            submit.addEventListener('click', ()=>{
+              const chosenBtn = [...opts.children].find(ch=> ch.classList.contains('sel'));
+              if (!chosenBtn){ results.textContent='Please select an answer before submitting.'; results.style.color='#8B4513'; return; }
+              const chosen = Number(chosenBtn.dataset.chosen);
+              const correct = chosen === q.correct; if (correct) correctCount++;
+              [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
+              submit.disabled = true; next.disabled = false;
+              explain.innerHTML = correct ? `<span style="color:#155e2b"><i class='bi bi-check-circle'></i> Correct.</span> ${q.explanation||''}` : `<span style=\"color:#991b1b\"><i class='bi bi-x-circle'></i> Incorrect.</span> ${q.explanation||''}`;
+            });
+            next.addEventListener('click', ()=>{
+              if (!next.disabled){ current++; if (current < problems.length){ idxLabel.textContent = `${current+1} / ${problems.length}`; renderOne(current); }
+              else {
+                const pct = correctCount / problems.length; results.innerHTML = `Score: ${Math.round(pct*100)}%`;
+                if (pct > scoreBest){ scoreBest = pct; saveProgress(`ps-best-${course.id}-${subtopic.id}-${lesson.slug}`, scoreBest); renderSidebar(); }
+              } }
+            });
+            card.appendChild(submit); card.appendChild(next); card.appendChild(explain);
           }
-          renderQuiz();
+          renderOne(0);
           body.appendChild(quiz);
         }
+      }
+
+      // Very lightweight generator to seed questions; in production, replace with server AI
+      function generateProblemsForLesson(courseId, subtopicId, slug, count){
+        const out = [];
+        for (let i=0;i<count;i++){
+          const n = i+1;
+          const stem = `Problem ${n}: Solve $x+${n}=${n*2}$.`;
+          const ans =  n; // x = n
+          const opts = [ans, ans+1, ans-1, ans+2].map(v=> `$${v}$`);
+          out.push({ stem, options: opts, correct:0, explanation:`$x=${ans}$` });
+        }
+        // simple graph case for certain slugs
+        if (/graph|plot|coordinate|line/.test(slug)){
+          out[0].graph = { expressions:[ { id:'l1', latex:'y=x+1' } ] };
+        }
+        return out;
       }
 
       function averageProgress(arr){
