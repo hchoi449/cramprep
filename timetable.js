@@ -694,15 +694,12 @@ function icsToDate(v){
 }
 
 function filterEventsToDisplayedWeek(events){
-    // Show full week window (Mon..Sun), including past days in the displayed week
-    try {
-        const monday = getMonday(currentWeek);
-        const end = new Date(monday);
-        end.setDate(monday.getDate() + 7);
-        return events.filter(ev => ev.start && ev.start >= monday && ev.start < end);
-    } catch {
-        return events;
-    }
+    // Show next 7 days from today (current day at 00:00) — no past dates
+    const now = new Date();
+    now.setHours(0,0,0,0);
+    const end = new Date(now);
+    end.setDate(end.getDate() + 7);
+    return events.filter(ev => ev.start && ev.start >= now && ev.start < end);
 }
 
 function renderAssignmentsList(events){
