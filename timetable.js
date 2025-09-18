@@ -106,7 +106,6 @@ function renderWeekEvents(startOfWeek){
         const dayIndex = weekDaysYmd.indexOf(evYmd);
         if (dayIndex < 0) return; // Not in displayed week (EST)
         const hour = Number(sp.hour);
-        if (hour < 12 && hour !== 0) return; // restrict to 12PM..12AM
         const targetCol = daySlots[dayIndex];
         const slot = document.createElement('div');
         const subjSafe = (ev.subject && String(ev.subject).toLowerCase().replace(/\s+/g,'-')) || 'general';

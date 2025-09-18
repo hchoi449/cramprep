@@ -132,10 +132,6 @@
     background: #6b3410;
     color: #fff;
 }
-.day-column.is-today {
-    outline: 2px solid #6b3410;
-    outline-offset: -2px;
-}
 
 .time-header, .day-header {
     background: #8B4513;
