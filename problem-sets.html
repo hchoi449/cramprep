@@ -108,7 +108,7 @@
     <script>
       // Subject → Subtopics → Lessons; each lesson has notes and MC questions
       const COURSES = [
-        { id:'algebra-1', title:'Algebra I', subtopics:[
+        { id:'algebra-1', title:'Pre-Algebra', subtopics:[
           { id:'preliminaries', title:'Preliminaries', lessons:[
             { slug:'integer-exponents-basics', title:'Integer Exponents — Basics', locked:false,
               notes:`# Integer Exponents — Basics\nRules: $a^m\\cdot a^n = a^{m+n}$, $(a^m)^n = a^{mn}$, $a^{-n}=\\dfrac{1}{a^n}$.`,
@@ -200,7 +200,7 @@
             }
           ]}
         ]},
-        { id:'algebra-2', title:'Algebra II', subtopics:[
+        { id:'algebra', title:'Algebra', subtopics:[
           { id:'quadratics', title:'Quadratics & Complex', lessons:[
             { slug:'vertex-form', title:'Vertex Form Intro', locked:false,
               notes:`# Vertex Form\n$y = a(x-h)^2 + k$`,
@@ -385,9 +385,9 @@
       const openBtn = document.getElementById('psOpenBtn');
       const grid = document.getElementById('psBooksGrid');
       const BOOKS = [
-        { id:'algebra-1', label:'Algebra I' },
+        { id:'algebra-1', label:'Pre‑Algebra' },
         { id:'geometry', label:'Geometry' },
-        { id:'algebra-2', label:'Algebra II' },
+        { id:'algebra', label:'Algebra' },
         { id:'precalculus', label:'Pre‑Calculus' },
         { id:'calculus', label:'Calculus' },
       ];
@@ -396,9 +396,7 @@
         BOOKS.forEach(b => {
           const tile = document.createElement('div'); tile.className='ps-book-tile';
           const cover = document.createElement('div'); cover.className='ps-book-cover'; cover.textContent=b.label; tile.appendChild(cover);
-          const actions = document.createElement('div'); actions.className='ps-book-actions';
-          const btn = document.createElement('button'); btn.className='ps-open-btn'; btn.textContent='Open'; btn.addEventListener('click', ()=> enterSubject(b.id)); actions.appendChild(btn);
-          tile.appendChild(actions);
+          tile.addEventListener('click', ()=> enterSubject(b.id));
           grid.appendChild(tile);
         });
       }
