@@ -199,7 +199,7 @@
         }
 
         const profile = makeItem('My Account', 'account.html');
-        const settings = makeItem('Settings', '#settings');
+        const settings = makeItem('Settings', 'settings.html');
         const help = makeItem('Help', '#help');
         const logout = makeItem('Log out', '#logout', function(e){
             e.preventDefault();
