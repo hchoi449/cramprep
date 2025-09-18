@@ -536,25 +536,39 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         body.appendChild(notes);
         try { if (window.renderMathInElement) { renderMathInElement(notes, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false}] }); } } catch{}
 
-        // Generate 10 problems adaptively using Gemini (no caching to keep problems fresh each load).
-        let problems = Array.isArray(lesson.questions) && lesson.questions.length ? lesson.questions : [];
-        const cacheKey = `ps-problems-${course.id}-${subtopic.id}-${lesson.slug}`;
-        if (!problems.length){
-          try {
-            const cached = localStorage.getItem(cacheKey);
-            if (cached){ problems = JSON.parse(cached); }
-          } catch{}
+        // Generate initial 1-2 problems immediately (prefer Gemini with short timeout), then fetch the rest in the background
+        let initialProblems = [];
+        try {
+          initialProblems = await generateWithTimeout(course, subtopic, lesson, 2, 3500);
+        } catch { initialProblems = fallbackProblems(lesson, 2); }
+        let problems = initialProblems.slice();
+        const groups = { easy:[], medium:[], hard:[] };
+        let globalId = 0; const used = new Set();
+        function classify(p, index){
+          const d = String((p.difficulty||'').toLowerCase());
+          if (d==='easy'||d==='medium'||d==='hard') return d;
+          if (typeof index === 'number') return index < 10? 'easy' : (index < 20? 'medium' : 'hard');
+          return 'medium';
         }
-        if (!problems.length){
-          const waiting = document.createElement('div'); waiting.textContent = 'Generating problems…'; waiting.style.margin = '12px 0'; body.appendChild(waiting);
+        function addProblems(list){
+          list.forEach((p, i)=>{
+            const id = globalId++;
+            const diff = classify(p, i);
+            groups[diff].push({ p, id });
+            problems.push({ p, id, diff });
+          });
+        }
+        // seed groups with initial
+        problems = []; addProblems(initialProblems);
+        // background generation for more variety and depth
+        (async()=>{
           try {
-            problems = await generateProblemsForLesson(course, subtopic, lesson, 30); // get a pool
+            const more = await generateProblemsForLesson(course, subtopic, lesson, 40);
+            addProblems(more);
           } catch {
-            problems = fallbackProblems(lesson, 30);
-          } finally {
-            waiting.remove();
+            addProblems(fallbackProblems(lesson, 40));
           }
-        }
+        })();
 
         if (problems.length){
           // Remove any existing quiz container for this lesson to avoid duplicates
@@ -564,6 +578,9 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           quiz.className = 'ps-quiz-root';
           quiz.id = `ps-quiz-${course.id}-${subtopic.id}-${lesson.slug}`;
           const h = document.createElement('h4'); h.textContent = 'Adaptive Problem Set (10)'; quiz.appendChild(h);
+          const regen = document.createElement('button'); regen.className='btn btn-secondary'; regen.textContent='Regenerate'; regen.style.marginLeft='8px';
+          regen.addEventListener('click', ()=>{ try { window.tbpRegenerateLesson && window.tbpRegenerateLesson(course.id, subtopic.id, lesson.slug); } catch{} });
+          quiz.appendChild(regen);
           const nav = document.createElement('div'); nav.style.display='flex'; nav.style.gap='8px'; nav.style.margin='8px 0';
           const idxLabel = document.createElement('div'); idxLabel.textContent = '1 / ' + problems.length; nav.appendChild(idxLabel);
           quiz.appendChild(nav);
@@ -573,28 +590,17 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
 
           let scoreBest = getProgress(`ps-best-${course.id}-${subtopic.id}-${lesson.slug}`, 0);
           let step = 0; let correctCount = 0;
-          // group problems by difficulty
-          const groups = { easy:[], medium:[], hard:[] };
-          problems.forEach((p, idx)=>{
-            const d = String((p.difficulty||'').toLowerCase());
-            if (d==='easy' || d==='medium' || d==='hard') groups[d].push({p, idx});
-            else {
-              // heuristics: earlier problems easier
-              const g = idx < problems.length/3 ? 'easy' : (idx < 2*problems.length/3 ? 'medium' : 'hard');
-              groups[g].push({p, idx});
-            }
-          });
-          const used = new Set();
+          // groups and used already prepared above
           let currentDifficulty = 'easy';
 
           function pickNextProblem(){
             const order = currentDifficulty==='easy' ? ['easy','medium','hard'] : (currentDifficulty==='medium' ? ['medium','easy','hard'] : ['hard','medium','easy']);
             for (const g of order){
-              const pool = groups[g].filter(x=> !used.has(x.idx));
+              const pool = groups[g].filter(x=> !used.has(x.id));
               if (pool.length){
                 const choice = pool[Math.floor(Math.random()*pool.length)];
-                used.add(choice.idx);
-                return { q: choice.p, idx: choice.idx, g };
+                used.add(choice.id);
+                return { q: choice.p, id: choice.id, g };
               }
             }
             return null;
@@ -688,6 +694,20 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         if (!probs.length) throw new Error('Bad Gemini response');
         // sanitize
         return probs.slice(0, count).map(p=>({ stem: String(p.stem||''), options: (p.options||[]).slice(0,4).map(String), correct: Number(p.correct||0), explanation: String(p.explanation||''), graph: p.graph && p.graph.expressions ? { expressions: p.graph.expressions } : undefined }));
+      }
+
+      // Helper: short-timeout generation for initial problems
+      async function generateWithTimeout(course, subtopic, lesson, count, ms){
+        const controller = new AbortController();
+        const t = setTimeout(()=> controller.abort(), ms);
+        try {
+          const p = generateProblemsForLesson(course, subtopic, lesson, count);
+          const res = await Promise.race([
+            p,
+            new Promise((_, rej)=> setTimeout(()=> rej(new Error('timeout')), ms))
+          ]);
+          return res;
+        } finally { clearTimeout(t); }
       }
 
       function getGeminiKey(){
