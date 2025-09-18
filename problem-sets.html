@@ -210,6 +210,223 @@
             }
           ]}
         ]},
+        { id:'algebra-2', title:'Algebra II', subtopics:[
+          /* -------------------- QUADRATIC EQUATIONS -------------------- */
+          { id:'quadratics', title:'Quadratic Equations', lessons:[
+            { slug:'quadratic-factoring-sqrt', title:'Factoring & Square Root Property', locked:false,
+              notes:`# Quadratic Equations — Factoring & Square Root
+A quadratic has the form $ax^2+bx+c=0$ ($a\\ne0$). 
+- **Factoring:** $(x-r_1)(x-r_2)=0\\Rightarrow x=r_1, r_2$.
+- **Square root property:** If $x^2=k$ then $x=\\pm\\sqrt{k}$.
+> Mastery tip: Try factoring first if $ac$ is small; else consider completing the square or the formula.`,
+              graphs:[
+                { type:'function', expr:'y=x^2-5x+6' },
+                { type:'function', expr:'y=x^2-9' }
+              ],
+              questions:[
+                { id:'q1', stem:'Solve $x^2-5x+6=0$.', options:['$x=2,3$','$x=6$','$x=5$','$x=-2,-3$'], correct:0, explanation:'Factor: $(x-2)(x-3)=0$.', tags:['quadratics','factoring'] },
+                { id:'q2', stem:'Solve $x^2=49$.', options:['$x=7$','$x=-7$','$x=\\pm 7$','$x=0$'], correct:2, explanation:'Square root property gives $x=\\pm7$.', tags:['quadratics','square-root'] }
+              ]
+            },
+            { slug:'completing-square', title:'Completing the Square', locked:false,
+              notes:`# Completing the Square
+Rewrite $ax^2+bx+c$ (assume $a=1$ here) as $(x+\\tfrac{b}{2})^2-\\big(\\tfrac{b}{2}\\big)^2+c$ to solve or to graph vertex form.`,
+              graphs:[ { type:'function', expr:'y=x^2+6x+5' } ],
+              questions:[
+                { id:'q1', stem:'Complete the square: $x^2+6x+5 = (x+\\square)^2+\\square$.', options:['$3,-4$','$2,-1$','$3,-9$','$-3,14$'], correct:0, explanation:'Add/subtract $9$: $(x+3)^2-4$.', tags:['quadratics','completing-square'] },
+                { id:'q2', stem:'Solve $x^2+6x+5=0$ by completing the square.', options:['$x=-1,-5$','$x=1,5$','$x=-3$','$x=3$'], correct:0, explanation:'$(x+3)^2=4\\Rightarrow x=-3\\pm2$.', tags:['quadratics'] }
+              ]
+            },
+            { slug:'quadratic-formula-discriminant', title:'Quadratic Formula & Discriminant', locked:false,
+              notes:`# Quadratic Formula
+For $ax^2+bx+c=0$, $\\displaystyle x=\\frac{-b\\pm\\sqrt{b^2-4ac}}{2a}$.
+- Discriminant $\\Delta=b^2-4ac$: $\\Delta>0$ two real roots, $\\Delta=0$ one real root, $\\Delta<0$ complex pair.`,
+              graphs:[ { type:'function', expr:'y=2x^2+3x-2' } ],
+              questions:[
+                { id:'q1', stem:'Solve $2x^2+3x-2=0$.', options:['$x=-2,\\tfrac{1}{2}$','$x=2,-\\tfrac{1}{2}$','$x=1,-2$','$x=\\pm\\sqrt{2}$'], correct:0, explanation:'$\\Delta=25$, $x=(-3\\pm5)/4$.', tags:['quadratics','formula'] },
+                { id:'q2', stem:'If $b^2-4ac<0$, the roots are…', options:['Real & distinct','Real & equal','Complex conjugates','Undefined'], correct:2, explanation:'Negative discriminant → nonreal complex pair.', tags:['discriminant'] }
+              ]
+            },
+            { slug:'quadratic-applications', title:'Applications of Quadratics', locked:false,
+              notes:`# Applications
+Model height/area/optimization via $f(x)=ax^2+bx+c$. Vertex $(h,k)$ gives max/min if $a<0$/$a>0$.`,
+              graphs:[ { type:'function', expr:'y=-16t^2+32t+5' } ],
+              questions:[
+                { id:'q1', stem:'For $h(t)=-16t^2+32t+5$, find the time of maximum height.', options:['$t=1$','$t=\\tfrac{32}{32}$','$t=\\tfrac{-b}{2a}=1$','$t=2$'], correct:2, explanation:'$t=-b/(2a)= -32/(2\\cdot -16)=1$.', tags:['applications','vertex'] },
+                { id:'q2', stem:'State the axis of symmetry of $y=-2x^2+8x-1$.', options:['$x=2$','$y=2$','$x=-2$','$y=-2$'], correct:0, explanation:'Axis $x=-b/(2a)=2$.', tags:['vertex','axis'] }
+              ]
+            }
+          ]},
+
+          /* -------------------- INEQUALITIES & ABSOLUTE VALUE -------------------- */
+          { id:'inequalities', title:'Inequalities & Absolute Value', lessons:[
+            { slug:'linear-inequalities', title:'Linear Inequalities', locked:false,
+              notes:`# Linear Inequalities
+Solve like equations; **flip the sign** when multiplying/dividing by a negative. Use interval notation.`,
+              graphs:[ { type:'numberline', expr:'x>3' }, { type:'numberline', expr:'-2<x\\le4' } ],
+              questions:[
+                { id:'q1', stem:'Solve $-3x+6\\le0$.', options:['$x\\ge2$','$x\\le2$','$x<2$','$x>2$'], correct:1, explanation:'Divide by −3 and flip.', tags:['inequalities'] },
+                { id:'q2', stem:'Which interval matches $1<2x+3\\le7$?', options:['$(-1,2]$','$(-2,1]$','$(-3,2]$','$[ -1,2)$'], correct:0, explanation:'Subtract 3: $-2<2x\\le4\\Rightarrow -1<x\\le2$.', tags:['compound-inequality'] }
+              ]
+            },
+            { slug:'poly-inequalities', title:'Polynomial & Rational Inequalities', locked:false,
+              notes:`# Polynomial/Rational Inequalities
+1) Move all to one side. 2) Factor. 3) Critical values (zeros, undefined). 4) Sign chart on intervals.`,
+              graphs:[ { type:'function', expr:'y=(x-1)(x+2)' }, { type:'function', expr:'y=(x-3)/(x+1)' } ],
+              questions:[
+                { id:'q1', stem:'Solve $(x-1)(x+2)\\ge0$.', options:['$(-\\infty,-2]\\cup[1,\\infty)$','$(-2,1)$','$(-\\infty,-2)\\cup(1,\\infty)$','$[-2,1]$'], correct:0, explanation:'Nonnegative outside the roots.', tags:['polynomial-inequality'] },
+                { id:'q2', stem:'Solve $\\dfrac{x-3}{x+1}<0$.', options:['$(-\\infty,-1)\\cup(3,\\infty)$','$(-1,3)$','$(-\\infty,-1)\\cup( -\\infty,3)$','$(-\\infty,-1)\\cup(0,3)$'], correct:1, explanation:'Negative between -1 and 3.', tags:['rational-inequality'] }
+              ]
+            },
+            { slug:'abs-equations-inequalities', title:'Absolute Value Equations/Inequalities', locked:false,
+              notes:`# Absolute Value
+- Equation: $|x-a|=d\\Rightarrow x=a\\pm d$.
+- Inequality: $|x-a|<d\\Rightarrow a-d<x<a+d$; $|x-a|>d\\Rightarrow x<a-d\\text{ or }x>a+d$.`,
+              graphs:[ { type:'function', expr:'y=|x-2|' } ],
+              questions:[
+                { id:'q1', stem:'Solve $|2x-6|=10$.', options:['$x=8$','$x=-2$','$x=8,-2$','$x=2,6$'], correct:2, explanation:'$2x-6=\\pm10\\Rightarrow x=8,-2$.', tags:['absolute-value'] },
+                { id:'q2', stem:'Solve $|x+1|<3$.', options:['$x<-2$','$-4<x<2$','$-2<x<4$','$x>2$'], correct:1, explanation:'Center -1, radius 3 → $-4<x<2$.', tags:['absolute-inequality'] }
+              ]
+            }
+          ]},
+
+          /* -------------------- FUNCTIONS & GRAPHING -------------------- */
+          { id:'functions', title:'Functions & Graphing', lessons:[
+            { slug:'function-basics', title:'Definition, Domain & Range', locked:false,
+              notes:`# Functions
+A function assigns **each** input exactly one output. Use notation $f(x)$; domain/range depend on algebraic restrictions.`,
+              graphs:[ { type:'function', expr:'y=(x^2-1)/(x-1)' }, { type:'function', expr:'y=\\sqrt{x-2}' } ],
+              questions:[
+                { id:'q1', stem:'For $g(x)=\\dfrac{1}{x-3}$, which $x$ is not allowed?', options:['$x=3$','$x=0$','$x=-3$','$x=1$'], correct:0, explanation:'Denominator $\\ne0$.', tags:['domain'] },
+                { id:'q2', stem:'Domain of $f(x)=\\sqrt{x-2}$ is …', options:['$x>2$','$x\\ge2$','all real $x$','$x\\ne2$'], correct:1, explanation:'Even root → radicand $\\ge0$.', tags:['domain','radicals'] }
+              ]
+            },
+            { slug:'combining-composing', title:'Combine & Compose Functions', locked:false,
+              notes:`# Combine/Compose
+$(f\\circ g)(x)=f(g(x))$. Watch domains of $g$ **and** of $f$ at $g(x)$.`,
+              graphs:[ { type:'function', expr:'y=(x+1)^2' } ],
+              questions:[
+                { id:'q1', stem:'If $f(x)=x^2$ and $g(x)=x+1$, then $(f\\circ g)(x)$ is …', options:['$x^2+1$','$(x+1)^2$','$x^2+x+1$','$x+1$'], correct:1, explanation:'Substitute $g$ into $f$.', tags:['composition'] },
+                { id:'q2', stem:'If $f(x)=\\sqrt{x}$ and $g(x)=x-2$, domain of $f\\circ g$?', options:['$x\\in\\mathbb{R}$','$x\\ge0$','$x\\ge2$','$x>2$'], correct:2, explanation:'Need $x-2\\ge0$.', tags:['composition','domain'] }
+              ]
+            },
+            { slug:'inverse-functions', title:'Inverse Functions', locked:false,
+              notes:`# Inverses & One-to-One
+$f^{-1}$ exists when $f$ is one-to-one (passes horizontal line test). Solve $y=f(x)$ for $x$, then swap.`,
+              graphs:[ { type:'function', expr:'y=2x+1' }, { type:'function', expr:'y=(x-1)/2' } ],
+              questions:[
+                { id:'q1', stem:'Inverse of $f(x)=2x+1$ is …', options:['$2x-1$','$\\tfrac{x-1}{2}$','$\\tfrac{x+1}{2}$','$-2x+1$'], correct:1, explanation:'Solve $y=2x+1\\Rightarrow x=\\tfrac{y-1}{2}$.', tags:['inverse'] },
+                { id:'q2', stem:'Which function is NOT one-to-one?', options:['$y=x^3$','$y=e^x$','$y=x^2$','$y=\\ln x$'], correct:2, explanation:'$x^2$ fails horizontal line test.', tags:['one-to-one'] }
+              ]
+            }
+          ]},
+
+          /* -------------------- POLYNOMIALS -------------------- */
+          { id:'polynomials', title:'Polynomial Functions', lessons:[
+            { slug:'division', title:'Polynomial Division (Long & Synthetic)', locked:false,
+              notes:`# Dividing Polynomials
+Long division always works; synthetic requires linear divisor $x-c$. **Remainder theorem:** $f(c)$ is the remainder dividing by $(x-c)$.`,
+              graphs:[ { type:'function', expr:'y=x^3-6x^2+11x-6' } ],
+              questions:[
+                { id:'q1', stem:'The remainder of $f(x)$ upon division by $(x-2)$ equals …', options:['$f(2)$','$f(-2)$','$2f(1)$','$0$'], correct:0, explanation:'Remainder theorem.', tags:['division','remainder-theorem'] },
+                { id:'q2', stem:'Divide $x^3-1$ by $x-1$. The quotient is …', options:['$x^2+x+1$','$x^2-x+1$','$x+1$','$x^2+1$'], correct:0, explanation:'Geometric sum or synthetic division.', tags:['division'] }
+              ]
+            },
+            { slug:'zeros-graphing', title:'Zeros, Multiplicity & Graphing', locked:false,
+              notes:`# Zeros & Graph Shape
+Multiplicity odd → **cross**; even → **touch/bounce**. Leading coefficient test sets end behavior.`,
+              graphs:[ { type:'function', expr:'y=(x-1)^2(x+2)' } ],
+              questions:[
+                { id:'q1', stem:'For $f(x)=(x-1)^2(x+2)$, behavior at $x=1$ is …', options:['crosses','touches/bounces','asymptote','hole'], correct:1, explanation:'Even multiplicity.', tags:['multiplicity'] },
+                { id:'q2', stem:'End behavior of $y=-3x^5+\\cdots$?', options:['$\\nearrow\\nearrow$','$\\searrow\\searrow$','$\\nearrow\\searrow$','$\\searrow\\nearrow$'], correct:3, explanation:'Odd degree, negative leading → left up, right down.', tags:['end-behavior'] }
+              ]
+            },
+            { slug:'rational-root-partial-frac', title:'Rational Root Test & Partial Fractions', locked:false,
+              notes:`# Rational Root Theorem
+Candidates: $\\pm\\frac{p}{q}$ where $p\\mid a_0$, $q\\mid a_n$. 
+# Partial Fractions (proper rational)
+Decompose into simpler rational terms (for distinct linear factors, $\\tfrac{A}{x-r}$, etc.).`,
+              graphs:[ { type:'function', expr:'y=(2x+3)/(x^2-1)' } ],
+              questions:[
+                { id:'q1', stem:'Possible rational zeros of $2x^3-5x^2+x-3$ include …', options:['$\\pm1,\\pm3,\\pm\\tfrac{1}{2},\\pm\\tfrac{3}{2}$','$\\pm2,\\pm3$','$\\pm\\tfrac{1}{3}$','only $\\pm1$'], correct:0, explanation:'$p\\in\\{\\pm1,\\pm3\\}$, $q\\in\\{\\pm1,\\pm2\\}$.', tags:['rational-root'] },
+                { id:'q2', stem:'Denominator factors to $(x-1)(x+1)$. A valid partial fraction form is …', options:['$\\dfrac{A}{x-1}+\\dfrac{B}{x+1}$','$\\dfrac{A}{x^2+1}$','$A(x-1)+B(x+1)$','$\\dfrac{A}{x-1}+B$'], correct:0, explanation:'Distinct linear factors → two simple terms.', tags:['partial-fractions'] }
+              ]
+            }
+          ]},
+
+          /* -------------------- EXPONENTIALS & LOGS -------------------- */
+          { id:'exp-log', title:'Exponential & Logarithmic Functions', lessons:[
+            { slug:'exponentials', title:'Exponential Functions', locked:false,
+              notes:`# Exponentials
+$f(x)=a\\,b^x$ with $b>0,b\\ne1$. Growth if $b>1$, decay if $0<b<1$. Special: $f(x)=e^x$.`,
+              graphs:[ { type:'function', expr:'y=2^x' }, { type:'function', expr:'y=(1/2)^x' } ],
+              questions:[
+                { id:'q1', stem:'Which is exponential decay?', options:['$2^x$','$3^x$','$(1/2)^x$','$x^2$'], correct:2, explanation:'Base between 0 and 1.', tags:['exponential'] },
+                { id:'q2', stem:'$e^x$ is the exponential with base …', options:['$2$','$10$','$e$','$\\ln$'], correct:2, explanation:'By definition.', tags:['exponential'] }
+              ]
+            },
+            { slug:'logarithms', title:'Logarithms & Properties', locked:false,
+              notes:`# Logarithms
+$\\log_b a=x \\iff b^x=a$. Properties: $\\log_b(MN)=\\log_bM+\\log_bN$, $\\log_b(M^k)=k\\log_bM$, change of base: $\\log_b a=\\tfrac{\\log a}{\\log b}$.`,
+              graphs:[ { type:'function', expr:'y=\\log_{10}(x)' }, { type:'function', expr:'y=\\ln x' } ],
+              questions:[
+                { id:'q1', stem:'$\\log_2(32)$ equals …', options:['$4$','$5$','$3$','$2$'], correct:1, explanation:'$2^5=32$.', tags:['log'] },
+                { id:'q2', stem:'$\\log_b a=\\dfrac{\\ln a}{\\ln b}$ is called …', options:['product rule','change of base','power rule','quotient rule'], correct:1, explanation:'Standard change of base.', tags:['log'] }
+              ]
+            },
+            { slug:'solve-exp-log', title:'Solving Exponential/Log Equations', locked:false,
+              notes:`# Solving
+- Exponential: isolate base$^{\\text{(stuff)}}$ and use logs if needed.
+- Logarithmic: combine logs, convert to exponential; check **domain**.`,
+              graphs:[ { type:'function', expr:'y=3\\cdot 2^x' } ],
+              questions:[
+                { id:'q1', stem:'Solve $2^x=20$ (exact).', options:['$x=\\log_2 20$','$x=\\ln20$','$x=20\\ln2$','$x=20$'], correct:0, explanation:'Take $\\log_2$ (or ln): $x=\\ln20/\\ln2$.', tags:['solve-exponential'] },
+                { id:'q2', stem:'Solve $\\ln(x-1)=3$.', options:['$x=20$','$x=e^3+1$','$x=e^3-1$','$x=3$'], correct:1, explanation:'Exponentiate: $x-1=e^3\\Rightarrow x=e^3+1$.', tags:['solve-log'] }
+              ]
+            },
+            { slug:'applications-exp', title:'Applications: Growth, Decay, Interest', locked:false,
+              notes:`# Applications
+- Continuous growth/decay: $A(t)=A_0e^{kt}$.
+- Compound interest: $A=P\\big(1+\\tfrac{r}{n}\\big)^{nt}$; continuous: $A=Pe^{rt}$.`,
+              graphs:[ { type:'function', expr:'y=e^{0.3x}' }, { type:'function', expr:'y=e^{-0.4x}' } ],
+              questions:[
+                { id:'q1', stem:'$A=Pe^{rt}$ with $P=1000,r=0.06,t=5$. Exact $A$ is …', options:['$1000e^{0.3}$','$1000\\cdot 1.06^5$','$1000e^{0.06/5}$','$1000e^{5/0.06}$'], correct:0, explanation:'Continuous compounding.', tags:['applications','interest'] },
+                { id:'q2', stem:'In $A=A_0e^{kt}$, $k<0$ indicates …', options:['growth','decay','periodic','constant'], correct:1, explanation:'Negative rate → decay.', tags:['growth-decay'] }
+              ]
+            }
+          ]},
+
+          /* -------------------- SYSTEMS -------------------- */
+          { id:'systems', title:'Systems of Equations', lessons:[
+            { slug:'linear-systems-2', title:'Two-Variable Linear Systems', locked:false,
+              notes:`# Substitution & Elimination
+Solve $\\begin{cases}a_1x+b_1y=c_1\\\\a_2x+b_2y=c_2\\end{cases}$ by substitution or elimination. Check for inconsistent or dependent systems.`,
+              graphs:[ { type:'function', expr:'y=2x+1' }, { type:'function', expr:'y=-x+7' } ],
+              questions:[
+                { id:'q1', stem:'Solve $\\{\\,y=2x+1,\\;x+y=7\\,\\}$.', options:['$(2,5)$','$(3,7)$','$(4,9)$','$(1,6)$'], correct:0, explanation:'Substitute: $x+2x+1=7\\Rightarrow x=2,y=5$.', tags:['systems','substitution'] },
+                { id:'q2', stem:'Type of system if lines have equal slopes but different intercepts?', options:['Dependent','Inconsistent','Unique solution','Nonlinear'], correct:1, explanation:'Parallel distinct lines → no solution.', tags:['systems'] }
+              ]
+            },
+            { slug:'matrix-method', title:'Augmented Matrix (Gauss-Jordan)', locked:false,
+              notes:`# Matrices
+Use row operations to reach RREF and read solutions; detect inconsistent (row $[0\\ 0\\ |\\ k]$) or dependent (free variables).`,
+              graphs:[],
+              questions:[
+                { id:'q1', stem:'Row $[0\\ 0\\ |\\ 5]$ in RREF implies …', options:['unique solution','infinitely many','no solution','need more steps'], correct:2, explanation:'Contradiction → inconsistent.', tags:['matrices'] },
+                { id:'q2', stem:'A free variable appears when …', options:['a pivot in every column','no pivot in a variable column','two pivots per row','RREF reached'], correct:1, explanation:'No pivot → parameter, infinite solutions.', tags:['matrices'] }
+              ]
+            },
+            { slug:'nonlinear-systems', title:'Nonlinear Systems', locked:false,
+              notes:`# Nonlinear
+Solve intersections such as line–circle, parabola–line, by substitution or elimination; check extraneous roots.`,
+              graphs:[ { type:'function', expr:'y=x+1' }, { type:'function', expr:'(x-2)^2+(y-3)^2=25' } ],
+              questions:[
+                { id:'q1', stem:'Line $y=x+1$ with circle $(x-2)^2+(y-3)^2=25$: the system has …', options:['0 pts','1 pt','2 pts','infinitely many'], correct:2, explanation:'A secant typically intersects a circle twice (unless tangent or disjoint).', tags:['nonlinear'] },
+                { id:'q2', stem:'Best first step for parabola–line system?', options:['Factor denominators','Use Gauss-Jordan','Substitute the linear into the quadratic','Take logs'], correct:2, explanation:'Substitution reduces to a quadratic.', tags:['strategy'] }
+              ]
+            }
+          ]}
+        ]},
         { id:'precalculus', title:'Pre-Calculus', subtopics:[
           { id:'functions', title:'Functions & Graphs', lessons:[
             { slug:'domain-range', title:'Domain & Range Basics', locked:false,
@@ -388,6 +605,7 @@
         { id:'algebra-1', label:'Pre‑Algebra' },
         { id:'geometry', label:'Geometry' },
         { id:'algebra', label:'Algebra' },
+        { id:'algebra-2', label:'Algebra II' },
         { id:'precalculus', label:'Pre‑Calculus' },
         { id:'calculus', label:'Calculus' },
       ];
