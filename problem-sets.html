@@ -110,56 +110,80 @@
       const COURSES = [
         { id:'algebra-1', title:'Pre-Algebra', subtopics:[
           { id:'numbers-operations', title:'Numbers & Operations', lessons:[
-            { slug:'overview', title:'Overview', locked:false,
-              notes:`# Numbers & Operations\n- Place value; rounding & estimation\n- Integers: add/subtract/multiply/divide\n- Absolute value & opposites\n- Properties: commutative, associative, distributive` }
+            { slug:'place-value-rounding', title:'Place value; rounding & estimation', locked:false, notes:`Lesson outline.` },
+            { slug:'integer-operations', title:'Integers: add/subtract/multiply/divide', locked:false, notes:`Lesson outline.` },
+            { slug:'absolute-value-opposites', title:'Absolute value & opposites', locked:false, notes:`Lesson outline.` },
+            { slug:'properties', title:'Properties: commutative, associative, distributive', locked:false, notes:`Lesson outline.` }
           ]},
           { id:'factors-multiples', title:'Factors & Multiples', lessons:[
-            { slug:'overview', title:'Overview', locked:false,
-              notes:`# Factors & Multiples\n- Divisibility rules; prime vs composite\n- Prime factorization\n- Greatest common factor (GCF)\n- Least common multiple (LCM)` }
+            { slug:'divisibility-prime-composite', title:'Divisibility rules; prime vs composite', locked:false, notes:`Lesson outline.` },
+            { slug:'prime-factorization', title:'Prime factorization', locked:false, notes:`Lesson outline.` },
+            { slug:'gcf', title:'Greatest common factor (GCF)', locked:false, notes:`Lesson outline.` },
+            { slug:'lcm', title:'Least common multiple (LCM)', locked:false, notes:`Lesson outline.` }
           ]},
           { id:'fractions', title:'Fractions', lessons:[
-            { slug:'overview', title:'Overview', locked:false,
-              notes:`# Fractions\n- Equivalent fractions; simplifying\n- Add/subtract fractions & mixed numbers\n- Multiply/divide fractions & mixed numbers\n- Fraction word problems` }
+            { slug:'equivalent-simplifying', title:'Equivalent fractions; simplifying', locked:false, notes:`Lesson outline.` },
+            { slug:'add-subtract-fractions', title:'Add/subtract fractions & mixed numbers', locked:false, notes:`Lesson outline.` },
+            { slug:'multiply-divide-fractions', title:'Multiply/divide fractions & mixed numbers', locked:false, notes:`Lesson outline.` },
+            { slug:'fraction-word-problems', title:'Fraction word problems', locked:false, notes:`Lesson outline.` }
           ]},
           { id:'decimals', title:'Decimals', lessons:[
-            { slug:'overview', title:'Overview', locked:false,
-              notes:`# Decimals\n- Place value; rounding\n- Operations with decimals\n- Convert fractions ↔ decimals` }
+            { slug:'place-value-rounding-decimals', title:'Place value; rounding', locked:false, notes:`Lesson outline.` },
+            { slug:'decimal-operations', title:'Operations with decimals', locked:false, notes:`Lesson outline.` },
+            { slug:'convert-frac-dec', title:'Convert fractions ↔ decimals', locked:false, notes:`Lesson outline.` }
           ]},
           { id:'percents', title:'Percents', lessons:[
-            { slug:'overview', title:'Overview', locked:false,
-              notes:`# Percents\n- Convert percent ↔ decimal ↔ fraction\n- Percent of a number\n- Discount, tax, tip; percent change\n- Simple interest (intro)` }
+            { slug:'convert-percent', title:'Convert percent ↔ decimal ↔ fraction', locked:false, notes:`Lesson outline.` },
+            { slug:'percent-of-number', title:'Percent of a number', locked:false, notes:`Lesson outline.` },
+            { slug:'discount-tax-tip-change', title:'Discount, tax, tip; percent change', locked:false, notes:`Lesson outline.` },
+            { slug:'simple-interest-intro', title:'Simple interest (intro)', locked:false, notes:`Lesson outline.` }
           ]},
           { id:'ratios-rates-proportions', title:'Ratios, Rates & Proportions', lessons:[
-            { slug:'overview', title:'Overview', locked:false,
-              notes:`# Ratios, Rates & Proportions\n- Ratios & unit rate\n- Proportional relationships & tables\n- Scale drawings & maps\n- Constant of proportionality` }
+            { slug:'ratios-unit-rate', title:'Ratios & unit rate', locked:false, notes:`Lesson outline.` },
+            { slug:'proportional-relationships', title:'Proportional relationships & tables', locked:false, notes:`Lesson outline.` },
+            { slug:'scale-drawings', title:'Scale drawings & maps', locked:false, notes:`Lesson outline.` },
+            { slug:'constant-of-prop', title:'Constant of proportionality', locked:false, notes:`Lesson outline.` }
           ]},
           { id:'expressions', title:'Expressions & Properties', lessons:[
-            { slug:'overview', title:'Overview', locked:false,
-              notes:`# Expressions & Properties\n- Variables & evaluating expressions\n- Combining like terms\n- Distributive property\n- Writing expressions from word phrases` }
+            { slug:'variables-evaluating', title:'Variables & evaluating expressions', locked:false, notes:`Lesson outline.` },
+            { slug:'combining-like-terms', title:'Combining like terms', locked:false, notes:`Lesson outline.` },
+            { slug:'distributive-property', title:'Distributive property', locked:false, notes:`Lesson outline.` },
+            { slug:'writing-expressions', title:'Writing expressions from word phrases', locked:false, notes:`Lesson outline.` }
           ]},
           { id:'equations-inequalities', title:'Equations & Inequalities', lessons:[
-            { slug:'overview', title:'Overview', locked:false,
-              notes:`# Equations & Inequalities\n- One-step equations\n- Two-step equations\n- One-step inequalities; graph on a number line\n- Word problems → equations/inequalities` }
+            { slug:'one-step-equations', title:'One-step equations', locked:false, notes:`Lesson outline.` },
+            { slug:'two-step-equations', title:'Two-step equations', locked:false, notes:`Lesson outline.` },
+            { slug:'one-step-inequalities', title:'One-step inequalities; graph on a number line', locked:false, notes:`Lesson outline.` },
+            { slug:'word-problems-to-eq', title:'Word problems → equations/inequalities', locked:false, notes:`Lesson outline.` }
           ]},
           { id:'order-exponents', title:'Order of Operations & Exponents (Intro)', lessons:[
-            { slug:'overview', title:'Overview', locked:false,
-              notes:`# Order of Operations & Exponents (Intro)\n- PEMDAS with integers/fractions/decimals\n- Integer exponents; squares & cubes\n- Square/cube roots (conceptual)\n- Scientific notation (intro)` }
+            { slug:'pemdas', title:'PEMDAS with integers/fractions/decimals', locked:false, notes:`Lesson outline.` },
+            { slug:'integer-exponents', title:'Integer exponents; squares & cubes', locked:false, notes:`Lesson outline.` },
+            { slug:'roots-conceptual', title:'Square/cube roots (conceptual)', locked:false, notes:`Lesson outline.` },
+            { slug:'scientific-notation-intro', title:'Scientific notation (intro)', locked:false, notes:`Lesson outline.` }
           ]},
           { id:'geometry-foundations', title:'Geometry Foundations', lessons:[
-            { slug:'overview', title:'Overview', locked:false,
-              notes:`# Geometry Foundations\n- Points, lines, angles; angle pairs (complementary, supplementary, vertical)\n- Triangles & quadrilaterals (classification, interior angles)\n- Perimeter & area (rectangles, triangles, parallelograms, circles)\n- Surface area & volume (rectangular prisms; intro cylinders)\n- Pythagorean Theorem (intro & simple applications)` }
+            { slug:'points-lines-angles', title:'Points, lines, angles; angle pairs (complementary, supplementary, vertical)', locked:false, notes:`Lesson outline.` },
+            { slug:'triangles-quadrilaterals', title:'Triangles & quadrilaterals (classification, interior angles)', locked:false, notes:`Lesson outline.` },
+            { slug:'perimeter-area', title:'Perimeter & area (rectangles, triangles, parallelograms, circles)', locked:false, notes:`Lesson outline.` },
+            { slug:'surface-volume', title:'Surface area & volume (rectangular prisms; intro cylinders)', locked:false, notes:`Lesson outline.` },
+            { slug:'pythagorean-intro', title:'Pythagorean Theorem (intro & simple applications)', locked:false, notes:`Lesson outline.` }
           ]},
           { id:'coordinate-plane', title:'Coordinate Plane & Patterns', lessons:[
-            { slug:'overview', title:'Overview', locked:false,
-              notes:`# Coordinate Plane & Patterns\n- Plotting points in all quadrants\n- Tables → graphs; pattern rules\n- Arithmetic sequences (intro)` }
+            { slug:'plotting-points', title:'Plotting points in all quadrants', locked:false, notes:`Lesson outline.` },
+            { slug:'tables-graphs', title:'Tables → graphs; pattern rules', locked:false, notes:`Lesson outline.` },
+            { slug:'arithmetic-sequences-intro', title:'Arithmetic sequences (intro)', locked:false, notes:`Lesson outline.` }
           ]},
           { id:'statistics-probability', title:'Statistics & Probability', lessons:[
-            { slug:'overview', title:'Overview', locked:false,
-              notes:`# Statistics & Probability\n- Mean, median, mode, range\n- Dot plots, histograms, box plots (reading & making)\n- Theoretical vs experimental probability (single events)\n- Simple compound probability (independent events)` }
+            { slug:'mmm-range', title:'Mean, median, mode, range', locked:false, notes:`Lesson outline.` },
+            { slug:'plots-hist-box', title:'Dot plots, histograms, box plots (reading & making)', locked:false, notes:`Lesson outline.` },
+            { slug:'theoretical-vs-experimental', title:'Theoretical vs experimental probability (single events)', locked:false, notes:`Lesson outline.` },
+            { slug:'compound-probability', title:'Simple compound probability (independent events)', locked:false, notes:`Lesson outline.` }
           ]},
           { id:'measurement-conversions', title:'Measurement & Conversions', lessons:[
-            { slug:'overview', title:'Overview', locked:false,
-              notes:`# Measurement & Conversions\n- Customary & metric units\n- Unit conversions; dimensional analysis (intro)\n- Rates as “per” (mph, $/lb, etc.)` }
+            { slug:'customary-metric', title:'Customary & metric units', locked:false, notes:`Lesson outline.` },
+            { slug:'unit-conversions', title:'Unit conversions; dimensional analysis (intro)', locked:false, notes:`Lesson outline.` },
+            { slug:'rates-per', title:'Rates as “per” (mph, $/lb, etc.)', locked:false, notes:`Lesson outline.` }
           ]},
         ]},
         { id:'geometry', title:'Geometry', subtopics:[
