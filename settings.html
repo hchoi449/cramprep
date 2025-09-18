@@ -10,10 +10,12 @@
     <link rel="stylesheet" href="css/login.css?v=1.0" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" />
     <style>
-      .settings-wrap{width:min(98vw,1200px);margin:80px auto 60px;padding:0 20px}
-      .settings-title{font-size:1.8rem;font-weight:800;color:#1a1a1a;margin:0 0 16px}
-      .settings-sub{color:#6b6b6b;margin:0 0 18px}
-      .settings-card{border:1px solid #e5e7eb;border-radius:12px;background:#fff}
+      .header .logo img{height:48px;width:auto}
+      .settings-wrap{width:min(96vw, 1000px);min-height:calc(100vh - 220px);margin:120px auto 0;padding:0 20px 80px}
+      .settings-title{font-size:1.8rem;font-weight:800;color:#1a1a1a;margin:0}
+      .settings-sub{color:#6b6b6b;margin:6px 0 0}
+      .settings-card{border:1px solid #e5e7eb;border-radius:12px;background:#fff;max-width:640px;margin:0 auto;min-height:560px}
+      .settings-head{padding:16px 16px;border-bottom:1px solid #f0f0f0}
       .settings-list{display:flex;flex-direction:column}
       .setting-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #f0f0f0}
       .setting-row:last-child{border-bottom:none}
@@ -45,9 +47,11 @@
     </header>
 
     <main class="settings-wrap">
-      <h1 class="settings-title">Settings</h1>
-      <p class="settings-sub">Manage your notifications and communications preferences.</p>
       <section class="settings-card" aria-labelledby="settingsList">
+        <div class="settings-head">
+          <h1 class="settings-title">Settings</h1>
+          <p class="settings-sub">Manage your notifications and communications preferences.</p>
+        </div>
         <div class="settings-list" id="settingsList">
           <div class="setting-row">
             <span class="setting-label">Receive email from ThinkBigPrep</span>
