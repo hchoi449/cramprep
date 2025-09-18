@@ -290,6 +290,7 @@ function updateWeekDisplay() {
 
     // Populate dates under each day header (Mon..Sun) based on Monday start
     const dayHeaders = document.querySelectorAll('.week-grid .day-column .day-header');
+    const dayColumns = document.querySelectorAll('.week-grid .day-column');
     const dayNames = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
     if (dayHeaders.length === 7) {
         for (let i = 0; i < 7; i++) {
@@ -297,6 +298,16 @@ function updateWeekDisplay() {
             dateForCol.setDate(startOfWeek.getDate() + i);
             const dateStr = dateForCol.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             dayHeaders[i].innerHTML = `${dayNames[i]}<div class="day-date">${dateStr}</div>`;
+            // Highlight present day (EST)
+            try {
+                const tz = 'America/New_York';
+                const todayParts = new Intl.DateTimeFormat('en-US',{ timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(new Date()).reduce((a,p)=> (a[p.type]=p.value,a),{});
+                const colParts = new Intl.DateTimeFormat('en-US',{ timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(dateForCol).reduce((a,p)=> (a[p.type]=p.value,a),{});
+                const isToday = todayParts.year===colParts.year && todayParts.month===colParts.month && todayParts.day===colParts.day;
+                if (dayColumns[i]) {
+                    if (isToday) dayColumns[i].classList.add('is-today'); else dayColumns[i].classList.remove('is-today');
+                }
+            } catch {}
         }
     }
 
@@ -683,12 +694,15 @@ function icsToDate(v){
 }
 
 function filterEventsToDisplayedWeek(events){
-    // Show from current day forward, 7-day window
-    const now = new Date();
-    now.setHours(0,0,0,0);
-    const end = new Date(now);
-    end.setDate(end.getDate() + 7);
-    return events.filter(ev => ev.start && ev.start >= now && ev.start < end);
+    // Show full week window (Mon..Sun), including past days in the displayed week
+    try {
+        const monday = getMonday(currentWeek);
+        const end = new Date(monday);
+        end.setDate(monday.getDate() + 7);
+        return events.filter(ev => ev.start && ev.start >= monday && ev.start < end);
+    } catch {
+        return events;
+    }
 }
 
 function renderAssignmentsList(events){
