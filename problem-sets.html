@@ -526,7 +526,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         history.replaceState(null, '', `problem-sets.html#/${courseId}/${subtopic.id}/${lesson.slug}`);
       }
 
-      function renderLessonContent(course, subtopic, lesson){
+      async function renderLessonContent(course, subtopic, lesson){
         const body = document.getElementById('psBody');
         body.innerHTML = '';
         // Overview block for the lesson (short intro)
@@ -536,8 +536,26 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         body.appendChild(notes);
         try { if (window.renderMathInElement) { renderMathInElement(notes, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false}] }); } } catch{}
 
-        // Generate 10 problems (increasing difficulty). If lesson.questions exists, use it; otherwise synthesize.
-        const problems = Array.isArray(lesson.questions) && lesson.questions.length ? lesson.questions : generateProblemsForLesson(course.id, subtopic.id, lesson.slug, 10);
+        // Generate 10 problems (increasing difficulty). Prefer Gemini; fallback to local generator.
+        let problems = Array.isArray(lesson.questions) && lesson.questions.length ? lesson.questions : [];
+        const cacheKey = `ps-problems-${course.id}-${subtopic.id}-${lesson.slug}`;
+        if (!problems.length){
+          try {
+            const cached = localStorage.getItem(cacheKey);
+            if (cached){ problems = JSON.parse(cached); }
+          } catch{}
+        }
+        if (!problems.length){
+          const waiting = document.createElement('div'); waiting.textContent = 'Generating problems…'; waiting.style.margin = '12px 0'; body.appendChild(waiting);
+          try {
+            problems = await generateProblemsForLesson(course, subtopic, lesson, 10);
+            try { localStorage.setItem(cacheKey, JSON.stringify(problems)); } catch{}
+          } catch {
+            problems = fallbackProblems(lesson, 10);
+          } finally {
+            waiting.remove();
+          }
+        }
 
         if (problems.length){
           const quiz = document.createElement('div'); quiz.style.marginTop='16px';
@@ -604,18 +622,51 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         }
       }
 
-      // Very lightweight generator to seed questions; in production, replace with server AI
-      function generateProblemsForLesson(courseId, subtopicId, slug, count){
+      // Generate problems via Gemini when API key is available; otherwise throw
+      async function generateProblemsForLesson(course, subtopic, lesson, count){
+        const apiKey = getGeminiKey();
+        if (!apiKey) throw new Error('No Gemini key');
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        const topic = `${course.title} → ${subtopic.title} → ${lesson.title}`;
+        const sys = `You are a math problem generator for Pre‑Algebra/Algebra students. Output STRICT JSON only.`;
+        const user = `Create ${count} multiple‑choice questions for the lesson: ${topic}.
+Each question should include: stem (LaTeX allowed), options (4 choices as LaTeX strings), correct (index 0-3), explanation (LaTeX). Order questions from easy to hard. If graphing is relevant to this lesson (e.g., coordinate plane, lines, functions), include a 'graph' field with { expressions: [{ id: 'g1', latex: 'y=x+1' }, ...] } using Desmos LaTeX.
+Return STRICT JSON of the form { "problems": [ { "stem": string, "options": [string,string,string,string], "correct": number, "explanation": string, "graph"?: { "expressions": [{"id": string, "latex": string}] } } ... ] } with NO prose.`;
+        const body = { contents:[ { role:'user', parts:[ { text: sys + "\n\n" + user } ] } ] };
+        const res = await fetch(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) });
+        const j = await res.json();
+        let txt = (((j||{}).candidates||[])[0]||{}).content; txt = (txt && txt.parts && txt.parts[0] && txt.parts[0].text) || '';
+        const parsed = parseJsonFromText(txt);
+        const probs = (parsed && Array.isArray(parsed.problems)) ? parsed.problems : [];
+        if (!probs.length) throw new Error('Bad Gemini response');
+        // sanitize
+        return probs.slice(0, count).map(p=>({ stem: String(p.stem||''), options: (p.options||[]).slice(0,4).map(String), correct: Number(p.correct||0), explanation: String(p.explanation||''), graph: p.graph && p.graph.expressions ? { expressions: p.graph.expressions } : undefined }));
+      }
+
+      function getGeminiKey(){
+        try { if (window.TBP_GEMINI_API_KEY) return window.TBP_GEMINI_API_KEY; } catch{}
+        try { const k = localStorage.getItem('tbp_gemini_key'); if (k) return k; } catch{}
+        try { if (window.__TBP_GEMINI_API_KEY) return window.__TBP_GEMINI_API_KEY; } catch{}
+        return '';
+      }
+
+      function parseJsonFromText(t){
+        if (!t) return null;
+        // try fenced block
+        const m = t.match(/```json\s*([\s\S]*?)```/i) || t.match(/\{[\s\S]*\}$/);
+        let raw = m ? (m[1] || m[0]) : t;
+        try { return JSON.parse(raw); } catch { return null; }
+      }
+
+      function fallbackProblems(lesson, count){
         const out = [];
         for (let i=0;i<count;i++){
           const n = i+1;
-          const stem = `Problem ${n}: Solve $x+${n}=${n*2}$.`;
-          const ans =  n; // x = n
-          const opts = [ans, ans+1, ans-1, ans+2].map(v=> `$${v}$`);
+          const stem = `Solve $x+${n}=${n*2}$.`;
+          const ans = n; const opts = [ans, ans+1, ans-1, ans+2].map(v=> `$${v}$`);
           out.push({ stem, options: opts, correct:0, explanation:`$x=${ans}$` });
         }
-        // simple graph case for certain slugs
-        if (/graph|plot|coordinate|line/.test(slug)){
+        if (/graph|plot|coordinate|line/i.test(lesson.slug)){
           out[0].graph = { expressions:[ { id:'l1', latex:'y=x+1' } ] };
         }
         return out;
