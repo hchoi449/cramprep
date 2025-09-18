@@ -117,7 +117,8 @@ function renderWeekEvents(startOfWeek){
         const SCALE_PX_PER_HOUR = 75;
         const minutes = Number(sp.minute || 0);
         const offsetHours = (hour === 0 ? 12 : hour) - 12; // 12->0, 13->1 ... 23->11, 0->12
-        const topPx = (hour === 0 ? 12 : offsetHours) * SCALE_PX_PER_HOUR + (minutes/60)*SCALE_PX_PER_HOUR;
+        let topPx = (hour === 0 ? 12 : offsetHours) * SCALE_PX_PER_HOUR + (minutes/60)*SCALE_PX_PER_HOUR;
+        if (topPx < 0) topPx = 0; // clamp AM times to visible area
         slot.style.top = `${topPx}px`;
         // Height based on duration (75px/hr)
         const durMin = Math.max(15, Math.round((e0 - s0) / 60000));
