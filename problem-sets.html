@@ -1037,7 +1037,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                 const op = ['+','-','×','÷'][rand(0,3)];
                 let a = rand(120, 980), b = rand(20, 860);
                 const place = Math.random()<0.5? 'ten' : 'hundred';
-                const ar = roundTo(a, place), br = roundTo(b, place);
+                const ar = roundTo(a, place); let br = roundTo(b, place);
                 let est; if (op==='+') est = ar+br; else if (op==='-') est = ar-br; else if (op==='×') est = ar*br; else { br = Math.max(10, br||10); est = Math.round(ar/br); }
                 const stem = `Estimate $${a}\ ${op}\ ${b}$ by rounding to the nearest ${place}${op==='÷'?' (round divisor as well)':''}.`;
                 const opts = shuffle([`$${est}$`,`$${est + (place==='ten'?10:100)}$`,`$${Math.max(0, est - (place==='ten'?10:100))}$`,`$${est + (place==='ten'?20:200)}$`]);
