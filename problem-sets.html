@@ -1142,15 +1142,24 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         const AUTH_BASE = (window && window.TBP_AUTH_BASE) ? window.TBP_AUTH_BASE.replace(/\/$/,'') : '';
         const endpoint = `${AUTH_BASE}/ai/generate`;
         const topic = `${course.title} → ${subtopic.title} → ${lesson.title}`;
-        const sys = `You are a math problem generator for middle/high school math. Output STRICT JSON only.`;
+        const sys = `You create math MC questions. Return STRICT JSON only.`;
         const nonce = `${Date.now()}-${Math.floor(Math.random()*1e6)}`;
         const guidance = lessonGuidance(course, subtopic, lesson);
         const kws = [...buildKeywords(course, subtopic, lesson), ...lessonKeywords(course, subtopic, lesson)];
         const kw = kws.join(', ');
         const banding = getBandingProgression(course, subtopic, lesson);
-        let user = `Seed: ${nonce}\nLessonTitle: "${lesson.title}"\nCreate ${Math.max(10,count)} multiple‑choice questions ONLY for: ${topic}.\nSTRICT SCOPE (must align; do NOT drift): ${guidance}.\nREQUIRED KEYWORDS/CONCEPTS: ${kw}.\n${banding ? 'FOLLOW THIS PER-ITEM DIFFICULTY PROGRESSION (Q1..Q10):\n' + banding + '\n' : ''}Requirements:\n- Tag each with 'difficulty' ∈ {easy, medium, hard}; evenly distribute; later items should be harder.\n- Hard band REQUIREMENT: Q7–Q10 MUST be distinct real‑world word problems with different scenarios (e.g., distance, temperature, finance, travel, sports). NO template reuse.\n- Strong variation across structures: computation, short word problems, comparisons (which is larger/always true), statement selection (must be true), counterexample identification, translate phrase→expression/equation, and (when relevant) graph interpretation/creation.\n- Vary SCENARIOS and PHRASING. Do NOT reuse the same template with different numbers. Rotate real‑world contexts (distance, temperature, finance, shopping, travel, sports, science, etc.). No two items may share the same scenario pattern.\n- Use LaTeX in stems, options, and explanations. Wrap plain text in inline math: $\\text{...}$.\n- Provide 4 options; 'correct' is the index (0-3).\n- If graphing is relevant, include graph: { expressions: [{ id: 'g1', latex: 'y=x+1' }, ...] } OR points: { expressions: [{ id:'p', type:'point', x: number, y: number }] }.\n- Include an optional 'structure' field (string) describing the structure you used.\nReturn STRICT JSON exactly: { "problems": [ { "stem": string, "options": [string,string,string,string], "correct": number, "explanation": string, "difficulty": "easy"|"medium"|"hard", "graph"?: { "expressions": (Array) } , "structure"?: string } ] } with NO prose.`;
-        if (opts && opts.requireHardWordProblems){
-          user += `\nSTRICT MODE: Generate only real‑world word problems suitable for the hard band. Each item must describe a concrete scenario (money, distance, temperature, travel, shopping, etc.).`;
+        function buildPrompt(n, mode){
+          const reqs = [
+            `Lesson: ${lesson.title}`,
+            `Topic: ${topic}`,
+            guidance ? `Scope: ${guidance}` : '',
+            kw ? `Keywords: ${kw}` : '',
+            `Make ${n} MC questions only about this lesson. 4 options (index 0-3), include explanation, tag difficulty (easy|medium|hard).`,
+            banding ? `Progression (Q1-10): ${banding}` : '',
+            `Use LaTeX for math (wrap text with $\\text{...}$).`,
+            mode === 'hardWord' ? `All items must be real-world word problems with distinct scenarios.` : ''
+          ].filter(Boolean).join('\n');
+          return `Seed: ${nonce}\n${reqs}\nReturn STRICT JSON: { "problems": [ { "stem": string, "options": [string,string,string,string], "correct": number, "explanation": string, "difficulty": "easy"|"medium"|"hard" } ] }`;
         }
         function fetchWithTimeout(url, options, timeoutMs){
           const controller = new AbortController();
@@ -1161,22 +1170,24 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           try { return String(text||'').toLowerCase().replace(/\$[^$]*\$/g,'$x$').replace(/-?\d+(?:\.\d+)?/g,'#').replace(/\\dfrac\{[^}]*\}\{[^}]*\}/g,'$f$').replace(/[()^*=+\\/]/g,' ').replace(/\s+/g,' ').trim(); } catch { return String(text||''); }
         }
         let probs = [];
-        const attemptCounts = [count, Math.max(10, Math.ceil(count*0.8)), Math.max(10, Math.ceil(count*0.8))];
-        for (let aiAttempt=0; aiAttempt<attemptCounts.length && probs.length < count; aiAttempt++){
-          const reqCount = attemptCounts[aiAttempt];
-          const userThis = user.replace(/Create \d+ multiple/, `Create ${reqCount} multiple`);
+        const batchSize = Math.min(6, Math.max(4, Math.ceil(count/3)));
+        const numBatches = Math.max(3, Math.ceil(count / batchSize));
+        for (let b=0; b<numBatches && probs.length < count; b++){
+          const remaining = count - probs.length;
+          const thisCount = Math.min(batchSize, remaining);
+          const mode = (opts && opts.requireHardWordProblems) ? 'hardWord' : undefined;
+          const prompt = buildPrompt(thisCount, mode);
           const body = {
             model: 'gemini-1.5-pro',
-            contents:[ { role:'user', parts:[ { text: sys + "\n\n" + userThis } ] } ],
-            generationConfig: { temperature: 0.7, topP: 0.9, candidateCount: 1 }
+            contents:[ { role:'user', parts:[ { text: sys + "\n\n" + prompt } ] } ],
+            generationConfig: { temperature: 0.6, topP: 0.9, candidateCount: 1 }
           };
           try {
-            const res = await fetchWithTimeout(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) }, 10000);
+            const res = await fetchWithTimeout(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) }, 12000);
             const j = await res.json();
             let txt = (((j||{}).candidates||[])[0]||{}).content; txt = (txt && txt.parts && txt.parts[0] && txt.parts[0].text) || '';
             const parsed = parseJsonFromText(txt);
-            let batch = (parsed && Array.isArray(parsed.problems)) ? parsed.problems : [];
-            // merge unique by normalized stem
+            const batch = (parsed && Array.isArray(parsed.problems)) ? parsed.problems : [];
             const seen = new Set(probs.map(p=> normalizeStemTextLocal(p.stem)));
             for (const p of batch){
               const norm = normalizeStemTextLocal(p && p.stem);
@@ -1193,7 +1204,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         }
         // If still too few, try a second stricter attempt echoing the exact lesson title multiple times
         if (probs.length < Math.min(count, 5)){
-          const strictUser = `Seed: ${nonce}-strict\nLessonTitle (repeat 3x): "${lesson.title}" — "${lesson.title}" — "${lesson.title}"\nGenerate ${count} MC questions ONLY about: ${lesson.title}. DO NOT include unrelated skills.\nScope: ${guidance}. Required keywords: ${kw}.\nReturn STRICT JSON { "problems": [ { "stem": string, "options": [string,string,string,string], "correct": number, "explanation": string, "difficulty": "easy"|"medium"|"hard" } ] } with NO prose.`;
+          const strictUser = `Seed: ${nonce}-strict\nLesson: ${lesson.title}\nMake ${count} MC questions ONLY about this lesson. Keep strictly on-topic.\n${kw?`Keywords: ${kw}`:''}\nReturn STRICT JSON { "problems": [ { "stem": string, "options": [string,string,string,string], "correct": number, "explanation": string, "difficulty": "easy"|"medium"|"hard" } ] }`;
           const strictBody = { model:'gemini-1.5-pro', contents:[ { role:'user', parts:[ { text: sys + "\n\n" + strictUser } ] } ] };
           const res2 = await fetch(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(strictBody) });
           const j2 = await res2.json();
