@@ -631,7 +631,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         function isWordProblemStem(text){
           try {
             const s = String(text||'').toLowerCase();
-            const wordCues = ['miles','kilometers','feet','inches','pounds','dollars','cost','price','bank','interest','tax','tip','store','shop','ticket','temperature','degrees','elevation','above','below','distance','speed','rate','time','minutes','hours','days','recipe','mixture','class','students','apples','books','boxes','travel','trip','bus','train','water','tank','pool','garden','field','work'];
+            const wordCues = ['miles','kilometers','feet','inches','pounds','dollars','yen','cost','price','bank','balance','account','interest','tax','tip','store','shop','ticket','temperature','degrees','celsius','fahrenheit','elevation','sea level','above','below','distance','speed','rate','time','minutes','hours','days','deposit','withdraw','spent','bought','paid','owes','loan','recipe','mixture','class','students','apples','books','boxes','travel','trip','bus','train','water','tank','pool','garden','field','work'];
             const hasCue = wordCues.some(k=> s.includes(k));
             const hasSentence = /[a-z]{3,}\s+[a-z]{3,}/.test(s) && /[.?]/.test(s);
             const mathOnly = /^\s*(\$[^$]*\$|[-+*/^()=0-9\\\s])+\s*$/.test(s);
@@ -783,7 +783,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                 const lastFourWord = ten.slice(-4).filter(q=> isWordProblemStem(q.stem)).length;
                 if (lastFourWord < 4){
                   try {
-                    const hardWord = await generateProblemsForLesson(course, subtopic, lesson, 12, { requireHardWordProblems: true });
+                    // require at least 2 hard-band word problems; request extra for diversity
+                    const hardWord = await generateProblemsForLesson(course, subtopic, lesson, 20, { requireHardWordProblems: true });
                     if (Array.isArray(hardWord) && hardWord.length){
                       pool = pool.concat(hardWord.map(p=> sanitizeProblem(p)));
                       ten = selectDiverseTen(pool);
@@ -1187,7 +1188,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         const t = `${(course&&course.title)||''} ${(subtopic&&subtopic.title)||''} ${(lesson&&lesson.title)||''}`.toLowerCase();
         if (t.includes('place value') || t.includes('rounding')) return 'Place value to millions and thousandths; rounding to given place; estimation sums/differences/products.';
         if (t.includes('integers')) return 'Integer addition, subtraction, multiplication, division; sign rules; order of operations with integers.';
-        if (t.includes('absolute value')) return 'Absolute value as distance; compare integers/opposites; simple equations with |x|.';
+        if (t.includes('absolute value')) return 'Absolute value as distance; compare integers/opposites; simple equations with |x|. Word problems should reference real contexts like bank balances (deposits/withdrawals), temperatures above/below zero, elevations relative to sea level, and distances.';
         if (t.includes('properties')) return 'Commutative, associative, distributive properties; simplify expressions using properties.';
         if (t.includes('divisibility') || t.includes('prime')) return 'Divisibility tests (2,3,4,5,6,9,10); prime vs composite; prime factorization; factor trees.';
         if (t.includes('gcf')) return 'Find greatest common factor by prime factors or divisors; apply to simplify expressions and fractions.';
