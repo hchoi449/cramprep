@@ -784,6 +784,15 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         if (title.includes('properties') || st.includes('expressions')){
           out.push('commutative','associative','distributive','rearrange','grouping','a(b+c)=ab+ac','ab+ac','factor','like terms','a+b=b+a','(a+b)+c=a+(b+c)');
         }
+        if (title.includes('gcf') || st.includes('gcf') || title.includes('greatest common factor')){
+          out.push('gcf','greatest common factor','common factor','prime factorization','gcd');
+        }
+        if (title.includes('lcm') || st.includes('lcm') || title.includes('least common multiple')){
+          out.push('lcm','least common multiple','multiples','common multiple','prime powers');
+        }
+        if (title.includes('divisibility') || st.includes('divisibility') || title.includes('prime')){
+          out.push('divisible by','divisibility','prime','composite','factor');
+        }
         if (title.includes('unit rate') || st.includes('ratios')){
           out.push('ratio','unit rate','proportion','constant of proportionality');
         }
@@ -810,7 +819,40 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         const out = [];
         const slug = (lesson && lesson.slug || '').toLowerCase();
         function rand(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+        function gcd(x,y){ x=Math.abs(x); y=Math.abs(y); while(y){ const t=x%y; x=y; y=t; } return x; }
+        function lcm(x,y){ return Math.abs(x*y)/gcd(x,y); }
         for (let i=0;i<count;i++){
+          if (slug.includes('lcm')){
+            const a = rand(2,15), b = rand(2,15);
+            const ans = lcm(a,b);
+            const opts = _.shuffle([ans, ans+rand(1,5), Math.max(ans-rand(1,5),1), ans*2]).map(v=> `$${v}$`);
+            out.push({ stem:`Find $\\operatorname{LCM}(${a},${b})$.`, options: opts, correct: opts.indexOf(`$${ans}$`), explanation:`Prime powers or $\\mathrm{lcm}(a,b)=\\dfrac{ab}{\\gcd(a,b)}=\\dfrac{${a}\\cdot${b}}{${gcd(a,b)}}=${ans}$.`, difficulty: i< count/3?'easy': i< 2*count/3?'medium':'hard' });
+            continue;
+          }
+          if (slug.includes('gcf')){
+            const a = rand(10,60), b = rand(10,60);
+            const ans = gcd(a,b);
+            const opts = _.shuffle([ans, ans+rand(1,4), Math.max(ans-rand(1,4),1), rand(2,9)]).map(v=> `$${v}$`);
+            out.push({ stem:`Find $\\operatorname{GCF}(${a},${b})$.`, options: opts, correct: opts.indexOf(`$${ans}$`), explanation:`Common factors; $\\gcd(${a},${b})=${ans}$.`, difficulty: i< count/3?'easy': i< 2*count/3?'medium':'hard' });
+            continue;
+          }
+          if (slug.includes('divisibility-prime-composite')){
+            const n = rand(10,150);
+            const qtype = rand(0,1);
+            if (qtype===0){
+              const d = [2,3,4,5,6,9,10][rand(0,6)];
+              const isDiv = n%d===0;
+              const opts = isDiv ? ['Yes','No','Only if even','Only if odd'] : ['No','Yes','Only if even','Only if odd'];
+              out.push({ stem:`Is $${n}$ divisible by $${d}$?`, options: opts, correct: isDiv?0:1, explanation:`Check divisibility rule for ${d}.`, difficulty: i< count/3?'easy': i< 2*count/3?'medium':'hard' });
+            } else {
+              // prime vs composite (simple heuristic)
+              function isPrime(k){ if (k<2) return false; for (let p=2;p*p<=k;p++){ if (k%p===0) return false; } return true; }
+              const prime = isPrime(n);
+              const opts = ['Prime','Composite','Even','Odd'];
+              out.push({ stem:`Is $${n}$ prime or composite?`, options: opts, correct: prime?0:1, explanation:`${n} is ${prime?'prime (no factors besides 1 and itself)':'composite (has other factors)'} .`, difficulty: i< count/3?'easy': i< 2*count/3?'medium':'hard' });
+            }
+            continue;
+          }
           if (slug.includes('place-value')){
             const n = rand(1000,999999);
             const place = ['nearest ten','nearest hundred','nearest thousand'][rand(0,2)];
