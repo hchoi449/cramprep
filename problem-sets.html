@@ -739,11 +739,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         // Detect banded lessons and prebuild a fixed ordered set of 10
         // Build ordered banded set for ALL lessons: use specific generator if present; otherwise use Gemini
         try {
-          // Try cache first
-          const cached = getCachedProblems(course, subtopic, lesson, 86400000);
-          if (cached && cached.length){
-            orderedProblems = enforceBanding(makeStemsUnique(cached.map(p=> sanitizeProblem(p))));
-          }
+          // Cache disabled per request
           // Show loading while generating questions via Gemini/local if no cache
           let loadingEl = null;
           try {
@@ -795,8 +791,6 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           }
           if (orderedProblems && orderedProblems.length){
             orderedProblems = makeStemsUnique(orderedProblems);
-            // Save to cache for future loads
-            setCachedProblems(course, subtopic, lesson, orderedProblems);
           }
           try { if (loadingEl && loadingEl.parentNode) loadingEl.parentNode.removeChild(loadingEl); } catch {}
         } catch {}
