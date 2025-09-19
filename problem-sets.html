@@ -762,6 +762,21 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             return s.trim();
           } catch { return String(text||''); }
         }
+        function normalizePlain(s){
+          try {
+            return String(s||'').toLowerCase().replace(/\s+/g,' ').replace(/\s*,\s*/g, ',').replace(/\s*cm\b/g,' cm').trim();
+          } catch { return String(s||''); }
+        }
+        function plainsEqualLoose(a,b){
+          try {
+            const na = normalizePlain(stripLatexToPlain(a));
+            const nb = normalizePlain(stripLatexToPlain(b));
+            if (na === nb) return true;
+            const fa = parseNumberLoose(na), fb = parseNumberLoose(nb);
+            if (!Number.isNaN(fa) && !Number.isNaN(fb) && Math.abs(fa - fb) < 1e-9) return true;
+            return false;
+          } catch { return false; }
+        }
 
         function parseNumberLoose(s){
           try { return parseFloat(String(s||'').replace(/,/g,'').trim()); } catch { return NaN; }
@@ -1119,10 +1134,14 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   const chosenBtn = [...opts.children].find(ch=> ch.classList.contains('sel'));
                   if (!chosenBtn){ results.textContent='Please select an answer before submitting.'; results.style.color='#8B4513'; return; }
                   const chosen = Number(chosenBtn.dataset.chosen);
-                  const correct = chosen === q.correct; if (correct) { correctCount++; }
+                  // robust correctness: compare plain/number and also accept unit spacing
+                  const chosenText = opts.children[chosen] ? opts.children[chosen].textContent : '';
+                  const correctTextNow = (q && Array.isArray(q.options)) ? q.options[Math.max(0, Math.min(3, q.correct||0))] : '';
+                  const correct = plainsEqualLoose(chosenText, correctTextNow);
+                  if (correct) { correctCount++; }
                   [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
                   submit.disabled = true; next.disabled = false;
-                  explain.innerHTML = correct ? `<span style=\"color:#155e2b\"><i class='bi bi-check-circle'></i> Correct.</span> ${q.explanation||''}` : `<span style=\"color:#991b1b\"><i class='bi bi-x-circle'></i> Incorrect.</span> ${q.explanation||''}`;
+                  explain.innerHTML = correct ? `<span style="color:#155e2b"><i class='bi bi-check-circle'></i> Correct.</span> ${q.explanation||''}` : `<span style=\"color:#991b1b\"><i class='bi bi-x-circle'></i> Incorrect.</span> ${q.explanation||''}`;
                   try { if (window.renderMathInElement) { renderMathInElement(explain, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false}] }); } } catch{}
                 });
                 next.addEventListener('click', ()=>{
@@ -1201,10 +1220,14 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   const chosenBtn = [...opts.children].find(ch=> ch.classList.contains('sel'));
                   if (!chosenBtn){ results.textContent='Please select an answer before submitting.'; results.style.color='#8B4513'; return; }
                   const chosen = Number(chosenBtn.dataset.chosen);
-                  const correct = chosen === q.correct; if (correct) { correctCount++; }
+                  // robust correctness: compare plain/number and also accept unit spacing
+                  const chosenText = opts.children[chosen] ? opts.children[chosen].textContent : '';
+                  const correctTextNow = (q && Array.isArray(q.options)) ? q.options[Math.max(0, Math.min(3, q.correct||0))] : '';
+                  const correct = plainsEqualLoose(chosenText, correctTextNow);
+                  if (correct) { correctCount++; }
                   [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
                   submit.disabled = true; next.disabled = false;
-                  explain.innerHTML = correct ? `<span style=\"color:#155e2b\"><i class='bi bi-check-circle'></i> Correct.</span> ${q.explanation||''}` : `<span style=\"color:#991b1b\"><i class='bi bi-x-circle'></i> Incorrect.</span> ${q.explanation||''}`;
+                  explain.innerHTML = correct ? `<span style="color:#155e2b"><i class='bi bi-check-circle'></i> Correct.</span> ${q.explanation||''}` : `<span style=\"color:#991b1b\"><i class='bi bi-x-circle'></i> Incorrect.</span> ${q.explanation||''}`;
                   try { if (window.renderMathInElement) { renderMathInElement(explain, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false}] }); } } catch{}
                   if (correct){ currentDifficulty = currentDifficulty==='easy' ? 'medium' : (currentDifficulty==='medium' ? 'hard' : 'hard'); }
                   else { currentDifficulty = currentDifficulty==='hard' ? 'medium' : (currentDifficulty==='medium' ? 'easy' : 'easy'); }
@@ -1276,10 +1299,14 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
               const chosenBtn = [...opts.children].find(ch=> ch.classList.contains('sel'));
               if (!chosenBtn){ results.textContent='Please select an answer before submitting.'; results.style.color='#8B4513'; return; }
               const chosen = Number(chosenBtn.dataset.chosen);
-              const correct = chosen === q.correct; if (correct) { correctCount++; }
+              // robust correctness: compare plain/number and also accept unit spacing
+              const chosenText = opts.children[chosen] ? opts.children[chosen].textContent : '';
+              const correctTextNow = (q && Array.isArray(q.options)) ? q.options[Math.max(0, Math.min(3, q.correct||0))] : '';
+              const correct = plainsEqualLoose(chosenText, correctTextNow);
+              if (correct) { correctCount++; }
               [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
               submit.disabled = true; next.disabled = false;
-              explain.innerHTML = correct ? `<span style=\"color:#155e2b\"><i class='bi bi-check-circle'></i> Correct.</span> ${q.explanation||''}` : `<span style=\"color:#991b1b\"><i class='bi bi-x-circle'></i> Incorrect.</span> ${q.explanation||''}`;
+              explain.innerHTML = correct ? `<span style="color:#155e2b"><i class='bi bi-check-circle'></i> Correct.</span> ${q.explanation||''}` : `<span style=\"color:#991b1b\"><i class='bi bi-x-circle'></i> Incorrect.</span> ${q.explanation||''}`;
               try { if (window.renderMathInElement) { renderMathInElement(explain, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false}] }); } } catch{}
               // adapt difficulty
               if (correct){
