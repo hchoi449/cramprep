@@ -680,7 +680,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         const guidance = lessonGuidance(course, subtopic, lesson);
         const kws = [...buildKeywords(course, subtopic, lesson), ...lessonKeywords(course, subtopic, lesson)];
         const kw = kws.join(', ');
-        const user = `Seed: ${nonce}\nCreate ${count} multiple‑choice questions for the lesson: ${topic}.\nSTRICT SCOPE (must align; do NOT drift): ${guidance}.\nMUST INCORPORATE THESE KEYWORDS/CONCEPTS: ${kw}.\nRequirements:\n- Tag each problem with 'difficulty' ∈ {easy, medium, hard}; evenly distribute across difficulties.\n- Strong variation across forms: numeric computation, concise word problems, expression evaluation, equation solving, and (when applicable) graph interpretation/creation.\n- Vary constants/structures; avoid repeated templates; ensure each problem is clearly tied to the scope/keywords.\n- Use LaTeX in stems/options/explanations where appropriate.\n- Provide 4 options; 'correct' is the index (0-3).\n- If graphing is relevant, include graph: { expressions: [{ id: 'g1', latex: 'y=x+1' }, ...] } (Desmos LaTeX).\nReturn STRICT JSON exactly: { "problems": [ { "stem": string, "options": [string,string,string,string], "correct": number, "explanation": string, "difficulty": "easy"|"medium"|"hard", "graph"?: { "expressions": [{"id": string, "latex": string}] } } ] } with NO prose.`;
+        const user = `Seed: ${nonce}\nLessonTitle: "${lesson.title}"\nCreate ${count} multiple‑choice questions for this specific lesson: ${topic}.\nSTRICT SCOPE (must align; do NOT drift): ${guidance}.\nMUST INCORPORATE THESE KEYWORDS/CONCEPTS: ${kw}.\nRequirements:\n- Tag each problem with 'difficulty' ∈ {easy, medium, hard}; evenly distribute across difficulties.\n- Strong variation across forms: numeric computation, concise word problems, expression evaluation, equation solving, and (when applicable) graph interpretation/creation.\n- Vary constants/structures; avoid repeated templates; ensure each problem is clearly tied to the scope/keywords and LessonTitle.\n- Use LaTeX in stems/options/explanations where appropriate.\n- Provide 4 options; 'correct' is the index (0-3).\n- If graphing is relevant, include graph: { expressions: [{ id: 'g1', latex: 'y=x+1' }, ...] } (Desmos LaTeX).\nReturn STRICT JSON exactly: { "problems": [ { "stem": string, "options": [string,string,string,string], "correct": number, "explanation": string, "difficulty": "easy"|"medium"|"hard", "graph"?: { "expressions": [{"id": string, "latex": string}] } } ] } with NO prose.`;
         const body = { contents:[ { role:'user', parts:[ { text: sys + "\n\n" + user } ] } ] };
         const res = await fetch(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) });
         const j = await res.json();
@@ -692,6 +692,17 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         if (hardKws.length){
           const filtered = probs.filter(p=> containsAnyKeyword(p, hardKws));
           if (filtered.length >= Math.min(count, 5)) probs = filtered; // keep if enough survive
+        }
+        // If still too few, try a second stricter attempt echoing the exact lesson title multiple times
+        if (probs.length < Math.min(count, 5)){
+          const strictUser = `Seed: ${nonce}-strict\nLessonTitle (repeat 3x): "${lesson.title}" — "${lesson.title}" — "${lesson.title}"\nGenerate ${count} MC questions ONLY about: ${lesson.title}. DO NOT include unrelated skills.\nScope: ${guidance}. Required keywords: ${kw}.\nReturn STRICT JSON { "problems": [ { "stem": string, "options": [string,string,string,string], "correct": number, "explanation": string, "difficulty": "easy"|"medium"|"hard" } ] } with NO prose.`;
+          const strictBody = { contents:[ { role:'user', parts:[ { text: sys + "\n\n" + strictUser } ] } ] };
+          const res2 = await fetch(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(strictBody) });
+          const j2 = await res2.json();
+          let txt2 = (((j2||{}).candidates||[])[0]||{}).content; txt2 = (txt2 && txt2.parts && txt2.parts[0] && txt2.parts[0].text) || '';
+          const parsed2 = parseJsonFromText(txt2);
+          const probs2 = (parsed2 && Array.isArray(parsed2.problems)) ? parsed2.problems : [];
+          if (probs2.length) probs = probs2;
         }
         if (!probs.length) throw new Error('Bad Gemini response');
         // sanitize
@@ -771,7 +782,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         const st = ((subtopic&&subtopic.title)||'').toLowerCase();
         const out = [];
         if (title.includes('properties') || st.includes('expressions')){
-          out.push('commutative','associative','distributive','rearrange','grouping','a(b+c)=ab+ac','ab+ac','factor','like terms');
+          out.push('commutative','associative','distributive','rearrange','grouping','a(b+c)=ab+ac','ab+ac','factor','like terms','a+b=b+a','(a+b)+c=a+(b+c)');
         }
         if (title.includes('unit rate') || st.includes('ratios')){
           out.push('ratio','unit rate','proportion','constant of proportionality');
