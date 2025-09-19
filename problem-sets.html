@@ -1001,8 +1001,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           // Prefer Gemini to generate structured problems per banding plan (block display until done or 10s timeout)
           try {
             if (!orderedProblems){
-              // Fast path: use cached questions if fresh
-              const cached = getCachedProblems(course, subtopic, lesson, 1000*60*60*24);
+              // Fast path: use cached questions if fresh (10 minutes)
+              const cached = getCachedProblems(course, subtopic, lesson, 1000*60*10);
               if (Array.isArray(cached) && cached.length >= 10){
                 orderedProblems = enforceBanding(cached.slice(0,10));
               }
@@ -1394,7 +1394,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         const endpoint = `${AUTH_BASE}/ai/generate`;
         const topic = `${course.title} → ${subtopic.title} → ${lesson.title}`;
         const sys = `You create math MC questions. Return STRICT JSON only.`;
-        const nonce = `${Date.now()}-${Math.floor(Math.random()*1e6)}`;
+        const nowRnd = Math.floor(Date.now()/1000);
+        const nonce = `${nowRnd}-${Math.floor(Math.random()*1e9)}`;
         const guidance = lessonGuidance(course, subtopic, lesson);
         const kws = [...buildKeywords(course, subtopic, lesson), ...lessonKeywords(course, subtopic, lesson)];
         const kw = kws.join(', ');
@@ -1407,6 +1408,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             kw ? `Keywords: ${kw}` : '',
             `Make ${n} MC questions only about this lesson. 4 options (index 0-3), include explanation, tag difficulty (easy|medium|hard).`,
             banding ? `Progression (Q1-10): ${banding}` : '',
+            `Diversity seed: ${nonce} (use to vary scenarios and numbers).`,
             `Use LaTeX for math (wrap text with $\\text{...}$).`,
             mode === 'hardWord' ? `All items must be real-world word problems with distinct scenarios.` : ''
           ].filter(Boolean).join('\n');
@@ -1423,6 +1425,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         let probs = [];
         const batchSize = Math.min(6, Math.max(4, Math.ceil(count/3)));
         const numBatches = Math.max(3, Math.ceil(count / batchSize));
+        // Shuffle which batch sizes we use slightly to vary output
+        const jitter = (x)=> Math.max(3, Math.min(8, x + ((Math.random()<0.5)?-1:1)));
         for (let b=0; b<numBatches && probs.length < count; b++){
           const remaining = count - probs.length;
           const thisCount = Math.min(batchSize, remaining);
