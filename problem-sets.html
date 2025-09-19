@@ -759,7 +759,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
               if (bodyEl) bodyEl.appendChild(loadingEl);
             }
           } catch {}
-          // Prefer Gemini to generate structured problems per banding plan
+          // Prefer Gemini to generate structured problems per banding plan (block display until done or 10s timeout)
           try {
             if (!orderedProblems){
               const ai = await generateProblemsForLesson(course, subtopic, lesson, 120);
@@ -1117,7 +1117,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             generationConfig: { temperature: 0.7, topP: 0.9, candidateCount: 1 }
           };
           try {
-            const res = await fetchWithTimeout(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) }, 60000);
+            const res = await fetchWithTimeout(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) }, 10000);
             const j = await res.json();
             let txt = (((j||{}).candidates||[])[0]||{}).content; txt = (txt && txt.parts && txt.parts[0] && txt.parts[0].text) || '';
             const parsed = parseJsonFromText(txt);
