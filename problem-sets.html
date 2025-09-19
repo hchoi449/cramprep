@@ -1460,6 +1460,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         const AUTH_BASE = (window && window.TBP_AUTH_BASE) ? window.TBP_AUTH_BASE.replace(/\/$/,'') : '';
         const endpoint = `${AUTH_BASE}/ai/generate`;
         const topic = `${course.title} → ${subtopic.title} → ${lesson.title}`;
+        const isWritingExpr = /writing expressions/i.test(String((lesson && lesson.title) || ''));
         const sys = `You create math MC questions. Return STRICT JSON only.`;
         const nowRnd = Math.floor(Date.now()/1000);
         const nonce = `${nowRnd}-${Math.floor(Math.random()*1e9)}`;
@@ -1494,19 +1495,27 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         const numBatches = Math.max(3, Math.ceil(count / batchSize));
         // Shuffle which batch sizes we use slightly to vary output
         const jitter = (x)=> Math.max(3, Math.min(8, x + ((Math.random()<0.5)?-1:1)));
-        for (let b=0; b<numBatches && probs.length < count; b++){
-          const remaining = count - probs.length;
-          const thisCount = Math.min(batchSize, remaining);
-          const mode = (opts && opts.requireHardWordProblems) ? 'hardWord' : undefined;
-          const prompt = buildPrompt(thisCount, mode);
-          const body = {
-            model: 'gemini-1.5-flash',
-            contents:[ { role:'user', parts:[ { text: sys + "\n\n" + prompt } ] } ],
-            generationConfig: { temperature: 0.6, topP: 0.9, candidateCount: 1 }
-          };
-          try {
-            const res = await fetchWithTimeout(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) }, 12000);
-            const j = await res.json();
+        const fastModel = isWritingExpr ? 'gemini-1.5-flash-8b' : 'gemini-1.5-flash';
+        if (isWritingExpr){
+          // Parallelize for higher throughput
+          const parallel = Math.min(4, numBatches);
+          const requests = [];
+          for (let i=0; i<parallel; i++){
+            const thisCount = Math.min(batchSize, count);
+            const prompt = buildPrompt(thisCount, undefined);
+            const body = {
+              model: fastModel,
+              contents:[ { role:'user', parts:[ { text: sys + "\n\n" + prompt } ] } ],
+              generationConfig: { temperature: 0.3, topP: 0.8, candidateCount: 1 }
+            };
+            requests.push(
+              fetchWithTimeout(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) }, 8000)
+                .then(r=> r.json()).catch(()=>null)
+            );
+          }
+          const results = await Promise.all(requests);
+          for (const j of results){
+            if (!j) continue;
             let txt = (((j||{}).candidates||[])[0]||{}).content; txt = (txt && txt.parts && txt.parts[0] && txt.parts[0].text) || '';
             const parsed = parseJsonFromText(txt);
             const batch = (parsed && Array.isArray(parsed.problems)) ? parsed.problems : [];
@@ -1515,7 +1524,31 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
               const norm = normalizeStemTextLocal(p && p.stem);
               if (!seen.has(norm)) { probs.push(p); seen.add(norm); }
             }
-          } catch {}
+          }
+        } else {
+          for (let b=0; b<numBatches && probs.length < count; b++){
+            const remaining = count - probs.length;
+            const thisCount = Math.min(batchSize, remaining);
+            const mode = (opts && opts.requireHardWordProblems) ? 'hardWord' : undefined;
+            const prompt = buildPrompt(thisCount, mode);
+            const body = {
+              model: fastModel,
+              contents:[ { role:'user', parts:[ { text: sys + "\n\n" + prompt } ] } ],
+              generationConfig: { temperature: 0.6, topP: 0.9, candidateCount: 1 }
+            };
+            try {
+              const res = await fetchWithTimeout(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) }, 12000);
+              const j = await res.json();
+              let txt = (((j||{}).candidates||[])[0]||{}).content; txt = (txt && txt.parts && txt.parts[0] && txt.parts[0].text) || '';
+              const parsed = parseJsonFromText(txt);
+              const batch = (parsed && Array.isArray(parsed.problems)) ? parsed.problems : [];
+              const seen = new Set(probs.map(p=> normalizeStemTextLocal(p.stem)));
+              for (const p of batch){
+                const norm = normalizeStemTextLocal(p && p.stem);
+                if (!seen.has(norm)) { probs.push(p); seen.add(norm); }
+              }
+            } catch {}
+          }
         }
         // Hard filter to ensure association with the actual lesson keywords
         const hardKws = lessonKeywords(course, subtopic, lesson).map(s=> String(s).toLowerCase());
@@ -1527,7 +1560,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         // If still too few, try a second stricter attempt echoing the exact lesson title multiple times
         if (probs.length < Math.min(count, 5)){
           const strictUser = `Seed: ${nonce}-strict\nLesson: ${lesson.title}\nMake ${count} MC questions ONLY about this lesson. Keep strictly on-topic.\n${kw?`Keywords: ${kw}`:''}${/writing expressions/i.test(lesson.title||'')?`\nRULES FOR THIS LESSON: Provide a word phrase and four expression options; the correct option must be an algebraic expression with variables and operations (e.g., n+7, 2x-3, (m+5)/2). Do NOT ask to simplify or solve; do NOT produce a numeric answer.`:''}\nReturn STRICT JSON { "problems": [ { "stem": string, "options": [string,string,string,string], "correct": number, "explanation": string, "difficulty": "easy"|"medium"|"hard" } ] }`;
-          const strictBody = { model:'gemini-1.5-flash', contents:[ { role:'user', parts:[ { text: sys + "\n\n" + strictUser } ] } ] };
+          const strictBody = { model: fastModel, contents:[ { role:'user', parts:[ { text: sys + "\n\n" + strictUser } ] } ] };
           const res2 = await fetch(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(strictBody) });
           const j2 = await res2.json();
           let txt2 = (((j2||{}).candidates||[])[0]||{}).content; txt2 = (txt2 && txt2.parts && txt2.parts[0] && txt2.parts[0].text) || '';
