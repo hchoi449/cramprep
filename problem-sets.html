@@ -678,7 +678,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         const sys = `You are a math problem generator for middle/high school math. Output STRICT JSON only.`;
         const nonce = `${Date.now()}-${Math.floor(Math.random()*1e6)}`;
         const guidance = lessonGuidance(course, subtopic, lesson);
-        const user = `Seed: ${nonce}\nCreate ${count} multiple‑choice questions for the lesson: ${topic}.\nCoverage: ${guidance}.\nRequirements:\n- Tag each problem with 'difficulty' ∈ {easy, medium, hard}; evenly distribute across difficulties.\n- Strong variation across forms: numeric computation, short word problems, expression evaluation, equation solving, and (when applicable) graph interpretation/creation.\n- Vary constants and structures; avoid repeated templates.\n- Use LaTeX in stems/options/explanations where appropriate.\n- Provide 4 options; 'correct' is the index (0-3).\n- If graphing is relevant, include graph: { expressions: [{ id: 'g1', latex: 'y=x+1' }, ...] } (Desmos LaTeX).\nReturn STRICT JSON exactly: { "problems": [ { "stem": string, "options": [string,string,string,string], "correct": number, "explanation": string, "difficulty": "easy"|"medium"|"hard", "graph"?: { "expressions": [{"id": string, "latex": string}] } } ] } with NO prose.`;
+        const kw = buildKeywords(course, subtopic, lesson).join(', ');
+        const user = `Seed: ${nonce}\nCreate ${count} multiple‑choice questions for the lesson: ${topic}.\nSTRICT SCOPE (must align; do NOT drift): ${guidance}.\nKEYWORDS: ${kw}.\nRequirements:\n- Tag each problem with 'difficulty' ∈ {easy, medium, hard}; evenly distribute across difficulties.\n- Strong variation across forms: numeric computation, concise word problems, expression evaluation, equation solving, and (when applicable) graph interpretation/creation.\n- Vary constants/structures; avoid repeated templates; ensure each problem is clearly tied to the scope/keywords.\n- Use LaTeX in stems/options/explanations where appropriate.\n- Provide 4 options; 'correct' is the index (0-3).\n- If graphing is relevant, include graph: { expressions: [{ id: 'g1', latex: 'y=x+1' }, ...] } (Desmos LaTeX).\nReturn STRICT JSON exactly: { "problems": [ { "stem": string, "options": [string,string,string,string], "correct": number, "explanation": string, "difficulty": "easy"|"medium"|"hard", "graph"?: { "expressions": [{"id": string, "latex": string}] } } ] } with NO prose.`;
         const body = { contents:[ { role:'user', parts:[ { text: sys + "\n\n" + user } ] } ] };
         const res = await fetch(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) });
         const j = await res.json();
@@ -747,6 +748,15 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         if (t.includes('unit conversions') || t.includes('dimensional')) return 'Unit conversions via dimensional analysis; set up conversion factors.';
         if (t.includes('rates as “per”') || t.includes('rates as "per"')) return 'Interpret per units (mph, $/lb, etc.); compute totals and rates.';
         return 'Create varied problems matching this lesson topic with appropriate coverage.';
+      }
+
+      function buildKeywords(course, subtopic, lesson){
+        const parts = [];
+        try { if (course && course.title) parts.push(course.title); } catch{}
+        try { if (subtopic && subtopic.title) parts.push(subtopic.title); } catch{}
+        try { if (lesson && lesson.title) parts.push(lesson.title); } catch{}
+        try { if (lesson && lesson.slug) parts.push(String(lesson.slug).replace(/[-_]/g,' ')); } catch{}
+        return parts.map(s=> String(s).toLowerCase());
       }
 
       function parseJsonFromText(t){
