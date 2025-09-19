@@ -1239,6 +1239,65 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           'two-step-equations': (k)=>{ const arr=[]; for(let i=0;i<k;i++){ const m=rand(2,6), x=rand(-10,10), b=rand(1,10); const y=m*x+b; const corr=`$${x}$`; const forms=[`${m}x+${b}=${y}`,`${m}x-${b}=${y-2*b}`]; const form=choice(forms); const opts=shuffle([corr,`$${x+1}$`,`$${x-1}$`,`$${x+2}$`]); arr.push({ stem:`Solve $${form}$.`, options:opts, correct: opts.indexOf(corr), explanation:`Undo add/sub then divide.`, difficulty: i<k/3?'easy': i<2*k/3?'medium':'hard' }); } return arr; },
           'one-step-inequalities': (k)=>{ const arr=[]; for(let i=0;i<k;i++){ const a=rand(2,12), x=rand(-8,8); const b=a*x; const form = i%2? `x+${a}\\le ${a+x}`:`${a}x> ${b}`; const corr=`$x${i%2? '\\le '+x:'> '+x}$`; const opts=shuffle([corr,`$x<${x}$`,`$x\\ge ${x+1}$`,`$x\\le ${x-1}$`]); arr.push({ stem:`Solve ${form}$.`, options:opts, correct: opts.indexOf(corr), explanation:`Treat like equations; flip when dividing by negative.`, difficulty: i<k/3?'easy': i<2*k/3?'medium':'hard' }); } return arr; },
 
+          // Integers: add/subtract/multiply/divide with structured difficulty
+          'integer-operations': (k)=>{ const arr=[]; for(let i=0;i<k;i++){
+            let stem='', corrVal=0, difficulty='easy';
+            function fmt(n){ return `$${n}$`; }
+            function optsFrom(val, alt){ const a = [val, val+1, val-1, alt]; return shuffle(a.map(fmt)); }
+            if (i < 3){
+              // Q1–Q3 easy add/sub, small magnitudes, mix signs
+              const a = rand(-9,9), b = rand(-9,9); const op = (i%2===0? '+' : '-');
+              corrVal = op==='+'? a+b : a-b; stem = `Compute $${a} ${op} ${b}$.`;
+              const alt = op==='+'? a-b : a+b; const opts = optsFrom(corrVal, alt);
+              arr.push({ stem, options:opts, correct: opts.indexOf(fmt(corrVal)), explanation:`Use integer ${op==='+'?'addition':'subtraction'} with sign rules.`, difficulty:'easy' });
+            } else if (i < 6){
+              // Q4–Q6 moderate subtraction/multiplication with sign rules
+              difficulty='medium';
+              const mode = (i%2===0? '-' : '×');
+              const a = rand(-12,12), b = rand(-12,12);
+              corrVal = mode==='-'? (a-b) : (a*b); stem = `Compute $${a} ${mode} ${b}$.`;
+              const alt = mode==='-'? (b-a) : (Math.abs(a)*Math.abs(b));
+              const opts = optsFrom(corrVal, alt);
+              arr.push({ stem, options:opts, correct: opts.indexOf(fmt(corrVal)), explanation: mode==='-'?`Subtract: ${a} - (${b}) = ${corrVal}.`:`Multiply: sign is ${a*b<0?'negative':'positive'}.`, difficulty });
+            } else if (i < 8){
+              // Q7–Q8 harder mult/div including negatives
+              difficulty='hard';
+              const isDiv = (i%2===0);
+              if (!isDiv){
+                const a = (rand(2,15))*(Math.random()<0.5?-1:1);
+                const b = (rand(2,15))*(Math.random()<0.5?-1:1);
+                corrVal = a*b; stem = `Compute $${a} \u00D7 ${b}$.`;
+                const alt = Math.abs(a*b); const opts = optsFrom(corrVal, alt);
+                arr.push({ stem, options:opts, correct: opts.indexOf(fmt(corrVal)), explanation:`Negative×positive is negative; same signs positive.`, difficulty });
+              } else {
+                const d = rand(2,12), q = rand(2,12);
+                const s1 = Math.random()<0.5?-1:1, s2 = Math.random()<0.5?-1:1;
+                const dividend = s1*d*q, divisor = s2*d; corrVal = (dividend/divisor);
+                stem = `Compute $${dividend} \div ${divisor}$.`;
+                const alt = Math.abs(corrVal); const opts = optsFrom(corrVal, alt);
+                arr.push({ stem, options:opts, correct: opts.indexOf(fmt(corrVal)), explanation:`Division sign rule: ${s1*s2<0?'negative':'positive'}.`, difficulty });
+              }
+            } else {
+              // Q9–Q10 hardest mix or larger numbers with precedence
+              difficulty='hard';
+              const a = rand(-20,20), b = rand(-15,15), c = rand(-9,9), d = rand(2,9);
+              if (Math.random()<0.5){
+                stem = `Compute $( ${a}+${b} ) - ( ${c}\u00D7 ${d} )$.`;
+                corrVal = (a+b) - (c*d);
+                const wrongPrecedence = a + (b - c)*d; const opts = shuffle([fmt(corrVal), fmt(wrongPrecedence), fmt(corrVal+1), fmt(corrVal-1)]);
+                arr.push({ stem, options:opts, correct: opts.indexOf(fmt(corrVal)), explanation:`Multiply first, then add/subtract.`, difficulty });
+              } else {
+                // division included with integral result
+                const div = rand(2,9); const q = rand(2,9); const s = Math.random()<0.5?-1:1;
+                const dividend = s*div*q; const add = rand(-10,10);
+                stem = `Compute $${dividend} \div ${div} + (${a})$.`;
+                corrVal = (dividend/div) + a;
+                const opts = shuffle([fmt(corrVal), fmt(corrVal+1), fmt(corrVal-1), fmt((dividend+add)/div)]);
+                arr.push({ stem, options:opts, correct: opts.indexOf(fmt(corrVal)), explanation:`Do division first, then addition.`, difficulty });
+              }
+            }
+          } return arr; },
+
           'integer-exponents': (k)=>{ const arr=[]; for(let i=0;i<k;i++){ const a=rand(2,6), b=rand(2,6); const type=i%3; if(type===0){ const corr=`$${a**b}$`; const opts=shuffle([corr,`$${a**(b-1)}$`,`$${(a+1)**b}$`,`$${a**(b+1)}$`]); arr.push({ stem:`Evaluate $${a}^{${b}}$.`, options:opts, correct: opts.indexOf(corr), explanation:`Power definition.`, difficulty: i<k/3?'easy': i<2*k/3?'medium':'hard' }); } else if (type===1){ const m=rand(2,5), n=rand(2,5); const corr=`$a^{${m+n}}$`; const opts=shuffle([corr,`$a^{${m*n}}$`,`$a^{${m-n}}$`,`$a^{${m}}$`]); arr.push({ stem:`Simplify $a^{${m}}\cdot a^{${n}}$.`, options:opts, correct: opts.indexOf(corr), explanation:`Add exponents with same base.`, difficulty: i<k/3?'easy': i<2*k/3?'medium':'hard' }); } else { const m=rand(2,5), n=rand(2,5); const corr=`$a^{${m*n}}$`; const opts=shuffle([corr,`$a^{${m+n}}$`,`$a^{${m-n}}$`,`$a^{${m}}$`]); arr.push({ stem:`Simplify $(a^{${m}})^{${n}}$.`, options:opts, correct: opts.indexOf(corr), explanation:`Multiply exponents.`, difficulty: i<k/3?'easy': i<2*k/3?'medium':'hard' }); } } return arr; },
           'scientific-notation-intro': (k)=>{ const arr=[]; for(let i=0;i<k;i++){ const m=+(rand(10,99)/10).toFixed(1), e=rand(1,6); const N=m*10**e; const corr=`$${m}\\times 10^{${e}}$`; const opts=shuffle([corr,`$${(m/10).toFixed(1)}\\times 10^{${e+1}}$`,`$${(m*10).toFixed(1)}\\times 10^{${e-1}}$`,`$${N}$`]); arr.push({ stem:`Write $${N}$ in scientific notation.`, options:opts, correct: opts.indexOf(corr), explanation:`Move decimal to $[1,10)$ and adjust power.`, difficulty: i<k/3?'easy': i<2*k/3?'medium':'hard' }); } return arr; },
 
