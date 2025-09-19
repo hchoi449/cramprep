@@ -698,7 +698,15 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           if (typeof index === 'number') return index < 10? 'easy' : (index < 20? 'medium' : 'hard');
           return 'medium';
         }
-        function isProbablyLatex(text){ try { return /\$[^$]+\$/.test(String(text||'')); } catch { return false; } }
+        function isProbablyLatex(text){
+          try {
+            const s = String(text||'');
+            if (/\$[^$]+\$/.test(s)) return true;          // $...$
+            if (/\\\([\s\S]*?\\\)/.test(s)) return true; // \( ... \)
+            if (/\\\[[\s\S]*?\\\]/.test(s)) return true; // \[ ... \]
+            return false;
+          } catch { return false; }
+        }
         function latexEscapeText(text){
           let s = String(text||'');
           s = s.replace(/[\\]/g, '\\textbackslash{}')
@@ -716,13 +724,16 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           return s;
         }
         function containsLatexCommand(t){
-          try { return /\\(frac|dfrac|underline|sqrt|cdot|times|left|right|overline|vec|angle|pi|theta|alpha|beta|sum|int|lim|sin|cos|tan|log|ln)\b/.test(String(t||'')); } catch { return false; }
+          try { return /\\(frac|dfrac|underline|sqrt|cdot|times|left|right|overline|vec|angle|pi|theta|alpha|beta|sum|int|lim|sin|cos|tan|log|ln|circ|degree|text)\b/.test(String(t||'')); } catch { return false; }
         }
         function wrapLatexFragments(t){
           try {
             let s = String(t||'');
             // Wrap bare LaTeX command blocks with inline math if not already
             s = s.replace(/(\\[a-zA-Z]+(?:\{[^}]*\})+)/g, (m)=> `$${m}$`);
+            // Wrap \( ... \) and \[ ... \] with $ $ for uniform renderer
+            s = s.replace(/\\\(([\s\S]*?)\\\)/g, (m, inner)=> `$${inner}$`);
+            s = s.replace(/\\\[([\s\S]*?)\\\]/g, (m, inner)=> `$$${inner}$$`);
             return s;
           } catch { return String(t||''); }
         }
@@ -745,7 +756,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           try {
             const t = String(text||'').trim();
             if (!t) return '$\\text{}$';
-            const fixed = fixCommonLatexTypos(t);
+            const fixed = wrapLatexFragments(fixCommonLatexTypos(t));
             if (isProbablyLatex(fixed)) return fixed;
             if (containsLatexCommand(fixed)) return wrapLatexFragments(fixed);
             // If plain number, render as math number instead of \\text{}
