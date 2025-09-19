@@ -1300,17 +1300,38 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
               const opts = shuffle([`$|${a}|$`,`$|${b}|$`,'They are equal','$0$']);
               arr.push({ stem:`Which is greater: $|${a}|$ or $|${b}|$?`, options:opts, correct: opts.indexOf(corr), explanation:`Compare distances from 0.`, difficulty:'hard' });
             } else {
-              // Q9–Q10: word problems (distance, temperature)
-              if (Math.random()<0.5){
+              // Q9–Q10: varied word problem scenarios using absolute value
+              const scenario = rand(1,6);
+              if (scenario===1){
                 const east = rand(2,12); const west = rand(3,15);
                 const corr = `$${east+west}$`;
                 const opts = shuffle([corr, `$${Math.abs(east-west)}$`, `$${east}$`, `$${west}$`]);
-                arr.push({ stem:`A town is ${east} miles east of home. Another town is ${west} miles west of home. How far apart are the towns?`, options:opts, correct: opts.indexOf(corr), explanation:`Total separation is $|${east}|+|${west}|$.`, difficulty:'hard' });
-              } else {
+                arr.push({ stem:`A town is ${east} miles east of a campsite. Another is ${west} miles west. How far apart are the two towns?`, options:opts, correct: opts.indexOf(corr), explanation:`Total separation $=|${east}|+|${west}|$.`, difficulty:'hard' });
+              } else if (scenario===2){
+                const sea = -rand(5,50), mount = rand(100,300);
+                const corr = `$${Math.abs(mount - sea)}$`;
+                const opts = shuffle([corr, `$${mount+sea}$`, `$${Math.abs(sea)}$`, `$${mount}$`]);
+                arr.push({ stem:`A submarine is at ${sea} meters (below sea level) and a drone is at ${mount} meters. What is the vertical distance between them?`, options:opts, correct: opts.indexOf(corr), explanation:`Distance $=|${mount} - (${sea})|$.`, difficulty:'hard' });
+              } else if (scenario===3){
+                const up = rand(3,15), down = rand(2,12);
+                const corr = `$${up+down}$`;
+                const opts = shuffle([corr, `$${Math.abs(up-down)}$`, `$${up}$`, `$${down}$`]);
+                arr.push({ stem:`An elevator goes up ${up} floors, then down ${down} floors from the lobby. How many floors separate the highest and lowest points?`, options:opts, correct: opts.indexOf(corr), explanation:`Span $=|${up}|+|${down}|$.`, difficulty:'hard' });
+              } else if (scenario===4){
+                const y1 = rand(10,50), y2 = -rand(5,30);
+                const corr = `$${Math.abs(y1 - y2)}$`;
+                const opts = shuffle([corr, `$${y1+y2}$`, `$${Math.abs(y1)}$`, `$${Math.abs(y2)}$`]);
+                arr.push({ stem:`A football team gained ${y1} yards on one play and lost ${Math.abs(y2)} yards on the next. What is the total change in field position between the two extremes?`, options:opts, correct: opts.indexOf(corr), explanation:`Total swing $=|${y1} - (${y2})|$.`, difficulty:'hard' });
+              } else if (scenario===5){
                 const t1 = -rand(1,20), t2 = rand(1,30);
                 const corr = `$${Math.abs(t2 - t1)}$`;
                 const opts = shuffle([corr, `$${t2+t1}$`, `$${Math.abs(t2 + t1)}$`, `$${Math.abs(t2)}$`]);
-                arr.push({ stem:`Temperature moved from ${t1}\u00B0 to ${t2}\u00B0. What is the change in temperature?`, options:opts, correct: opts.indexOf(corr), explanation:`Change is $|t_2 - t_1|$.`, difficulty:'hard' });
+                arr.push({ stem:`Temperature changed from ${t1}\u00B0 to ${t2}\u00B0. How many degrees did it change?`, options:opts, correct: opts.indexOf(corr), explanation:`Change $=|t_2 - t_1|$.`, difficulty:'hard' });
+              } else {
+                const bankStart = -rand(10,80), bankEnd = rand(5,120);
+                const corr = `$${Math.abs(bankEnd - bankStart)}$`;
+                const opts = shuffle([corr, `$${bankEnd+bankStart}$`, `$${Math.abs(bankStart)}$`, `$${bankEnd}$`]);
+                arr.push({ stem:`A bank account was overdrawn by $${Math.abs(bankStart)} and later had a balance of $${bankEnd}. What is the total change in dollars?`, options:opts, correct: opts.indexOf(corr), explanation:`Total change $=|${bankEnd} - (${bankStart})|$.`, difficulty:'hard' });
               }
             }
           } return arr; },
@@ -1454,8 +1475,17 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           // Dot plots, histograms, box plots
           'plots-hist-box': (k)=>{ const arr=[]; for(let i=0;i<k;i++){
             const t=i%3; if(t===0){ const data=[rand(1,10),rand(1,10),rand(1,10),rand(1,10),rand(1,10)].sort((a,b)=>a-b); const med=data[2]; const stem=`A box plot shows median at ${med}. What is the median?`; const corr=`$${med}$`; const opts=shuffle([corr,`$${data[1]}$`,`$${data[3]}$`,`$${(data[0]+data[4])/2}$`]); arr.push({ stem, options:opts, correct: opts.indexOf(corr), explanation:`Median is the middle value.`, difficulty:'easy' }); }
-            else if(t===1){ const bin=rand(3,7); const stem=`A histogram has the tallest bar in bin ${bin}–${bin+1}. Which bin has the greatest frequency?`; const corr=`$${bin}$`; const opts=shuffle([corr,`$${bin-1}$`,`$${bin+1}$`,`$${bin+2}$`]); arr.push({ stem, options:opts, correct: opts.indexOf(corr), explanation:`Tallest bar → greatest frequency.`, difficulty:'medium' }); }
-            else { const mode=rand(2,9); const stem=`A dot plot shows most dots at ${mode}. What is the mode?`; const corr=`$${mode}$`; const opts=shuffle([corr,`$${mode+1}$`,`$${mode-1}$`,`$${mode+2}$`]); arr.push({ stem, options:opts, correct: opts.indexOf(corr), explanation:`Mode = most frequent.`, difficulty:'hard' }); }
+            else if(t===1){ const bin=rand(3,7); const stem=`A histogram has the tallest bar between ${bin} and ${bin+1}. Which bin has the greatest frequency?`; const corr=`$${bin}$`; const opts=shuffle([corr,`$${bin-1}$`,`$${bin+1}$`,`$${bin+2}$`]); arr.push({ stem, options:opts, correct: opts.indexOf(corr), explanation:`Tallest bar → greatest frequency.`, difficulty:'medium' }); }
+            else {
+              const mode=rand(2,9);
+              const scenario = rand(1,3);
+              let stem;
+              if (scenario===1) stem=`A dot plot of quiz scores shows the most dots at ${mode}. What is the mode?`;
+              else if (scenario===2) stem=`A dot plot of daily steps shows the highest stack at ${mode}k. What is the mode?`;
+              else stem=`A dot plot of survey ratings has the tallest stack at ${mode}. What is the mode?`;
+              const corr=`$${mode}$`; const opts=shuffle([corr,`$${mode+1}$`,`$${mode-1}$`,`$${mode+2}$`]);
+              arr.push({ stem, options:opts, correct: opts.indexOf(corr), explanation:`Mode = most frequent.`, difficulty:'hard' });
+            }
           } return arr; },
 
           // Customary & Metric units
