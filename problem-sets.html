@@ -824,6 +824,28 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                     }
                   } catch {}
                 }
+                // Top-up: ensure we have 10 by fetching extra batches if needed
+                let safety = 0;
+                while (ten.length < 10 && safety < 2){
+                  try {
+                    const extra = await generateProblemsForLesson(course, subtopic, lesson, 24);
+                    if (Array.isArray(extra) && extra.length){
+                      if (window.__PS_ACTIVE_LESSON_KEY !== lessonKey) return;
+                      pool = pool.concat(extra.map(p=> sanitizeProblem(p)));
+                      ten = selectDiverseTen(pool);
+                    }
+                  } catch {}
+                  safety++;
+                }
+                // Final fallback: fill remaining with local generator if still short
+                if (ten.length < 10){
+                  try {
+                    const need = 10 - ten.length;
+                    const local = fallbackProblems(lesson, Math.max(need*2, 10));
+                    pool = pool.concat(local.map(p=> sanitizeProblem(p)));
+                    ten = selectDiverseTen(pool);
+                  } catch {}
+                }
                 orderedProblems = enforceBanding(ten);
               }
             }
