@@ -762,7 +762,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             if (!t) return '$\\text{}$';
             const fixed = wrapLatexFragments(fixCommonLatexTypos(t));
             if (isProbablyLatex(fixed)) return fixed;
-            if (containsLatexCommand(fixed)) return wrapLatexFragments(fixed);
+            // If there is any LaTeX command (including operators like \times) or a backslash, wrap whole string in math
+            if (containsLatexCommand(fixed) || /\\[a-zA-Z]+/.test(fixed)) return `$${fixed}$`;
             // If plain number, render as math number instead of \\text{}
             if (/^-?\d+(?:\.\d+)?$/.test(fixed)) return `$${fixed}$`;
             return `$\\text{${latexEscapeText(fixed)}}$`;
@@ -870,7 +871,9 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             if (problem.stem) problem.stem = latexifyInline(problem.stem);
             // Ensure any remaining bare LaTeX in stem/options gets wrapped
             const rawOpts = problem.options.map(o=> String(o||'').trim());
-            const opts = rawOpts.map(o=> latexifyInline(o));
+            // Pre-normalize operator words before latexifying
+            const normWordOps = (s)=> s.replace(/\b(times)\b/gi, '\\times').replace(/\b(div(?:ide|ided)?\s*by)\b/gi, '\\div');
+            const opts = rawOpts.map(o=> latexifyInline(normWordOps(o)));
             // Normalize 'correct' accepting index or value
             let correctIdx = Number.isInteger(problem.correct) ? Number(problem.correct) : Number(String(problem.correct||'').trim());
             if (!(correctIdx >= 0 && correctIdx <= 3)){
