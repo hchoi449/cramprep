@@ -542,6 +542,15 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         const groups = { easy:[], medium:[], hard:[] };
         let globalId = 0; const used = new Set();
         let orderedProblems = null; let orderedPointer = 0;
+        function enforceBanding(list){
+          if (!Array.isArray(list)) return [];
+          const ten = list.slice(0,10);
+          for (let i=0;i<ten.length;i++){
+            const stage = (i<3)? 'easy' : (i<6? 'medium' : 'hard');
+            ten[i].difficulty = stage;
+          }
+          return ten;
+        }
         function classify(p, index){
           const d = String((p.difficulty||'').toLowerCase());
           if (d==='easy'||d==='medium'||d==='hard') return d;
@@ -641,11 +650,11 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           const genKey = String((lesson&&lesson.slug)||'').toLowerCase();
           const genFn = (gen && gen[genKey]);
           if (typeof genFn === 'function'){
-            orderedProblems = genFn(10).map(p=> sanitizeProblem(p));
+            orderedProblems = enforceBanding(genFn(12).map(p=> sanitizeProblem(p)));
           }
           if (!orderedProblems || orderedProblems.length < 10){
-            const fb = fallbackProblems(lesson, 12);
-            if (Array.isArray(fb) && fb.length){ orderedProblems = fb.slice(0,10).map(p=> sanitizeProblem(p)); }
+            const fb = fallbackProblems(lesson, 16);
+            if (Array.isArray(fb) && fb.length){ orderedProblems = enforceBanding(fb.map(p=> sanitizeProblem(p))); }
           }
         } catch {}
 
