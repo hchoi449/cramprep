@@ -1508,7 +1508,14 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           let txt2 = (((j2||{}).candidates||[])[0]||{}).content; txt2 = (txt2 && txt2.parts && txt2.parts[0] && txt2.parts[0].text) || '';
           const parsed2 = parseJsonFromText(txt2);
           const probs2 = (parsed2 && Array.isArray(parsed2.problems)) ? parsed2.problems : [];
-          const probs2f = hardKws.length ? probs2.filter(p=> containsAnyKeyword(p, hardKws)) : probs2;
+          let probs2f = hardKws.length ? probs2.filter(p=> containsAnyKeyword(p, hardKws)) : probs2;
+          // Extra guard for "writing expressions" lessons: ensure answers are expressions, not numeric
+          if (/writing expressions/i.test(lesson.title||'')){
+            const looksLikeExpr = (p)=>{
+              try { const a = String(((p||{}).options||[])[(p||{}).correct||0]||'').toLowerCase(); return /[a-z]/.test(a) && /[+\-*/()]/.test(a); } catch { return false; }
+            };
+            probs2f = probs2f.filter(looksLikeExpr);
+          }
           if (probs2f.length) probs = probs2f;
         }
         if (!probs.length) throw new Error('Bad Gemini response');
@@ -1554,7 +1561,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         if (t.includes('variables') || t.includes('evaluating expressions')) return 'Substitute values; evaluate expressions; use order of operations.';
         if (t.includes('combining like terms')) return 'Combine like terms; coefficients; simplify multi‑term expressions; distribute then combine.';
         if (t.includes('distributive')) return 'Apply a(b+c)=ab+ac; factor simple expressions; mental math with distributive property.';
-        if (t.includes('writing expressions')) return 'Translate phrases to algebraic expressions; identify operation words; structure.';
+        if (t.includes('writing expressions')) return 'Translate word phrases to algebraic expressions only (no solving/evaluating). Include clear phrases like "the sum of", "difference of", "product of", "quotient of", "twice", "half of", "3 more than", "5 less than", "the number n increased by 7". Answers should be expressions with variables (e.g., n+7, 2x-3, (m+5)/2), not numeric values. Avoid unrelated topics (probability, geometry, systems).';
         if (t.includes('one-step equations')) return 'Solve one‑step linear equations with integers/fractions/decimals; check solutions.';
         if (t.includes('two-step equations')) return 'Solve two‑step linear equations; inverse operations; check solutions.';
         if (t.includes('inequalities')) return 'Solve one‑step inequalities; graph on number line; open/closed circles; test points.';
