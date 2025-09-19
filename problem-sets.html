@@ -536,7 +536,11 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         const intro = (lesson.notes && lesson.notes.trim()) ? lesson.notes.trim() : 'Quick overview will be generated for this lesson.';
         notes.innerHTML = mdToHtml(intro);
         body.appendChild(notes);
-        try { if (window.renderMathInElement) { renderMathInElement(notes, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}] }); } } catch{}
+        try {
+          if (window.katex && window.renderMathInElement){
+            window.renderMathInElement(notes, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false });
+          }
+        } catch{}
 
         // Wait for Gemini to load questions; no local template prefill
         let problems = [];
@@ -1133,7 +1137,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                 const q = orderedProblems[orderedPointer++];
                 const card = document.createElement('div'); card.className='ps-q-card'; stage.appendChild(card);
                 const stem = document.createElement('div'); stem.className='ps-stem'; stem.textContent = `${step+1}. ${q.stem}`; card.appendChild(stem);
-                try { if (window.renderMathInElement) { renderMathInElement(stem, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}] }); } } catch{}
+                try { if (window.katex && window.renderMathInElement) { renderMathInElement(stem, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
                 if (q.graph){
                   const graphDiv = document.createElement('div'); graphDiv.style.height='280px'; graphDiv.style.border='1px solid #eee'; graphDiv.style.borderRadius='10px'; graphDiv.style.margin='10px 0'; card.appendChild(graphDiv);
                   try {
@@ -1172,7 +1176,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   });
                   opts.appendChild(btn);
                 });
-                try { if (window.renderMathInElement) { renderMathInElement(opts, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}] }); } } catch{}
+                try { if (window.katex && window.renderMathInElement) { renderMathInElement(opts, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
                 const submit = document.createElement('button'); submit.className='btn btn-primary'; submit.textContent='Submit';
                 const next = document.createElement('button'); next.className='btn btn-secondary'; next.textContent='Next'; next.disabled = true; next.style.marginLeft='8px';
                 const explain = document.createElement('div'); explain.className='ps-explain';
@@ -1191,7 +1195,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
                   submit.disabled = true; next.disabled = false;
                   explain.innerHTML = correct ? `<span style="color:#155e2b"><i class='bi bi-check-circle'></i> Correct.</span> ${q.explanation||''}` : `<span style=\"color:#991b1b\"><i class='bi bi-x-circle'></i> Incorrect.</span> ${q.explanation||''}`;
-                  try { if (window.renderMathInElement) { renderMathInElement(explain, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}] }); } } catch{}
+                  try { if (window.katex && window.renderMathInElement) { renderMathInElement(explain, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
                 });
                 next.addEventListener('click', ()=>{
                   if (!next.disabled){
@@ -1223,7 +1227,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                 const q = retry2.q; const pickedNow = retry2; // alias for downstream rendering
                 const card = document.createElement('div'); card.className='ps-q-card'; stage.appendChild(card);
                 const stem = document.createElement('div'); stem.className='ps-stem'; stem.textContent = `${step+1}. ${q.stem}`; card.appendChild(stem);
-                try { if (window.renderMathInElement) { renderMathInElement(stem, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}] }); } } catch{}
+                try { if (window.katex && window.renderMathInElement) { renderMathInElement(stem, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
                 if (q.graph){
                   const graphDiv = document.createElement('div'); graphDiv.style.height='280px'; graphDiv.style.border='1px solid #eee'; graphDiv.style.borderRadius='10px'; graphDiv.style.margin='10px 0'; card.appendChild(graphDiv);
                   try {
@@ -1262,7 +1266,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   });
                   opts.appendChild(btn);
                 });
-                try { if (window.renderMathInElement) { renderMathInElement(opts, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}] }); } } catch{}
+                try { if (window.katex && window.renderMathInElement) { renderMathInElement(opts, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
                 const submit = document.createElement('button'); submit.className='btn btn-primary'; submit.textContent='Submit';
                 const next = document.createElement('button'); next.className='btn btn-secondary'; next.textContent='Next'; next.disabled = true; next.style.marginLeft='8px';
                 const explain = document.createElement('div'); explain.className='ps-explain';
@@ -1280,7 +1284,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
                   submit.disabled = true; next.disabled = false;
                   explain.innerHTML = correct ? `<span style="color:#155e2b"><i class='bi bi-check-circle'></i> Correct.</span> ${q.explanation||''}` : `<span style=\"color:#991b1b\"><i class='bi bi-x-circle'></i> Incorrect.</span> ${q.explanation||''}`;
-                  try { if (window.renderMathInElement) { renderMathInElement(explain, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}] }); } } catch{}
+                  try { if (window.katex && window.renderMathInElement) { renderMathInElement(explain, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
                   if (correct){ currentDifficulty = currentDifficulty==='easy' ? 'medium' : (currentDifficulty==='medium' ? 'hard' : 'hard'); }
                   else { currentDifficulty = currentDifficulty==='hard' ? 'medium' : (currentDifficulty==='medium' ? 'easy' : 'easy'); }
                 });
@@ -1302,7 +1306,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             const q = picked.q;
             const card = document.createElement('div'); card.className='ps-q-card'; stage.appendChild(card);
             const stem = document.createElement('div'); stem.className='ps-stem'; stem.textContent = `${step+1}. ${q.stem}`; card.appendChild(stem);
-            try { if (window.renderMathInElement) { renderMathInElement(stem, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}] }); } } catch{}
+            try { if (window.katex && window.renderMathInElement) { renderMathInElement(stem, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
 
             // Desmos container if graph is requested
             if (q.graph){
@@ -1344,7 +1348,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
               });
               opts.appendChild(btn);
             });
-            try { if (window.renderMathInElement) { renderMathInElement(opts, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}] }); } } catch{}
+            try { if (window.katex && window.renderMathInElement) { renderMathInElement(opts, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
             const submit = document.createElement('button'); submit.className='btn btn-primary'; submit.textContent='Submit';
             const next = document.createElement('button'); next.className='btn btn-secondary'; next.textContent='Next'; next.disabled = true; next.style.marginLeft='8px';
             const explain = document.createElement('div'); explain.className='ps-explain';
@@ -1362,7 +1366,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
               [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
               submit.disabled = true; next.disabled = false;
               explain.innerHTML = correct ? `<span style="color:#155e2b"><i class='bi bi-check-circle'></i> Correct.</span> ${q.explanation||''}` : `<span style=\"color:#991b1b\"><i class='bi bi-x-circle'></i> Incorrect.</span> ${q.explanation||''}`;
-              try { if (window.renderMathInElement) { renderMathInElement(explain, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}] }); } } catch{}
+              try { if (window.katex && window.renderMathInElement) { renderMathInElement(explain, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
               // adapt difficulty
               if (correct){
                 currentDifficulty = currentDifficulty==='easy' ? 'medium' : (currentDifficulty==='medium' ? 'hard' : 'hard');
