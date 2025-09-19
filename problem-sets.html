@@ -775,11 +775,22 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           // Prefer Gemini to generate structured problems per banding plan (block display until done or 10s timeout)
           try {
             if (!orderedProblems){
-              const ai = await generateProblemsForLesson(course, subtopic, lesson, 120);
+              const ai = await generateProblemsForLesson(course, subtopic, lesson, 24);
               if (Array.isArray(ai) && ai.length){
-              const pool = ai.map(p=> sanitizeProblem(p));
-              const ten = selectDiverseTen(pool);
-              orderedProblems = enforceBanding(ten);
+                let pool = ai.map(p=> sanitizeProblem(p));
+                let ten = selectDiverseTen(pool);
+                // ensure last 4 are word problems; if not, try to fetch hard word problems and reselection
+                const lastFourWord = ten.slice(-4).filter(q=> isWordProblemStem(q.stem)).length;
+                if (lastFourWord < 4){
+                  try {
+                    const hardWord = await generateProblemsForLesson(course, subtopic, lesson, 12, { requireHardWordProblems: true });
+                    if (Array.isArray(hardWord) && hardWord.length){
+                      pool = pool.concat(hardWord.map(p=> sanitizeProblem(p)));
+                      ten = selectDiverseTen(pool);
+                    }
+                  } catch {}
+                }
+                orderedProblems = enforceBanding(ten);
               }
             }
           } catch {}
@@ -1090,7 +1101,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
       }
 
       // Generate problems via Gemini when API key is available; otherwise throw
-      async function generateProblemsForLesson(course, subtopic, lesson, count){
+      async function generateProblemsForLesson(course, subtopic, lesson, count, opts){
         const apiKey = getGeminiKey();
         if (!apiKey) throw new Error('No Gemini key');
         const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`;
@@ -1101,7 +1112,10 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         const kws = [...buildKeywords(course, subtopic, lesson), ...lessonKeywords(course, subtopic, lesson)];
         const kw = kws.join(', ');
         const banding = getBandingProgression(course, subtopic, lesson);
-        const user = `Seed: ${nonce}\nLessonTitle: "${lesson.title}"\nCreate ${Math.max(10,count)} multiple‑choice questions ONLY for: ${topic}.\nSTRICT SCOPE (must align; do NOT drift): ${guidance}.\nREQUIRED KEYWORDS/CONCEPTS: ${kw}.\n${banding ? 'FOLLOW THIS PER-ITEM DIFFICULTY PROGRESSION (Q1..Q10):\n' + banding + '\n' : ''}Requirements:\n- Tag each with 'difficulty' ∈ {easy, medium, hard}; evenly distribute; later items should be harder.\n- Hard band REQUIREMENT: Q7–Q10 MUST be distinct real‑world word problems with different scenarios (e.g., distance, temperature, finance, travel, sports). NO template reuse.\n- Strong variation across structures: computation, short word problems, comparisons (which is larger/always true), statement selection (must be true), counterexample identification, translate phrase→expression/equation, and (when relevant) graph interpretation/creation.\n- Vary SCENARIOS and PHRASING. Do NOT reuse the same template with different numbers. Rotate real‑world contexts (distance, temperature, finance, shopping, travel, sports, science, etc.). No two items may share the same scenario pattern.\n- Use LaTeX in stems/options/explanations where appropriate.\n- Provide 4 options; 'correct' is the index (0-3).\n- If graphing is relevant, include graph: { expressions: [{ id: 'g1', latex: 'y=x+1' }, ...] } OR points: { expressions: [{ id:'p', type:'point', x: number, y: number }] }.\n- Include an optional 'structure' field (string) describing the structure you used.\nReturn STRICT JSON exactly: { "problems": [ { "stem": string, "options": [string,string,string,string], "correct": number, "explanation": string, "difficulty": "easy"|"medium"|"hard", "graph"?: { "expressions": (Array) } , "structure"?: string } ] } with NO prose.`;
+        let user = `Seed: ${nonce}\nLessonTitle: "${lesson.title}"\nCreate ${Math.max(10,count)} multiple‑choice questions ONLY for: ${topic}.\nSTRICT SCOPE (must align; do NOT drift): ${guidance}.\nREQUIRED KEYWORDS/CONCEPTS: ${kw}.\n${banding ? 'FOLLOW THIS PER-ITEM DIFFICULTY PROGRESSION (Q1..Q10):\n' + banding + '\n' : ''}Requirements:\n- Tag each with 'difficulty' ∈ {easy, medium, hard}; evenly distribute; later items should be harder.\n- Hard band REQUIREMENT: Q7–Q10 MUST be distinct real‑world word problems with different scenarios (e.g., distance, temperature, finance, travel, sports). NO template reuse.\n- Strong variation across structures: computation, short word problems, comparisons (which is larger/always true), statement selection (must be true), counterexample identification, translate phrase→expression/equation, and (when relevant) graph interpretation/creation.\n- Vary SCENARIOS and PHRASING. Do NOT reuse the same template with different numbers. Rotate real‑world contexts (distance, temperature, finance, shopping, travel, sports, science, etc.). No two items may share the same scenario pattern.\n- Use LaTeX in stems/options/explanations where appropriate.\n- Provide 4 options; 'correct' is the index (0-3).\n- If graphing is relevant, include graph: { expressions: [{ id: 'g1', latex: 'y=x+1' }, ...] } OR points: { expressions: [{ id:'p', type:'point', x: number, y: number }] }.\n- Include an optional 'structure' field (string) describing the structure you used.\nReturn STRICT JSON exactly: { "problems": [ { "stem": string, "options": [string,string,string,string], "correct": number, "explanation": string, "difficulty": "easy"|"medium"|"hard", "graph"?: { "expressions": (Array) } , "structure"?: string } ] } with NO prose.`;
+        if (opts && opts.requireHardWordProblems){
+          user += `\nSTRICT MODE: Generate only real‑world word problems suitable for the hard band. Each item must describe a concrete scenario (money, distance, temperature, travel, shopping, etc.).`;
+        }
         function fetchWithTimeout(url, options, timeoutMs){
           const controller = new AbortController();
           const id = setTimeout(()=> controller.abort(), timeoutMs);
@@ -1151,6 +1165,11 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           if (probs2.length) probs = probs2;
         }
         if (!probs.length) throw new Error('Bad Gemini response');
+        // optional enforcement of word-problem type
+        if (opts && opts.requireHardWordProblems){
+          const wp = probs.filter(p=> isWordProblemStem(p && p.stem));
+          if (wp.length >= Math.min(6, count)) probs = wp;
+        }
         // sanitize
         return probs.slice(0, count).map(p=>({ stem: String(p.stem||''), options: (p.options||[]).slice(0,4).map(String), correct: Number(p.correct||0), explanation: String(p.explanation||''), graph: p.graph && p.graph.expressions ? { expressions: p.graph.expressions } : undefined }));
       }
