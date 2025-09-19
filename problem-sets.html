@@ -753,6 +753,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             s = s.replace(/(^|\s)ext\s*\{/g, '$1\\text{');
             // Unescape escaped braces (common leak)
             s = s.replace(/\\\{/g, '{').replace(/\\\}/g, '}');
+            // Strip \text{...} wrapper if it only contains math
+            s = s.replace(/\\text\{\s*([^}]*)\s*\}/g, '$1');
             return s;
           } catch { return String(t||''); }
         }
@@ -1009,7 +1011,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           try {
             if (!orderedProblems){
               // Fast path: use cached questions if fresh (10 minutes)
-              const cached = getCachedProblems(course, subtopic, lesson, 1000*60*10);
+        const cached = null; // disable cache to always generate fresh problems
               if (Array.isArray(cached) && cached.length >= 10){
                 orderedProblems = enforceBanding(cached.slice(0,10));
               }
