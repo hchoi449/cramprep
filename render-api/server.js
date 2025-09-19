@@ -324,7 +324,7 @@ async function bootstrap() {
   // Gemini proxy to avoid exposing API key in client
   app.post('/ai/generate', async (req, res) => {
     try {
-      const key = process.env.GEMINI_API_KEY;
+      const key = process.env.GEMINI_API_KEY || process.env.gemini_api_key || process.env.GOOGLE_GEMINI_API_KEY;
       if (!key) return res.status(500).json({ error: 'Server missing GEMINI_API_KEY' });
 
       const { model, contents, generationConfig } = req.body || {};
