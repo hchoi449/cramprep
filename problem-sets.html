@@ -1018,6 +1018,21 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         } catch{}
       })();
 
+      // Redundant safety: on DOM ready, if no deep link, ensure shelf is visible and grid populated
+      document.addEventListener('DOMContentLoaded', function(){
+        try {
+          const hash = (location.hash||'').replace('#','');
+          if (!hash || hash.replace(/^\/?/, '').split('/').length < 4){
+            const app = document.getElementById('psApp');
+            const shelfEl = document.getElementById('psShelf');
+            const gridEl = document.getElementById('psBooksGrid');
+            if (app) app.hidden = true;
+            if (shelfEl) shelfEl.style.display = '';
+            if (gridEl && gridEl.childElementCount === 0) renderGrid();
+          }
+        } catch{}
+      });
+
       let currentCourseId = null;
       function enterSubject(subjectId){
         // show app and render sidebar; default lesson of that subject
