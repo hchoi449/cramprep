@@ -541,6 +541,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         let problems = initialProblems.slice();
         const groups = { easy:[], medium:[], hard:[] };
         let globalId = 0; const used = new Set();
+        let orderedProblems = null; let orderedPointer = 0;
         function classify(p, index){
           const d = String((p.difficulty||'').toLowerCase());
           if (d==='easy'||d==='medium'||d==='hard') return d;
@@ -634,9 +635,24 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           const need = Math.max(0, minNeeded - availableCount());
           if (need > 0){ addProblems(fallbackProblems(lesson, need * 3)); }
         }
-        // seed groups with initial, then ensure a minimum pool before starting
-        problems = []; addProblems(initialProblems);
-        ensurePool(20);
+        // Detect banded lessons and prebuild a fixed ordered set of 10
+        function isBandedLesson(lesson){
+          const slug = String((lesson&&lesson.slug)||'').toLowerCase();
+          return slug==='place-value-rounding' || slug==='integer-operations' || slug==='absolute-value-opposites' || slug==='properties' || slug==='prime-factorization' || slug==='gcf' || slug==='lcm' || slug==='divisibility-prime-composite';
+        }
+        if (isBandedLesson(lesson)){
+          try {
+            const genKey = String((lesson&&lesson.slug)||'').toLowerCase();
+            const genFn = (gen && gen[genKey]);
+            if (typeof genFn === 'function'){
+              orderedProblems = genFn(10).map(p=> sanitizeProblem(p));
+            }
+          } catch {}
+        }
+
+        // seed groups with initial, then ensure a minimum pool before starting (used when not banded)
+        problems = [];
+        if (!orderedProblems){ addProblems(initialProblems); ensurePool(20); }
         // background generation for more variety and depth
         (async()=>{
           try {
@@ -683,8 +699,75 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           function renderOne(){
             // ensure single-question rendering
             stage.innerHTML = '';
-            const picked = pickNextProblem();
+            const picked = orderedProblems ? null : pickNextProblem();
             if (!picked){
+              // If banded, advance sequentially
+              if (orderedProblems && orderedPointer < orderedProblems.length){
+                const q = orderedProblems[orderedPointer++];
+                const card = document.createElement('div'); card.className='ps-q-card'; stage.appendChild(card);
+                const stem = document.createElement('div'); stem.className='ps-stem'; stem.textContent = `${step+1}. ${q.stem}`; card.appendChild(stem);
+                try { if (window.renderMathInElement) { renderMathInElement(stem, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false}] }); } } catch{}
+                if (q.graph){
+                  const graphDiv = document.createElement('div'); graphDiv.style.height='280px'; graphDiv.style.border='1px solid #eee'; graphDiv.style.borderRadius='10px'; graphDiv.style.margin='10px 0'; card.appendChild(graphDiv);
+                  try {
+                    const calc = Desmos.GraphingCalculator(graphDiv, { expressions:false });
+                    const exprs = (q.graph.expressions||[]);
+                    const xs = []; const ys = [];
+                    exprs.forEach(ex => {
+                      if (ex && ex.type === 'point' && typeof ex.x === 'number' && typeof ex.y === 'number'){
+                        calc.setExpression({ id: ex.id || ('p'+Math.random().toString(36).slice(2)), latex: `(${ex.x},${ex.y})` });
+                        xs.push(ex.x); ys.push(ex.y);
+                      } else if (ex && typeof ex.latex === 'string') {
+                        calc.setExpression({ id: ex.id, latex: ex.latex });
+                      }
+                    });
+                    if (xs.length){
+                      const minx = Math.min(...xs), maxx = Math.max(...xs);
+                      const miny = Math.min(...ys), maxy = Math.max(...ys);
+                      const padX = Math.max(1, (maxx - minx) || 1);
+                      const padY = Math.max(1, (maxy - miny) || 1);
+                      calc.setMathBounds({ left: minx - padX, right: maxx + padX, bottom: miny - padY, top: maxy + padY });
+                    } else {
+                      calc.setMathBounds({ left: -10, right: 10, bottom: -10, top: 10 });
+                    }
+                  } catch{}
+                }
+                const opts = document.createElement('div'); opts.className='ps-opts'; card.appendChild(opts);
+                const order = _.shuffle(q.options.map((opt, idx)=> ({opt, idx})));
+                order.forEach(pair=>{
+                  const btn = document.createElement('button'); btn.type='button'; btn.className='ps-opt'; btn.textContent = pair.opt; btn.setAttribute('aria-pressed','false');
+                  btn.addEventListener('click', ()=>{
+                    if (btn.dataset.locked==='1') return;
+                    [...opts.children].forEach(ch=>{ ch.classList.remove('sel'); ch.setAttribute('aria-pressed','false'); });
+                    btn.classList.add('sel'); btn.setAttribute('aria-pressed','true');
+                    btn.dataset.chosen = pair.idx;
+                  });
+                  opts.appendChild(btn);
+                });
+                try { if (window.renderMathInElement) { renderMathInElement(opts, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false}] }); } } catch{}
+                const submit = document.createElement('button'); submit.className='btn btn-primary'; submit.textContent='Submit';
+                const next = document.createElement('button'); next.className='btn btn-secondary'; next.textContent='Next'; next.disabled = true; next.style.marginLeft='8px';
+                const explain = document.createElement('div'); explain.className='ps-explain';
+                submit.addEventListener('click', ()=>{
+                  const chosenBtn = [...opts.children].find(ch=> ch.classList.contains('sel'));
+                  if (!chosenBtn){ results.textContent='Please select an answer before submitting.'; results.style.color='#8B4513'; return; }
+                  const chosen = Number(chosenBtn.dataset.chosen);
+                  const correct = chosen === q.correct; if (correct) { correctCount++; }
+                  [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
+                  submit.disabled = true; next.disabled = false;
+                  explain.innerHTML = correct ? `<span style="color:#155e2b"><i class='bi bi-check-circle'></i> Correct.</span> ${q.explanation||''}` : `<span style=\"color:#991b1b\"><i class='bi bi-x-circle'></i> Incorrect.</span> ${q.explanation||''}`;
+                });
+                next.addEventListener('click', ()=>{
+                  if (!next.disabled){
+                    step++;
+                    if (step < 10){ idxLabel.textContent = `${step+1} / 10`; renderOne(); }
+                    else { const pct = correctCount / 10; results.innerHTML = `Score: ${Math.round(pct*100)}%`; if (pct > scoreBest){ scoreBest = pct; saveProgress(`ps-best-${course.id}-${subtopic.id}-${lesson.slug}`, scoreBest); renderSidebar(); } }
+                  }
+                });
+                card.appendChild(submit); card.appendChild(next); card.appendChild(explain);
+                return;
+              }
+
               // try to expand pool and pick again until we have 10
               if (step < 10){
                 ensurePool(10 - step);
