@@ -678,14 +678,21 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         const sys = `You are a math problem generator for middle/high school math. Output STRICT JSON only.`;
         const nonce = `${Date.now()}-${Math.floor(Math.random()*1e6)}`;
         const guidance = lessonGuidance(course, subtopic, lesson);
-        const kw = buildKeywords(course, subtopic, lesson).join(', ');
-        const user = `Seed: ${nonce}\nCreate ${count} multiple‑choice questions for the lesson: ${topic}.\nSTRICT SCOPE (must align; do NOT drift): ${guidance}.\nKEYWORDS: ${kw}.\nRequirements:\n- Tag each problem with 'difficulty' ∈ {easy, medium, hard}; evenly distribute across difficulties.\n- Strong variation across forms: numeric computation, concise word problems, expression evaluation, equation solving, and (when applicable) graph interpretation/creation.\n- Vary constants/structures; avoid repeated templates; ensure each problem is clearly tied to the scope/keywords.\n- Use LaTeX in stems/options/explanations where appropriate.\n- Provide 4 options; 'correct' is the index (0-3).\n- If graphing is relevant, include graph: { expressions: [{ id: 'g1', latex: 'y=x+1' }, ...] } (Desmos LaTeX).\nReturn STRICT JSON exactly: { "problems": [ { "stem": string, "options": [string,string,string,string], "correct": number, "explanation": string, "difficulty": "easy"|"medium"|"hard", "graph"?: { "expressions": [{"id": string, "latex": string}] } } ] } with NO prose.`;
+        const kws = [...buildKeywords(course, subtopic, lesson), ...lessonKeywords(course, subtopic, lesson)];
+        const kw = kws.join(', ');
+        const user = `Seed: ${nonce}\nCreate ${count} multiple‑choice questions for the lesson: ${topic}.\nSTRICT SCOPE (must align; do NOT drift): ${guidance}.\nMUST INCORPORATE THESE KEYWORDS/CONCEPTS: ${kw}.\nRequirements:\n- Tag each problem with 'difficulty' ∈ {easy, medium, hard}; evenly distribute across difficulties.\n- Strong variation across forms: numeric computation, concise word problems, expression evaluation, equation solving, and (when applicable) graph interpretation/creation.\n- Vary constants/structures; avoid repeated templates; ensure each problem is clearly tied to the scope/keywords.\n- Use LaTeX in stems/options/explanations where appropriate.\n- Provide 4 options; 'correct' is the index (0-3).\n- If graphing is relevant, include graph: { expressions: [{ id: 'g1', latex: 'y=x+1' }, ...] } (Desmos LaTeX).\nReturn STRICT JSON exactly: { "problems": [ { "stem": string, "options": [string,string,string,string], "correct": number, "explanation": string, "difficulty": "easy"|"medium"|"hard", "graph"?: { "expressions": [{"id": string, "latex": string}] } } ] } with NO prose.`;
         const body = { contents:[ { role:'user', parts:[ { text: sys + "\n\n" + user } ] } ] };
         const res = await fetch(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) });
         const j = await res.json();
         let txt = (((j||{}).candidates||[])[0]||{}).content; txt = (txt && txt.parts && txt.parts[0] && txt.parts[0].text) || '';
         const parsed = parseJsonFromText(txt);
-        const probs = (parsed && Array.isArray(parsed.problems)) ? parsed.problems : [];
+        let probs = (parsed && Array.isArray(parsed.problems)) ? parsed.problems : [];
+        // Hard filter to ensure association with the actual lesson keywords
+        const hardKws = lessonKeywords(course, subtopic, lesson).map(s=> String(s).toLowerCase());
+        if (hardKws.length){
+          const filtered = probs.filter(p=> containsAnyKeyword(p, hardKws));
+          if (filtered.length >= Math.min(count, 5)) probs = filtered; // keep if enough survive
+        }
         if (!probs.length) throw new Error('Bad Gemini response');
         // sanitize
         return probs.slice(0, count).map(p=>({ stem: String(p.stem||''), options: (p.options||[]).slice(0,4).map(String), correct: Number(p.correct||0), explanation: String(p.explanation||''), graph: p.graph && p.graph.expressions ? { expressions: p.graph.expressions } : undefined }));
@@ -757,6 +764,27 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         try { if (lesson && lesson.title) parts.push(lesson.title); } catch{}
         try { if (lesson && lesson.slug) parts.push(String(lesson.slug).replace(/[-_]/g,' ')); } catch{}
         return parts.map(s=> String(s).toLowerCase());
+      }
+
+      function lessonKeywords(course, subtopic, lesson){
+        const title = ((lesson&&lesson.title)||'').toLowerCase();
+        const st = ((subtopic&&subtopic.title)||'').toLowerCase();
+        const out = [];
+        if (title.includes('properties') || st.includes('expressions')){
+          out.push('commutative','associative','distributive','rearrange','grouping','a(b+c)=ab+ac','ab+ac','factor','like terms');
+        }
+        if (title.includes('unit rate') || st.includes('ratios')){
+          out.push('ratio','unit rate','proportion','constant of proportionality');
+        }
+        if (title.includes('plot') || title.includes('coordinate')){
+          out.push('quadrants','ordered pair','(x,y)','graph');
+        }
+        return out;
+      }
+
+      function containsAnyKeyword(problem, kws){
+        const blob = `${problem.stem||''} ${(problem.explanation||'')} ${((problem.options||[]).join(' '))}`.toLowerCase();
+        return kws.some(k=> blob.includes(k));
       }
 
       function parseJsonFromText(t){
