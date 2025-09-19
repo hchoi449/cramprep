@@ -1016,19 +1016,42 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           'prime-factorization': (k)=>{ const arr=[]; for(let i=0;i<k;i++){ const n=rand(20,150); const pf=primeFactors(n); const stem=`Prime factorization of $${n}$ is`; const corr = `$${pf.map(p=>p).join('\n\cdot ')}$`.replace(/\n/g,''); const opts = shuffle([corr,`$${n}$`,`$${pf.join('+')}$`,`$${pf.join('-')}$`]); arr.push({ stem, options:opts, correct: opts.indexOf(corr), explanation:`Factor until primes: $${corr}$.`, difficulty: i<k/3?'easy': i<2*k/3?'medium':'hard' }); } return arr; },
 
           'gcf': (k)=>{ const arr=[]; for(let i=0;i<k;i++){
-            // Adaptive: early (2 numbers), mid (3 numbers), late (4 numbers)
+            function gcdN(vals){ return vals.reduce((s,x)=>gcd(s,x)); }
+            function pickBase(which){
+              // Encourage non-trivial, sometimes double-digit GCF
+              const small=[2,3,4,5,6,7,8,9];
+              const medium=[10,12,14,15,16,18];
+              const large=[20,21,22,24];
+              if (which==='easy') return Math.random()<0.35? medium[rand(0,medium.length-1)] : small[rand(0,small.length-1)];
+              if (which==='medium') return Math.random()<0.55? medium[rand(0,medium.length-1)] : small[rand(0,small.length-1)];
+              return Math.random()<0.65? large[rand(0,large.length-1)] : medium[rand(0,medium.length-1)];
+            }
+            function makeSet(cnt, diff){
+              const base = pickBase(diff);
+              // Choose multipliers with gcd 1 to keep overall GCF exactly 'base'
+              let mults=[]; let tries=0;
+              while(tries++<50){
+                mults = Array.from({length:cnt}, ()=> rand(2,11));
+                if (gcdN(mults)===1) break;
+              }
+              const nums = mults.map(m=> base*m);
+              return { nums, ans: base };
+            }
             if (i < k/3){
-              const a=rand(10,80), b=rand(10,80); const ans=gcd(a,b);
-              const opts = shuffle([ans, ans+rand(1,4), Math.max(ans-rand(1,4),1), rand(2,9)]).map(v=>`$${v}$`);
-              arr.push({ stem:`Find $\\operatorname{GCF}(${a},${b})$.`, options:opts, correct: opts.indexOf(`$${ans}$`), explanation:`$\\gcd(${a},${b})=${ans}$.`, difficulty:'easy' });
+              const { nums, ans } = makeSet(2,'easy');
+              const [a,b] = nums;
+              const opts = shuffle([ans, ans+rand(1,4), Math.max(ans-rand(1,4),2), ans*2]).map(v=>`$${v}$`);
+              arr.push({ stem:`Find $\\operatorname{GCF}(${a},${b})$.`, options:opts, correct: opts.indexOf(`$${ans}$`), explanation:`Common factor constructed: $${a}= ${ans}\cdot${a/ans},\ ${b}= ${ans}\cdot${b/ans}$.`, difficulty:'easy' });
             } else if (i < 2*k/3){
-              const a=rand(12,90), b=rand(12,90), c=rand(10,50); const ans=gcd(gcd(a,b),c);
-              const opts = shuffle([ans, ans+rand(1,6), Math.max(ans-rand(1,6),1), rand(2,12)]).map(v=>`$${v}$`);
-              arr.push({ stem:`Find $\\operatorname{GCF}(${a},${b},${c})$.`, options:opts, correct: opts.indexOf(`$${ans}$`), explanation:`$\\gcd(\\gcd(${a},${b}),${c})=${ans}$.`, difficulty:'medium' });
+              const { nums, ans } = makeSet(3,'medium');
+              const [a,b,c] = nums;
+              const opts = shuffle([ans, ans+rand(2,8), Math.max(ans-rand(1,6),2), ans*2]).map(v=>`$${v}$`);
+              arr.push({ stem:`Find $\\operatorname{GCF}(${a},${b},${c})$.`, options:opts, correct: opts.indexOf(`$${ans}$`), explanation:`Each shares base factor $${ans}$.`, difficulty:'medium' });
             } else {
-              const a=rand(20,120), b=rand(20,120), c=rand(12,60), d=rand(8,48); const ans=gcd(gcd(a,b),gcd(c,d));
-              const opts = shuffle([ans, ans+rand(2,8), Math.max(ans-rand(2,8),1), rand(3,15)]).map(v=>`$${v}$`);
-              arr.push({ stem:`Find $\\operatorname{GCF}(${a},${b},${c},${d})$.`, options:opts, correct: opts.indexOf(`$${ans}$`), explanation:`Use pairwise gcd to combine: ${ans}.`, difficulty:'hard' });
+              const { nums, ans } = makeSet(4,'hard');
+              const [a,b,c,d] = nums;
+              const opts = shuffle([ans, ans+rand(3,10), Math.max(ans-rand(2,8),2), ans*2]).map(v=>`$${v}$`);
+              arr.push({ stem:`Find $\\operatorname{GCF}(${a},${b},${c},${d})$.`, options:opts, correct: opts.indexOf(`$${ans}$`), explanation:`Use pairwise gcd or prime factors; exact GCF is $${ans}$.`, difficulty:'hard' });
             }
           } return arr; },
 
