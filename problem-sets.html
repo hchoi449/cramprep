@@ -714,6 +714,19 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         // Detect banded lessons and prebuild a fixed ordered set of 10
         // Build ordered banded set for ALL lessons: use specific generator if present; otherwise use Gemini
         try {
+          // Show loading while generating questions via Gemini/local
+          let loadingEl = null;
+          try {
+            const bodyEl = document.getElementById('psBody');
+            loadingEl = document.createElement('div');
+            loadingEl.style.padding = '12px';
+            loadingEl.style.margin = '10px 0';
+            loadingEl.style.border = '1px dashed #e5e7eb';
+            loadingEl.style.borderRadius = '8px';
+            loadingEl.style.color = '#6b7280';
+            loadingEl.textContent = 'Generating questions...';
+            if (bodyEl) bodyEl.appendChild(loadingEl);
+          } catch {}
           // Prefer Gemini to generate structured problems per banding plan
           try {
             const ai = await generateProblemsForLesson(course, subtopic, lesson, 120);
@@ -724,7 +737,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             }
           } catch {}
           // Fallback to local generator if available
-          if (!orderedProblems || orderedProblems.length < 10){
+          if (!orderedProblems || orderedProblems.length === 0){
             const genKey = String((lesson&&lesson.slug)||'').toLowerCase();
             const genFn = (gen && gen[genKey]);
             if (typeof genFn === 'function'){
@@ -737,7 +750,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             }
           }
           // Last resort deterministic fallback
-          if (!orderedProblems || orderedProblems.length < 10){
+          if (!orderedProblems || orderedProblems.length === 0){
             const fb = fallbackProblems(lesson, 160);
             if (Array.isArray(fb) && fb.length){
               const pool = fb.map(p=> sanitizeProblem(p));
@@ -748,6 +761,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           if (orderedProblems && orderedProblems.length){
             orderedProblems = makeStemsUnique(orderedProblems);
           }
+          try { if (loadingEl && loadingEl.parentNode) loadingEl.parentNode.removeChild(loadingEl); } catch {}
         } catch {}
 
         // seed groups with initial, then ensure a minimum pool before starting (used when no ordered set)
@@ -1058,7 +1072,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           try { return String(text||'').toLowerCase().replace(/\$[^$]*\$/g,'$x$').replace(/-?\d+(?:\.\d+)?/g,'#').replace(/\\dfrac\{[^}]*\}\{[^}]*\}/g,'$f$').replace(/[()^*=+\\/]/g,' ').replace(/\s+/g,' ').trim(); } catch { return String(text||''); }
         }
         let probs = [];
-        const attemptCounts = [count, Math.max(10, Math.ceil(count*0.6)), Math.max(10, Math.ceil(count*0.3))];
+        const attemptCounts = [count, Math.max(10, Math.ceil(count*0.8)), Math.max(10, Math.ceil(count*0.8))];
         for (let aiAttempt=0; aiAttempt<attemptCounts.length && probs.length < count; aiAttempt++){
           const reqCount = attemptCounts[aiAttempt];
           const userThis = user.replace(/Create \d+ multiple/, `Create ${reqCount} multiple`);
@@ -1067,7 +1081,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             generationConfig: { temperature: 0.7, topP: 0.9, candidateCount: 1 }
           };
           try {
-            const res = await fetchWithTimeout(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) }, 40000);
+            const res = await fetchWithTimeout(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) }, 60000);
             const j = await res.json();
             let txt = (((j||{}).candidates||[])[0]||{}).content; txt = (txt && txt.parts && txt.parts[0] && txt.parts[0].text) || '';
             const parsed = parseJsonFromText(txt);
