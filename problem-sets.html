@@ -604,6 +604,20 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           }
           return list;
         }
+        function selectDiverseTen(pool){
+          const out = [];
+          const seen = new Set();
+          for (let i=0;i<pool.length && out.length<10;i++){
+            const p = pool[i]; if (!p || !p.stem) continue;
+            const norm = normalizeStemText(p.stem);
+            if (!seen.has(norm)){ out.push(p); seen.add(norm); }
+          }
+          // if still short, fill with remaining regardless
+          for (let i=0;i<pool.length && out.length<10;i++){
+            if (!out.includes(pool[i])) out.push(pool[i]);
+          }
+          return out.slice(0,10);
+        }
         function classify(p, index){
           const d = String((p.difficulty||'').toLowerCase());
           if (d==='easy'||d==='medium'||d==='hard') return d;
@@ -702,21 +716,31 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         try {
           // Prefer Gemini to generate structured problems per banding plan
           try {
-            const ai = await generateProblemsForLesson(course, subtopic, lesson, 12);
-            if (Array.isArray(ai) && ai.length){ orderedProblems = enforceBanding(ai.map(p=> sanitizeProblem(p))); }
+            const ai = await generateProblemsForLesson(course, subtopic, lesson, 120);
+            if (Array.isArray(ai) && ai.length){
+              const pool = ai.map(p=> sanitizeProblem(p));
+              const ten = selectDiverseTen(pool);
+              orderedProblems = enforceBanding(ten);
+            }
           } catch {}
           // Fallback to local generator if available
           if (!orderedProblems || orderedProblems.length < 10){
             const genKey = String((lesson&&lesson.slug)||'').toLowerCase();
             const genFn = (gen && gen[genKey]);
             if (typeof genFn === 'function'){
-              orderedProblems = enforceBanding(genFn(12).map(p=> sanitizeProblem(p)));
+              const pool = genFn(120).map(p=> sanitizeProblem(p));
+              const ten = selectDiverseTen(pool);
+              orderedProblems = enforceBanding(ten);
             }
           }
           // Last resort deterministic fallback
           if (!orderedProblems || orderedProblems.length < 10){
-            const fb = fallbackProblems(lesson, 16);
-            if (Array.isArray(fb) && fb.length){ orderedProblems = enforceBanding(fb.map(p=> sanitizeProblem(p))); }
+            const fb = fallbackProblems(lesson, 160);
+            if (Array.isArray(fb) && fb.length){
+              const pool = fb.map(p=> sanitizeProblem(p));
+              const ten = selectDiverseTen(pool);
+              orderedProblems = enforceBanding(ten);
+            }
           }
           if (orderedProblems && orderedProblems.length){
             orderedProblems = makeStemsUnique(orderedProblems);
