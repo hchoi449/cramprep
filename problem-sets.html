@@ -1170,8 +1170,11 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   const chosen = Number(chosenBtn.dataset.chosen);
                   // robust correctness: compare plain/number and also accept unit spacing
                   const chosenText = opts.children[chosen] ? opts.children[chosen].textContent : '';
-                  const correctTextNow = (q && Array.isArray(q.options)) ? q.options[Math.max(0, Math.min(3, q.correct||0))] : '';
-                  const correct = plainsEqualLoose(chosenText, correctTextNow);
+                  // Prefer comparing against the rendered option text too (may differ from q.options after latexification)
+                  const correctIdxNow = Math.max(0, Math.min(3, q.correct||0));
+                  const correctRendered = opts.children[correctIdxNow] ? opts.children[correctIdxNow].textContent : '';
+                  const correctSource = (q && Array.isArray(q.options)) ? q.options[correctIdxNow] : '';
+                  const correct = plainsEqualLoose(chosenText, correctRendered) || plainsEqualLoose(chosenText, correctSource);
                   if (correct) { correctCount++; }
                   [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
                   submit.disabled = true; next.disabled = false;
@@ -1256,8 +1259,10 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   const chosen = Number(chosenBtn.dataset.chosen);
                   // robust correctness: compare plain/number and also accept unit spacing
                   const chosenText = opts.children[chosen] ? opts.children[chosen].textContent : '';
-                  const correctTextNow = (q && Array.isArray(q.options)) ? q.options[Math.max(0, Math.min(3, q.correct||0))] : '';
-                  const correct = plainsEqualLoose(chosenText, correctTextNow);
+                  const correctIdxNow = Math.max(0, Math.min(3, q.correct||0));
+                  const correctRendered = opts.children[correctIdxNow] ? opts.children[correctIdxNow].textContent : '';
+                  const correctSource = (q && Array.isArray(q.options)) ? q.options[correctIdxNow] : '';
+                  const correct = plainsEqualLoose(chosenText, correctRendered) || plainsEqualLoose(chosenText, correctSource);
                   if (correct) { correctCount++; }
                   [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
                   submit.disabled = true; next.disabled = false;
@@ -1335,8 +1340,10 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
               const chosen = Number(chosenBtn.dataset.chosen);
               // robust correctness: compare plain/number and also accept unit spacing
               const chosenText = opts.children[chosen] ? opts.children[chosen].textContent : '';
-              const correctTextNow = (q && Array.isArray(q.options)) ? q.options[Math.max(0, Math.min(3, q.correct||0))] : '';
-              const correct = plainsEqualLoose(chosenText, correctTextNow);
+              const correctIdxNow = Math.max(0, Math.min(3, q.correct||0));
+              const correctRendered = opts.children[correctIdxNow] ? opts.children[correctIdxNow].textContent : '';
+              const correctSource = (q && Array.isArray(q.options)) ? q.options[correctIdxNow] : '';
+              const correct = plainsEqualLoose(chosenText, correctRendered) || plainsEqualLoose(chosenText, correctSource);
               if (correct) { correctCount++; }
               [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
               submit.disabled = true; next.disabled = false;
