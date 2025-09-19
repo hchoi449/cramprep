@@ -643,9 +643,10 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         function selectDiverseTen(pool){
           const unique = [];
           const seen = new Set();
-          for (let i=0;i<pool.length && unique.length<30;i++){
+          for (let i=0;i<pool.length && unique.length<50;i++){
             const p = pool[i]; if (!p || !p.stem) continue;
-            const norm = normalizeStemText(p.stem);
+            // Lighter normalization to allow numeric variants to count as distinct
+            const norm = String(p.stem||'').toLowerCase().replace(/\s+/g,' ').trim();
             if (!seen.has(norm)){ unique.push(p); seen.add(norm); }
           }
           const word = [], non = [];
@@ -658,11 +659,11 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             else if (iWord < word.length) out.push(word[iWord++]);
             else break;
           }
-          // Last 4: enforce word problems when available
+          // Last 4: prefer word problems when available
           while (out.length < 10 && iWord < word.length){ out.push(word[iWord++]); }
-          // If still short, fill with remaining non-word, then word
-          while (out.length < 10 && iNon < non.length){ out.push(non[iNon++]); }
-          while (out.length < 10 && iWord < word.length){ out.push(word[iWord++]); }
+          // If still short, fill with remaining items regardless of type
+          const rest = non.slice(iNon).concat(word.slice(iWord));
+          while (out.length < 10 && rest.length){ out.push(rest.shift()); }
           return out.slice(0,10);
         }
         function classify(p, index){
@@ -867,7 +868,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                 wrap.style.margin = '10px 0';
                 const msg = document.createElement('div');
                 msg.style.color = '#6b7280';
-                msg.textContent = 'Still generating questions... This can take a bit longer.';
+                msg.textContent = 'Generating questions (fast mode)...';
                 const btn = document.createElement('button');
                 btn.className = 'btn btn-secondary';
                 btn.style.marginLeft = '8px';
