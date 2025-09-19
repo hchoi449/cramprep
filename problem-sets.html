@@ -689,11 +689,23 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                .replace(/\n+/g, ' ');
           return s;
         }
+        function containsLatexCommand(t){
+          try { return /\\(frac|dfrac|underline|sqrt|cdot|times|left|right|overline|vec|angle|pi|theta|alpha|beta|sum|int|lim|sin|cos|tan|log|ln)\b/.test(String(t||'')); } catch { return false; }
+        }
+        function wrapLatexFragments(t){
+          try {
+            let s = String(t||'');
+            // Wrap bare LaTeX command blocks with inline math if not already
+            s = s.replace(/(\\[a-zA-Z]+(?:\{[^}]*\})+)/g, (m)=> `$${m}$`);
+            return s;
+          } catch { return String(t||''); }
+        }
         function latexifyInline(text){
           try {
             const t = String(text||'').trim();
             if (!t) return '$\\text{}$';
             if (isProbablyLatex(t)) return t;
+            if (containsLatexCommand(t)) return wrapLatexFragments(t);
             // If plain number, render as math number instead of \\text{}
             if (/^-?\d+(?:\.\d+)?$/.test(t)) return `$${t}$`;
             return `$\\text{${latexEscapeText(t)}}$`;
@@ -715,6 +727,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             if (!problem || !Array.isArray(problem.options)) return problem;
             // Enforce LaTeX for stem/options/explanation if not present
             if (problem.stem) problem.stem = latexifyInline(problem.stem);
+            // Ensure any remaining bare LaTeX in stem/options gets wrapped
             const rawOpts = problem.options.map(o=> String(o||'').trim());
             const opts = rawOpts.map(o=> latexifyInline(o));
             // Normalize 'correct' accepting index or value
