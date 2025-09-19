@@ -770,27 +770,28 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
               }
             }
           } catch {}
-          // Fallback to local generator if available
+          // No local fallback: if Gemini returns nothing in time, keep loader and show retry UI
           if (!orderedProblems || orderedProblems.length === 0){
-            const genKey = String((lesson&&lesson.slug)||'').toLowerCase();
-            const genFn = (gen && gen[genKey]);
-            if (typeof genFn === 'function'){
-              // 10× local pool
-              const basePool = genFn(12).map(p=> sanitizeProblem(p));
-              let pool = [];
-              for (let r=0;r<10;r++) pool = pool.concat(basePool.map(p=> ({...p})));
-              const ten = selectDiverseTen(pool);
-              orderedProblems = enforceBanding(ten);
-            }
-          }
-          // Last resort deterministic fallback
-          if (!orderedProblems || orderedProblems.length === 0){
-            const fb = fallbackProblems(lesson, 160);
-            if (Array.isArray(fb) && fb.length){
-              const pool = fb.map(p=> sanitizeProblem(p));
-              const ten = selectDiverseTen(pool);
-              orderedProblems = enforceBanding(ten);
-            }
+            try {
+              const bodyEl = document.getElementById('psBody');
+              if (bodyEl){
+                const wrap = document.createElement('div');
+                wrap.style.margin = '10px 0';
+                const msg = document.createElement('div');
+                msg.style.color = '#6b7280';
+                msg.textContent = 'Still generating questions... This can take a bit longer.';
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-secondary';
+                btn.style.marginLeft = '8px';
+                btn.textContent = 'Try again';
+                btn.addEventListener('click', ()=> {
+                  // re-run lesson load to attempt Gemini again
+                  loadLesson(course.id, subtopic.id, lesson.slug);
+                });
+                wrap.appendChild(msg); wrap.appendChild(btn);
+                bodyEl.appendChild(wrap);
+              }
+            } catch{}
           }
           if (orderedProblems && orderedProblems.length){
             orderedProblems = makeStemsUnique(orderedProblems);
