@@ -321,6 +321,29 @@ async function bootstrap() {
     }
   });
 
+  // Gemini proxy to avoid exposing API key in client
+  app.post('/ai/generate', async (req, res) => {
+    try {
+      const key = process.env.GEMINI_API_KEY;
+      if (!key) return res.status(500).json({ error: 'Server missing GEMINI_API_KEY' });
+
+      const { model, contents, generationConfig } = req.body || {};
+      const useModel = (model && typeof model === 'string' ? model : 'gemini-1.5-pro');
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(useModel)}:generateContent?key=${encodeURIComponent(key)}`;
+
+      const upstream = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents, generationConfig })
+      });
+      const text = await upstream.text();
+      res.status(upstream.status).type('application/json').send(text);
+    } catch (e) {
+      console.error(e);
+      return res.status(500).json({ error: 'Proxy error' });
+    }
+  });
+
   const port = PORT || 8080;
   app.listen(port, () => console.log(`Auth API listening on ${port}`));
 }

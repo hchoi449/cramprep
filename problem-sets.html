@@ -528,6 +528,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
 
       async function renderLessonContent(course, subtopic, lesson){
         const body = document.getElementById('psBody');
+        const lessonKey = `${course.id}-${subtopic.id}-${lesson.slug}`;
+        try { window.__PS_ACTIVE_LESSON_KEY = lessonKey; } catch {}
         body.innerHTML = '';
         // Overview block for the lesson (short intro)
         const notes = document.createElement('div');
@@ -789,6 +791,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           let loadingEl = null;
           try {
             if (!orderedProblems){
+              if (window.__PS_ACTIVE_LESSON_KEY !== lessonKey) return;
               const bodyEl = document.getElementById('psBody');
               loadingEl = document.createElement('div');
               loadingEl.style.padding = '12px';
@@ -805,6 +808,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             if (!orderedProblems){
               const ai = await generateProblemsForLesson(course, subtopic, lesson, 24);
               if (Array.isArray(ai) && ai.length){
+                if (window.__PS_ACTIVE_LESSON_KEY !== lessonKey) return;
                 let pool = ai.map(p=> sanitizeProblem(p));
                 let ten = selectDiverseTen(pool);
                 // ensure last 4 are word problems; if not, try to fetch hard word problems and reselection
@@ -814,6 +818,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                     // require at least 2 hard-band word problems; request extra for diversity
                     const hardWord = await generateProblemsForLesson(course, subtopic, lesson, 20, { requireHardWordProblems: true });
                     if (Array.isArray(hardWord) && hardWord.length){
+                      if (window.__PS_ACTIVE_LESSON_KEY !== lessonKey) return;
                       pool = pool.concat(hardWord.map(p=> sanitizeProblem(p)));
                       ten = selectDiverseTen(pool);
                     }
@@ -824,6 +829,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             }
           } catch {}
           // No local fallback: if Gemini returns nothing in time, keep loader and show retry UI
+          if (window.__PS_ACTIVE_LESSON_KEY !== lessonKey) return;
           if (!orderedProblems || orderedProblems.length === 0){
             try {
               const bodyEl = document.getElementById('psBody');
@@ -846,6 +852,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
               }
             } catch{}
           }
+          if (window.__PS_ACTIVE_LESSON_KEY !== lessonKey) return;
           if (orderedProblems && orderedProblems.length){
             orderedProblems = makeStemsUnique(orderedProblems);
           }
@@ -856,6 +863,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         problems = [];
         if (!orderedProblems || !orderedProblems.length){ return; }
 
+        if (window.__PS_ACTIVE_LESSON_KEY !== lessonKey) return;
         if (orderedProblems && orderedProblems.length){
           // Remove any existing quiz container for this lesson to avoid duplicates
           const existingQuiz = document.getElementById(`ps-quiz-${course.id}-${subtopic.id}-${lesson.slug}`);
@@ -1129,11 +1137,10 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         }
       }
 
-      // Generate problems via Gemini when API key is available; otherwise throw
+      // Generate problems via server proxy (no client API key)
       async function generateProblemsForLesson(course, subtopic, lesson, count, opts){
-        const apiKey = getGeminiKey();
-        if (!apiKey) throw new Error('No Gemini key');
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`;
+        const AUTH_BASE = (window && window.TBP_AUTH_BASE) ? window.TBP_AUTH_BASE.replace(/\/$/,'') : '';
+        const endpoint = `${AUTH_BASE}/ai/generate`;
         const topic = `${course.title} → ${subtopic.title} → ${lesson.title}`;
         const sys = `You are a math problem generator for middle/high school math. Output STRICT JSON only.`;
         const nonce = `${Date.now()}-${Math.floor(Math.random()*1e6)}`;
@@ -1159,6 +1166,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           const reqCount = attemptCounts[aiAttempt];
           const userThis = user.replace(/Create \d+ multiple/, `Create ${reqCount} multiple`);
           const body = {
+            model: 'gemini-1.5-pro',
             contents:[ { role:'user', parts:[ { text: sys + "\n\n" + userThis } ] } ],
             generationConfig: { temperature: 0.7, topP: 0.9, candidateCount: 1 }
           };
@@ -1180,18 +1188,20 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         const hardKws = lessonKeywords(course, subtopic, lesson).map(s=> String(s).toLowerCase());
         if (hardKws.length){
           const filtered = probs.filter(p=> containsAnyKeyword(p, hardKws));
-          if (filtered.length >= Math.min(count, 5)) probs = filtered; // keep if enough survive
+          // Always enforce filtering; if too few remain, trigger strict attempt below
+          probs = filtered;
         }
         // If still too few, try a second stricter attempt echoing the exact lesson title multiple times
         if (probs.length < Math.min(count, 5)){
           const strictUser = `Seed: ${nonce}-strict\nLessonTitle (repeat 3x): "${lesson.title}" — "${lesson.title}" — "${lesson.title}"\nGenerate ${count} MC questions ONLY about: ${lesson.title}. DO NOT include unrelated skills.\nScope: ${guidance}. Required keywords: ${kw}.\nReturn STRICT JSON { "problems": [ { "stem": string, "options": [string,string,string,string], "correct": number, "explanation": string, "difficulty": "easy"|"medium"|"hard" } ] } with NO prose.`;
-          const strictBody = { contents:[ { role:'user', parts:[ { text: sys + "\n\n" + strictUser } ] } ] };
+          const strictBody = { model:'gemini-1.5-pro', contents:[ { role:'user', parts:[ { text: sys + "\n\n" + strictUser } ] } ] };
           const res2 = await fetch(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(strictBody) });
           const j2 = await res2.json();
           let txt2 = (((j2||{}).candidates||[])[0]||{}).content; txt2 = (txt2 && txt2.parts && txt2.parts[0] && txt2.parts[0].text) || '';
           const parsed2 = parseJsonFromText(txt2);
           const probs2 = (parsed2 && Array.isArray(parsed2.problems)) ? parsed2.problems : [];
-          if (probs2.length) probs = probs2;
+          const probs2f = hardKws.length ? probs2.filter(p=> containsAnyKeyword(p, hardKws)) : probs2;
+          if (probs2f.length) probs = probs2f;
         }
         if (!probs.length) throw new Error('Bad Gemini response');
         // optional enforcement of word-problem type
