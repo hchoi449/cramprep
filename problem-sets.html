@@ -1052,6 +1052,20 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
               }
             }
             if (!orderedProblems){
+              // Fast lane for "Writing expressions from word phrases": synthesize locally to avoid LLM latency
+              if (/writing expressions/i.test(lesson.title||'')){
+                let localPool = fallbackProblems(lesson, 40);
+                if (localPool && localPool.length){
+                  let tenLocal = selectDiverseTen(localPool);
+                  if (tenLocal && tenLocal.length){
+                    const rotL = Math.floor(Math.random()*tenLocal.length);
+                    if (rotL){ tenLocal = tenLocal.slice(rotL).concat(tenLocal.slice(0,rotL)); }
+                    orderedProblems = enforceBanding(tenLocal);
+                  }
+                }
+              }
+            }
+            if (!orderedProblems){
               const ai = await generateProblemsForLesson(course, subtopic, lesson, 18);
               if (Array.isArray(ai) && ai.length){
                 if (window.__PS_ACTIVE_LESSON_KEY !== lessonKey) return;
