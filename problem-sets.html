@@ -1501,7 +1501,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         }
         // If still too few, try a second stricter attempt echoing the exact lesson title multiple times
         if (probs.length < Math.min(count, 5)){
-          const strictUser = `Seed: ${nonce}-strict\nLesson: ${lesson.title}\nMake ${count} MC questions ONLY about this lesson. Keep strictly on-topic.\n${kw?`Keywords: ${kw}`:''}\nReturn STRICT JSON { "problems": [ { "stem": string, "options": [string,string,string,string], "correct": number, "explanation": string, "difficulty": "easy"|"medium"|"hard" } ] }`;
+          const strictUser = `Seed: ${nonce}-strict\nLesson: ${lesson.title}\nMake ${count} MC questions ONLY about this lesson. Keep strictly on-topic.\n${kw?`Keywords: ${kw}`:''}${/writing expressions/i.test(lesson.title||'')?`\nRULES FOR THIS LESSON: Provide a word phrase and four expression options; the correct option must be an algebraic expression with variables and operations (e.g., n+7, 2x-3, (m+5)/2). Do NOT ask to simplify or solve; do NOT produce a numeric answer.`:''}\nReturn STRICT JSON { "problems": [ { "stem": string, "options": [string,string,string,string], "correct": number, "explanation": string, "difficulty": "easy"|"medium"|"hard" } ] }`;
           const strictBody = { model:'gemini-1.5-flash', contents:[ { role:'user', parts:[ { text: sys + "\n\n" + strictUser } ] } ] };
           const res2 = await fetch(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(strictBody) });
           const j2 = await res2.json();
