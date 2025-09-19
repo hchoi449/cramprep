@@ -773,7 +773,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         const guidance = lessonGuidance(course, subtopic, lesson);
         const kws = [...buildKeywords(course, subtopic, lesson), ...lessonKeywords(course, subtopic, lesson)];
         const kw = kws.join(', ');
-        const user = `Seed: ${nonce}\nLessonTitle: "${lesson.title}"\nCreate ${count} multiple‑choice questions for this specific lesson: ${topic}.\nSTRICT SCOPE (must align; do NOT drift): ${guidance}.\nMUST INCORPORATE THESE KEYWORDS/CONCEPTS: ${kw}.\nRequirements:\n- Tag each problem with 'difficulty' ∈ {easy, medium, hard}; evenly distribute across difficulties.\n- Strong variation across forms: numeric computation, concise word problems, expression evaluation, equation solving, and (when applicable) graph interpretation/creation.\n- Vary constants/structures; avoid repeated templates; ensure each problem is clearly tied to the scope/keywords and LessonTitle.\n- Use LaTeX in stems/options/explanations where appropriate.\n- Provide 4 options; 'correct' is the index (0-3).\n- If graphing is relevant, include graph: { expressions: [{ id: 'g1', latex: 'y=x+1' }, ...] } (Desmos LaTeX).\nReturn STRICT JSON exactly: { "problems": [ { "stem": string, "options": [string,string,string,string], "correct": number, "explanation": string, "difficulty": "easy"|"medium"|"hard", "graph"?: { "expressions": [{"id": string, "latex": string}] } } ] } with NO prose.`;
+        const user = `Seed: ${nonce}\nLessonTitle: "${lesson.title}"\nCreate ${count} multiple‑choice questions ONLY for: ${topic}.\nSTRICT SCOPE (must align; do NOT drift): ${guidance}.\nREQUIRED KEYWORDS/CONCEPTS: ${kw}.\nRequirements:\n- Tag each with 'difficulty' ∈ {easy, medium, hard}; evenly distribute; later items should be harder.\n- Strong variation across structures: computation, short word problems, comparisons (which is larger/always true), statement selection (must be true), counterexample identification, translate phrase→expression/equation, and (when relevant) graph interpretation/creation.\n- Avoid repeated templates; vary representations and numbers; no two problems should share the same numeric pattern.\n- Use LaTeX in stems/options/explanations where appropriate.\n- Provide 4 options; 'correct' is the index (0-3).\n- If graphing is relevant, include graph: { expressions: [{ id: 'g1', latex: 'y=x+1' }, ...] } OR points: { expressions: [{ id:'p', type:'point', x: number, y: number }] }.\n- Include an optional 'structure' field (string) describing the structure you used.\nReturn STRICT JSON exactly: { "problems": [ { "stem": string, "options": [string,string,string,string], "correct": number, "explanation": string, "difficulty": "easy"|"medium"|"hard", "graph"?: { "expressions": (Array) } , "structure"?: string } ] } with NO prose.`;
         const body = { contents:[ { role:'user', parts:[ { text: sys + "\n\n" + user } ] } ] };
         const res = await fetch(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) });
         const j = await res.json();
@@ -1028,10 +1028,12 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             }
             function makeSet(cnt, diff){
               const base = pickBase(diff);
-              // Choose multipliers with gcd 1 to keep overall GCF exactly 'base'
+              // Choose distinct multipliers with gcd 1 to keep overall GCF exactly 'base'
               let mults=[]; let tries=0;
-              while(tries++<50){
-                mults = Array.from({length:cnt}, ()=> rand(2,11));
+              while(tries++<80){
+                const bag = new Set();
+                while (bag.size < cnt){ bag.add(rand(2,12)); }
+                mults = Array.from(bag);
                 if (gcdN(mults)===1) break;
               }
               const nums = mults.map(m=> base*m);
