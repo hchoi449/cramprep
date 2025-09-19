@@ -726,19 +726,34 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         function parseNumberLoose(s){
           try { return parseFloat(String(s||'').replace(/,/g,'').trim()); } catch { return NaN; }
         }
-        function roundTo(n, places){
+        function roundToDecimalPlaces(n, places){
           const f = Math.pow(10, places);
           return Math.round(n * f) / f;
+        }
+        function roundToIntegerPlace(n, pow10){
+          // pow10: 1 -> nearest ten, 2 -> hundred, 3 -> thousand, 6 -> million, etc.
+          const f = Math.pow(10, pow10);
+          return Math.round(n / f) * f;
         }
         function findRoundingCorrectIndex(stemText, options){
           try {
             const t = String(stemText||'').toLowerCase();
-            const m = t.match(/round\s+([0-9]+(?:\.[0-9]+)?)\s+to\s+the\s+nearest\s+(tenth|hundredth|thousandth)/i);
-            if (!m) return -1;
-            const val = parseNumberLoose(m[1]);
-            const placeWord = m[2];
-            const places = placeWord.includes('thousand') ? 3 : placeWord.includes('hundred') ? 2 : 1;
-            const want = roundTo(val, places);
+            // Accept numbers with commas
+            const mDec = t.match(/round\s+([0-9][0-9,]*(?:\.[0-9]+)?)\s+to\s+the\s+nearest\s+(tenth|hundredth|thousandth)/i);
+            const mInt = t.match(/round\s+([0-9][0-9,]*(?:\.[0-9]+)?)\s+to\s+the\s+nearest\s+(ten|hundred|thousand|million)/i);
+            if (!mDec && !mInt) return -1;
+            const raw = (mDec ? mDec[1] : mInt[1]);
+            const val = parseNumberLoose(raw);
+            let want = NaN;
+            if (mDec){
+              const placeWord = mDec[2];
+              const places = placeWord.includes('thousand') ? 3 : placeWord.includes('hundred') ? 2 : 1;
+              want = roundToDecimalPlaces(val, places);
+            } else {
+              const unit = mInt[2];
+              const pow10 = unit.includes('million') ? 6 : unit.includes('thousand') ? 3 : unit.includes('hundred') ? 2 : 1;
+              want = roundToIntegerPlace(val, pow10);
+            }
             for (let i=0;i<options.length;i++){
               const v = parseNumberLoose(stripLatexToPlain(options[i]));
               if (!Number.isNaN(v) && Math.abs(v - want) < 1e-9) return i;
@@ -777,11 +792,11 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
               correctIdx = (idx >= 0 && idx <= 3) ? idx : 0;
             }
             correctIdx = Math.max(0, Math.min(3, Number(correctIdx||0)));
-            const correctText = opts[correctIdx] || '';
             // Heuristic fix for rounding tasks: recompute expected and prefer matching option
             const stemPlain = stripLatexToPlain(problem.stem);
             const roundingIdx = findRoundingCorrectIndex(stemPlain, opts);
-            if (roundingIdx >= 0 && roundingIdx !== correctIdx){ correctIdx = roundingIdx; }
+            if (roundingIdx >= 0) correctIdx = roundingIdx;
+            let correctText = opts[correctIdx] || '';
             const seen = new Set();
             function mutateOptionText(text){
               let s = String(text||'');
