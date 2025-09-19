@@ -536,9 +536,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         body.appendChild(notes);
         try { if (window.renderMathInElement) { renderMathInElement(notes, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false}] }); } } catch{}
 
-        // Generate initial 1-2 problems immediately, then fetch the rest in the background
-        const initialProblems = fallbackProblems(lesson, 2);
-        let problems = initialProblems.slice();
+        // Wait for Gemini to load questions; no local template prefill
+        let problems = [];
         const groups = { easy:[], medium:[], hard:[] };
         let globalId = 0; const used = new Set();
         let orderedProblems = null; let orderedPointer = 0;
@@ -732,10 +731,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         function availableCount(){
           return ['easy','medium','hard'].reduce((s,g)=> s + groups[g].filter(x=> !used.has(x.id)).length, 0);
         }
-        function ensurePool(minNeeded){
-          const need = Math.max(0, minNeeded - availableCount());
-          if (need > 0){ addProblems(fallbackProblems(lesson, need * 3)); }
-        }
+        function ensurePool(minNeeded){ /* no-op: no local fallback */ }
         // Detect banded lessons and prebuild a fixed ordered set of 10
         // Build ordered banded set for ALL lessons: use specific generator if present; otherwise use Gemini
         try {
@@ -795,20 +791,11 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           try { if (loadingEl && loadingEl.parentNode) loadingEl.parentNode.removeChild(loadingEl); } catch {}
         } catch {}
 
-        // seed groups with initial, then ensure a minimum pool before starting (used when no ordered set)
+        // seed groups; if Gemini did not return yet, keep waiting and show retry UI
         problems = [];
-        if (!orderedProblems || !orderedProblems.length){ addProblems(initialProblems); ensurePool(20); }
-        // background generation for more variety and depth
-        (async()=>{
-          try {
-            const more = await generateProblemsForLesson(course, subtopic, lesson, 40);
-            addProblems(more);
-          } catch {
-            addProblems(fallbackProblems(lesson, 40));
-          }
-        })();
+        if (!orderedProblems || !orderedProblems.length){ return; }
 
-        if (problems.length){
+        if (orderedProblems && orderedProblems.length){
           // Remove any existing quiz container for this lesson to avoid duplicates
           const existingQuiz = document.getElementById(`ps-quiz-${course.id}-${subtopic.id}-${lesson.slug}`);
           if (existingQuiz && existingQuiz.parentNode) existingQuiz.parentNode.removeChild(existingQuiz);
@@ -817,7 +804,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           quiz.id = `ps-quiz-${course.id}-${subtopic.id}-${lesson.slug}`;
           const h = document.createElement('h4'); h.textContent = 'Adaptive Problem Set (10)'; quiz.appendChild(h);
           const nav = document.createElement('div'); nav.style.display='flex'; nav.style.gap='8px'; nav.style.margin='8px 0';
-          const idxLabel = document.createElement('div'); idxLabel.textContent = '1 / ' + problems.length; nav.appendChild(idxLabel);
+          const idxLabel = document.createElement('div'); idxLabel.textContent = '1 / 10'; nav.appendChild(idxLabel);
           quiz.appendChild(nav);
 
           const stage = document.createElement('div'); stage.className='ps-q-stage'; stage.innerHTML=''; quiz.appendChild(stage);
