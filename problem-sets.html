@@ -636,23 +636,22 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           if (need > 0){ addProblems(fallbackProblems(lesson, need * 3)); }
         }
         // Detect banded lessons and prebuild a fixed ordered set of 10
-        function isBandedLesson(lesson){
-          const slug = String((lesson&&lesson.slug)||'').toLowerCase();
-          return slug==='place-value-rounding' || slug==='integer-operations' || slug==='absolute-value-opposites' || slug==='properties' || slug==='prime-factorization' || slug==='gcf' || slug==='lcm' || slug==='divisibility-prime-composite';
-        }
-        if (isBandedLesson(lesson)){
-          try {
-            const genKey = String((lesson&&lesson.slug)||'').toLowerCase();
-            const genFn = (gen && gen[genKey]);
-            if (typeof genFn === 'function'){
-              orderedProblems = genFn(10).map(p=> sanitizeProblem(p));
-            }
-          } catch {}
-        }
+        // Build ordered banded set for ALL lessons: use specific generator if present; otherwise use Gemini
+        try {
+          const genKey = String((lesson&&lesson.slug)||'').toLowerCase();
+          const genFn = (gen && gen[genKey]);
+          if (typeof genFn === 'function'){
+            orderedProblems = genFn(10).map(p=> sanitizeProblem(p));
+          }
+          if (!orderedProblems || orderedProblems.length < 10){
+            const ai = await generateProblemsForLesson(course, subtopic, lesson, 12);
+            if (Array.isArray(ai) && ai.length){ orderedProblems = ai.slice(0,10).map(p=> sanitizeProblem(p)); }
+          }
+        } catch {}
 
-        // seed groups with initial, then ensure a minimum pool before starting (used when not banded)
+        // seed groups with initial, then ensure a minimum pool before starting (used when no ordered set)
         problems = [];
-        if (!orderedProblems){ addProblems(initialProblems); ensurePool(20); }
+        if (!orderedProblems || !orderedProblems.length){ addProblems(initialProblems); ensurePool(20); }
         // background generation for more variety and depth
         (async()=>{
           try {
@@ -699,7 +698,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           function renderOne(){
             // ensure single-question rendering
             stage.innerHTML = '';
-            const picked = orderedProblems ? null : pickNextProblem();
+            const picked = (orderedProblems && orderedPointer < orderedProblems.length) ? null : pickNextProblem();
             if (!picked){
               // If banded, advance sequentially
               if (orderedProblems && orderedPointer < orderedProblems.length){
