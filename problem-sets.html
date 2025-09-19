@@ -551,6 +551,59 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           }
           return ten;
         }
+
+        // Ensure each stem varies in wording (not only numbers)
+        function normalizeStemText(text){
+          try {
+            return String(text||'')
+              .toLowerCase()
+              // collapse LaTeX math blocks to a token
+              .replace(/\$[^$]*\$/g, '$x$')
+              // numbers and simple fractions to #
+              .replace(/-?\d+(?:\.\d+)?/g, '#')
+              .replace(/\\dfrac\{[^}]*\}\{[^}]*\}/g, '$f$')
+              .replace(/[()^*=+\\/]/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim();
+          } catch { return String(text||''); }
+        }
+        function mutateStemWording(stem, difficulty, attempt){
+          let s = String(stem||'');
+          const swaps = [
+            [/^Compute\b/i, 'Evaluate'],
+            [/^Evaluate\b/i, 'Find the value of'],
+            [/^Find\b/i, 'Determine'],
+            [/^Which is greater\b/i, 'Select the greater value'],
+            [/^Round\b/i, 'Round off'],
+            [/^Simplify\b/i, 'Reduce'],
+            [/^Solve\b/i, 'Find the solution to']
+          ];
+          for (const [pat, repl] of swaps){ if (pat.test(s)) { s = s.replace(pat, repl); break; } }
+          // add light context based on difficulty/attempt
+          if (attempt % 3 === 1){
+            s = `Quick check: ${s}`;
+          } else if (attempt % 3 === 2){
+            s = (difficulty==='hard' ? `Multi-step: ${s}` : `Mental math: ${s}`);
+          }
+          return s;
+        }
+        function makeStemsUnique(list){
+          const seen = new Set();
+          for (let i=0;i<list.length;i++){
+            if (!list[i] || !list[i].stem) continue;
+            let s = list[i].stem;
+            let norm = normalizeStemText(s);
+            let attempts = 0;
+            while (seen.has(norm) && attempts < 3){
+              s = mutateStemWording(s, list[i].difficulty||'medium', attempts+1);
+              norm = normalizeStemText(s);
+              attempts++;
+            }
+            list[i].stem = s;
+            seen.add(norm);
+          }
+          return list;
+        }
         function classify(p, index){
           const d = String((p.difficulty||'').toLowerCase());
           if (d==='easy'||d==='medium'||d==='hard') return d;
@@ -655,6 +708,9 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           if (!orderedProblems || orderedProblems.length < 10){
             const fb = fallbackProblems(lesson, 16);
             if (Array.isArray(fb) && fb.length){ orderedProblems = enforceBanding(fb.map(p=> sanitizeProblem(p))); }
+          }
+          if (orderedProblems && orderedProblems.length){
+            orderedProblems = makeStemsUnique(orderedProblems);
           }
         } catch {}
 
