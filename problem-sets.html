@@ -706,6 +706,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           while (out.length < 10 && iWord < word.length){
             const cand = word[iWord++];
             const sk = scenarioKey(cand.stem);
+            // Completely skip sea-level / submarine scenarios
+            if (sk === 'sea') continue;
             if ((scenCount[sk]||0) < 2){ out.push(cand); scenCount[sk] = (scenCount[sk]||0)+1; }
           }
           // If still short, fill with remaining items regardless of type
@@ -713,6 +715,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           while (out.length < 10 && rest.length){
             const cand = rest.shift();
             const sk = scenarioKey(cand.stem);
+            if (sk === 'sea') continue;
             if ((scenCount[sk]||0) < 2){ out.push(cand); scenCount[sk] = (scenCount[sk]||0)+1; }
           }
           return out.slice(0,10);
@@ -1531,7 +1534,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         const t = `${(course&&course.title)||''} ${(subtopic&&subtopic.title)||''} ${(lesson&&lesson.title)||''}`.toLowerCase();
         if (t.includes('place value') || t.includes('rounding')) return 'Place value to millions and thousandths; rounding to given place; estimation sums/differences/products.';
         if (t.includes('integers')) return 'Integer addition, subtraction, multiplication, division; sign rules; order of operations with integers.';
-        if (t.includes('absolute value')) return 'Absolute value as distance; compare integers/opposites; simple equations with |x|. Word problems should reference real contexts like bank balances (deposits/withdrawals), temperatures above/below zero, elevations relative to sea level, and distances.';
+        if (t.includes('absolute value')) return 'Absolute value as distance; compare integers/opposites; simple equations with |x|. Use varied real contexts (bank balances, temperatures, elevators, hiking elevations, distances). Avoid underwater/submarine/sea-level scenarios entirely; if elevation is used, include at most one elevation item.';
         if (t.includes('properties')) return 'Commutative, associative, distributive properties; simplify expressions using properties.';
         if (t.includes('divisibility') || t.includes('prime')) return 'Divisibility tests (2,3,4,5,6,9,10); prime vs composite; prime factorization; factor trees.';
         if (t.includes('gcf')) return 'Find greatest common factor by prime factors or divisors; apply to simplify expressions and fractions.';
