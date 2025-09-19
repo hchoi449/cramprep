@@ -1022,6 +1022,11 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                 if (window.__PS_ACTIVE_LESSON_KEY !== lessonKey) return;
                 let pool = ai.map(p=> sanitizeProblem(p));
                 let ten = selectDiverseTen(pool);
+                // Randomly rotate starting item so Q1 varies between loads
+                if (ten && ten.length){
+                  const rot = Math.floor(Math.random()*ten.length);
+                  if (rot){ ten = ten.slice(rot).concat(ten.slice(0,rot)); }
+                }
                 // ensure last 4 are word problems; if not, try to fetch hard word problems and reselection
                 const lastFourWord = ten.slice(-4).filter(q=> isWordProblemStem(q.stem)).length;
                 if (lastFourWord < 4){
@@ -1032,6 +1037,10 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                       if (window.__PS_ACTIVE_LESSON_KEY !== lessonKey) return;
                       pool = pool.concat(hardWord.map(p=> sanitizeProblem(p)));
                       ten = selectDiverseTen(pool);
+                      if (ten && ten.length){
+                        const rot2 = Math.floor(Math.random()*ten.length);
+                        if (rot2){ ten = ten.slice(rot2).concat(ten.slice(0,rot2)); }
+                      }
                     }
                   } catch {}
                 }
