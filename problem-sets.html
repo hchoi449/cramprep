@@ -700,11 +700,20 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         // Detect banded lessons and prebuild a fixed ordered set of 10
         // Build ordered banded set for ALL lessons: use specific generator if present; otherwise use Gemini
         try {
-          const genKey = String((lesson&&lesson.slug)||'').toLowerCase();
-          const genFn = (gen && gen[genKey]);
-          if (typeof genFn === 'function'){
-            orderedProblems = enforceBanding(genFn(12).map(p=> sanitizeProblem(p)));
+          // Prefer Gemini to generate structured problems per banding plan
+          try {
+            const ai = await generateProblemsForLesson(course, subtopic, lesson, 12);
+            if (Array.isArray(ai) && ai.length){ orderedProblems = enforceBanding(ai.map(p=> sanitizeProblem(p))); }
+          } catch {}
+          // Fallback to local generator if available
+          if (!orderedProblems || orderedProblems.length < 10){
+            const genKey = String((lesson&&lesson.slug)||'').toLowerCase();
+            const genFn = (gen && gen[genKey]);
+            if (typeof genFn === 'function'){
+              orderedProblems = enforceBanding(genFn(12).map(p=> sanitizeProblem(p)));
+            }
           }
+          // Last resort deterministic fallback
           if (!orderedProblems || orderedProblems.length < 10){
             const fb = fallbackProblems(lesson, 16);
             if (Array.isArray(fb) && fb.length){ orderedProblems = enforceBanding(fb.map(p=> sanitizeProblem(p))); }
