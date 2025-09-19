@@ -649,8 +649,34 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             const norm = String(p.stem||'').toLowerCase().replace(/\s+/g,' ').trim();
             if (!seen.has(norm)){ unique.push(p); seen.add(norm); }
           }
+          // Enforce differentiation by rotating across structural clusters
+          function structureKey(s){
+            const t = String(s||'').toLowerCase();
+            if (/(which is greater|compare|always true|must be true)/.test(t)) return 'compare';
+            if (/(translate|expression|equation)/.test(t)) return 'translate';
+            if (/(graph|coordinate|point|slope)/.test(t)) return 'graph';
+            if (/(round|nearest|estimate)/.test(t)) return 'round';
+            if (/(percent|%)/.test(t)) return 'percent';
+            if (/(ratio|unit rate|proportion)/.test(t)) return 'ratio';
+            if (/(gcf|greatest common factor|lcm|least common multiple)/.test(t)) return 'factor';
+            if (/(simplify|combine like terms|distributive)/.test(t)) return 'algebra';
+            return 'compute';
+          }
+          const buckets = new Map();
+          unique.forEach(p=>{ const k = structureKey(p.stem); if(!buckets.has(k)) buckets.set(k, []); buckets.get(k).push(p); });
+          const keys = Array.from(buckets.keys());
+          const rotated = [];
+          let idx=0; let guard=0;
+          while (rotated.length < 12 && keys.length && guard++ < 100){
+            const k = keys[idx % keys.length];
+            const arr = buckets.get(k) || [];
+            if (arr.length){ rotated.push(arr.shift()); }
+            if (!arr.length){ buckets.delete(k); keys.splice(idx % keys.length, 1); idx = 0; continue; }
+            idx++;
+          }
+          const pool2 = rotated.length ? rotated : unique;
           const word = [], non = [];
-          for (const p of unique){ (isWordProblemStem(p.stem) ? word : non).push(p); }
+          for (const p of pool2){ (isWordProblemStem(p.stem) ? word : non).push(p); }
           const out = [];
           // First 6: prefer non-word problems (mix in if non is short)
           let iNon = 0, iWord = 0;
@@ -700,15 +726,26 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             return s;
           } catch { return String(t||''); }
         }
+        function fixCommonLatexTypos(t){
+          try {
+            let s = String(t||'');
+            // Fix $/text{...} -> $\text{...}
+            s = s.replace(/\$\s*\/\s*text\s*\{/g, '$\\text{');
+            // Fix \{}underline{...} -> \underline{...}
+            s = s.replace(/\\\{\}underline/g, '\\underline');
+            return s;
+          } catch { return String(t||''); }
+        }
         function latexifyInline(text){
           try {
             const t = String(text||'').trim();
             if (!t) return '$\\text{}$';
-            if (isProbablyLatex(t)) return t;
-            if (containsLatexCommand(t)) return wrapLatexFragments(t);
+            const fixed = fixCommonLatexTypos(t);
+            if (isProbablyLatex(fixed)) return fixed;
+            if (containsLatexCommand(fixed)) return wrapLatexFragments(fixed);
             // If plain number, render as math number instead of \\text{}
-            if (/^-?\d+(?:\.\d+)?$/.test(t)) return `$${t}$`;
-            return `$\\text{${latexEscapeText(t)}}$`;
+            if (/^-?\d+(?:\.\d+)?$/.test(fixed)) return `$${fixed}$`;
+            return `$\\text{${latexEscapeText(fixed)}}$`;
           } catch { return '$\\text{}$'; }
         }
 
