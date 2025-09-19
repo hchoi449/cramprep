@@ -547,8 +547,80 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           if (typeof index === 'number') return index < 10? 'easy' : (index < 20? 'medium' : 'hard');
           return 'medium';
         }
+        function sanitizeProblem(problem){
+          try {
+            if (!problem || !Array.isArray(problem.options)) return problem;
+            const opts = problem.options.map(o=> String(o||'').trim());
+            const correctIdx = Math.max(0, Math.min(3, Number(problem.correct||0)));
+            const correctText = opts[correctIdx] || '';
+            const seen = new Set();
+            function mutateOptionText(text){
+              let s = String(text||'');
+              // numeric $123$ pattern
+              const mNum = s.match(/\$\s*(-?\d+(?:\.\d+)?)\s*\$/);
+              if (mNum){
+                const raw = mNum[1];
+                const decimals = (raw.split('.')[1]||'').length;
+                let base = parseFloat(raw);
+                for (let delta=1; delta<=4; delta++){
+                  const cand = (base + delta).toFixed(decimals);
+                  const out = `$${cand}$`;
+                  if (!seen.has(out) && out !== correctText) return out;
+                }
+              }
+              // fraction \dfrac{a}{b}
+              const mFrac = s.match(/\\dfrac\{(\d+)\}\{(\d+)\}/);
+              if (mFrac){
+                let a = parseInt(mFrac[1],10), b = parseInt(mFrac[2],10);
+                for (let delta=1; delta<=3; delta++){
+                  const cand = `\\dfrac{${a+delta}}{${b}}`;
+                  const out = `$${cand}$`;
+                  if (!seen.has(out) && out !== correctText) return out;
+                }
+              }
+              // coordinate (x,y)
+              const mPt = s.match(/\$?\(([-\d\.]+),\s*([-\d\.]+)\)\$?/);
+              if (mPt){
+                let x = parseFloat(mPt[1]), y = parseFloat(mPt[2]);
+                const cand = `$(${(x+1).toString()},${y})$`;
+                if (!seen.has(cand) && cand !== correctText) return cand;
+              }
+              // fallback distinct marker (last resort)
+              let attempt = s.replace(/\s+$/,'');
+              for (let i=1;i<=3;i++){
+                const cand = `${attempt} \;`;
+                if (!seen.has(cand) && cand !== correctText) return cand;
+              }
+              return s;
+            }
+            // build unique list keeping order
+            const unique = [];
+            for (let i=0;i<opts.length && unique.length<4;i++){
+              let t = opts[i];
+              if (seen.has(t)) t = mutateOptionText(t);
+              if (!seen.has(t)) { seen.add(t); unique.push(t); }
+            }
+            // top up to 4 using mutations from correct
+            while (unique.length < 4){
+              const m = mutateOptionText(correctText);
+              if (!seen.has(m)) { seen.add(m); unique.push(m); } else break;
+            }
+            // ensure correct index points to correctText
+            let newCorrect = unique.indexOf(correctText);
+            if (newCorrect === -1){
+              // inject correct at position 0 and adjust
+              unique[0] = correctText; newCorrect = 0; seen.add(correctText);
+              // keep only first 4
+              if (unique.length>4) unique.length = 4;
+            }
+            problem.options = unique;
+            problem.correct = newCorrect;
+            return problem;
+          } catch { return problem; }
+        }
         function addProblems(list){
           list.forEach((p, i)=>{
+            p = sanitizeProblem(p);
             const id = globalId++;
             const diff = classify(p, i);
             groups[diff].push({ p, id });
