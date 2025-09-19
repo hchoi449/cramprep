@@ -733,6 +733,9 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             s = s.replace(/\$\s*\/\s*text\s*\{/g, '$\\text{');
             // Fix \{}underline{...} -> \underline{...}
             s = s.replace(/\\\{\}underline/g, '\\underline');
+            // Fix $ext{...} -> $\text{...} and bare ext{...} -> \text{...}
+            s = s.replace(/\$\s*ext\s*\{/g, '$\\text{');
+            s = s.replace(/(^|\s)ext\s*\{/g, '$1\\text{');
             return s;
           } catch { return String(t||''); }
         }
