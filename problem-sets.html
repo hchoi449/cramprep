@@ -20,7 +20,7 @@
     <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
     <!-- Desmos Graphing Calculator API -->
     <script src="https://www.desmos.com/api/v1.6/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"></script>
-    <!-- Light-weight stand-in: we’ll use a simplified renderer approach that emulates Perseus style -->
+    <!-- Light-weight stand-in: we'll use a simplified renderer approach that emulates Perseus style -->
     <style>
       .ps-container{display:grid;grid-template-columns:420px minmax(0,1fr);gap:32px;width:min(98vw, 1680px);max-width:1680px;margin:60px auto 40px;padding:0 24px}
       .ps-sidebar{position:sticky;top:96px;align-self:start;height:calc(100vh - 140px);overflow:auto;border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fff}
@@ -185,7 +185,7 @@
           { id:'measurement-conversions', title:'Measurement & Conversions', lessons:[
             { slug:'customary-metric', title:'Customary & metric units', locked:false, notes:`Lesson outline.` },
             { slug:'unit-conversions', title:'Unit conversions; dimensional analysis (intro)', locked:false, notes:`Lesson outline.` },
-            { slug:'rates-per', title:'Rates as “per” (mph, $/lb, etc.)', locked:false, notes:`Lesson outline.` }
+            { slug:'rates-per', title:'Rates as "per" (mph, $/lb, etc.)', locked:false, notes:`Lesson outline.` }
           ]},
         ]},
         { id:'geometry', title:'Geometry', subtopics:[
@@ -948,7 +948,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         if (t.includes('compound probability')) return 'Independent events; product rule; simple tree diagrams.';
         if (t.includes('customary') || t.includes('metric')) return 'Unit identification and conversions within systems; relative sizes.';
         if (t.includes('unit conversions') || t.includes('dimensional')) return 'Unit conversions via dimensional analysis; set up conversion factors.';
-        if (t.includes('rates as “per”') || t.includes('rates as "per"')) return 'Interpret per units (mph, $/lb, etc.); compute totals and rates.';
+        if (t.includes('rates as "per"') || t.includes('rates as "per"')) return 'Interpret per units (mph, $/lb, etc.); compute totals and rates.';
         return 'Create varied problems matching this lesson topic with appropriate coverage.';
       }
 
@@ -1019,7 +1019,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             function valueAt(num, idx){ return Math.floor(num / Math.pow(10, idx)) % 10 * Math.pow(10, idx); }
             function roundTo(num, place){ if (place==='ten') return Math.round(num/10)*10; if (place==='hundred') return Math.round(num/100)*100; if (place==='thousand') return Math.round(num/1000)*1000; return num; }
             for (let i=0;i<k;i++){
-              const mode = i<k/3? 'place' : (i< 2*k/3? 'round' : 'est');
+              const mode = (i<3)? 'place' : (i<6? 'round' : (i<8? 'est' : 'multi'));
               if (mode==='place'){
                 const len = rand(4,7); const n = mkNumber(len); const idx = rand(0, Math.min(6,len-1));
                 const val = valueAt(n, idx);
@@ -1033,15 +1033,26 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                 const distract = pick==='ten'? 10 : pick==='hundred'? 100 : 1000;
                 const opts = shuffle([`$${res}$`,`$${res + distract}$`,`$${res - distract}$`,`$${res + (distract/2)}$`]);
                 arr.push({ stem, options:opts, correct: opts.indexOf(`$${res}$`), explanation:`Look at the digit to the right; 5 or more → round up.`, difficulty:'medium' });
-              } else {
-                const op = ['+','-','×','÷'][rand(0,3)];
+              } else if (mode==='est'){
+                const op = ['+','-'][rand(0,1)];
                 let a = rand(120, 980), b = rand(20, 860);
                 const place = Math.random()<0.5? 'ten' : 'hundred';
                 const ar = roundTo(a, place); let br = roundTo(b, place);
-                let est; if (op==='+') est = ar+br; else if (op==='-') est = ar-br; else if (op==='×') est = ar*br; else { br = Math.max(10, br||10); est = Math.round(ar/br); }
-                const stem = `Estimate $${a}\ ${op}\ ${b}$ by rounding to the nearest ${place}${op==='÷'?' (round divisor as well)':''}.`;
+                let est; if (op==='+') est = ar+br; else est = ar-br;
+                const stem = `Estimate $${a}\\ ${op}\\ ${b}$ by rounding to the nearest ${place}.`;
                 const opts = shuffle([`$${est}$`,`$${est + (place==='ten'?10:100)}$`,`$${Math.max(0, est - (place==='ten'?10:100))}$`,`$${est + (place==='ten'?20:200)}$`]);
                 arr.push({ stem, options:opts, correct: opts.indexOf(`$${est}$`), explanation:`Round numbers first, then compute for a quick estimate.`, difficulty:'hard' });
+              } else {
+                const a1 = rand(500, 950), b1 = rand(200, 850), c1 = rand(100, 650);
+                const place = Math.random()<0.5? 'hundred' : 'thousand';
+                const ar = roundTo(a1, place), br = roundTo(b1, place), cr = roundTo(c1, place);
+                const op1 = ['+','-'][rand(0,1)], op2 = ['+','-'][rand(0,1)];
+                const expr = (op1==='+'? ar+br : ar-br);
+                const est = (op2==='+'? expr+cr : expr-cr);
+                const stem = `Estimate $( ${a1} ${op1} ${b1} ) ${op2} ${c1}$ by rounding to the nearest ${place}.`;
+                const delta = place==='hundred'? 100 : 1000;
+                const opts = shuffle([`$${est}$`,`$${est+delta}$`,`$${est-delta}$`,`$${est+2*delta}$`]);
+                arr.push({ stem, options:opts, correct: opts.indexOf(`$${est}$`), explanation:`Round each term to ${place}, then compute.`, difficulty:'hard' });
               }
             }
             return arr;
