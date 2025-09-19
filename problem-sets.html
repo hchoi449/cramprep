@@ -736,6 +736,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             // Fix $ext{...} -> $\text{...} and bare ext{...} -> \text{...}
             s = s.replace(/\$\s*ext\s*\{/g, '$\\text{');
             s = s.replace(/(^|\s)ext\s*\{/g, '$1\\text{');
+            // Unescape escaped braces (common leak)
+            s = s.replace(/\\\{/g, '{').replace(/\\\}/g, '}');
             return s;
           } catch { return String(t||''); }
         }
@@ -760,6 +762,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             s = s.replace(/^\\dfrac\{([^}]*)\}\{([^}]*)\}$/i, '$1/$2');
             // Remove degree markers like ^\circ or \degree
             s = s.replace(/\^\s*\\?circ/g, '').replace(/\\degree/g, '');
+            // Remove leftover braces
+            s = s.replace(/[{}]/g, '');
             s = s.replace(/\\/g, '');
             return s.trim();
           } catch { return String(text||''); }
