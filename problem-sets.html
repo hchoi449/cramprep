@@ -782,6 +782,17 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             return s;
           } catch { return String(t||''); }
         }
+
+        // Heuristic to detect that a problem is a true word-phrase → expression translation (no algebra in stem)
+        function isWordPhraseExpressionStem(stem){
+          try {
+            const s = String(stem||'').toLowerCase();
+            const badTokens = ['simplify','equivalent','distributive','expand','factor','evaluate','solve','=','(',')','+','-','×','*','/','^',' x',' y',' n',' m'];
+            if (badTokens.some(t=> s.includes(t))) return false;
+            const phraseKeys = ['sum of','difference of','product of','quotient of','more than','less than','increased by','decreased by','twice','double','triple','half of','per','times the','the number'];
+            return phraseKeys.some(k=> s.includes(k));
+          } catch { return false; }
+        }
         function latexifyInline(text){
           try {
             const t = String(text||'').trim();
@@ -1517,6 +1528,10 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             probs2f = probs2f.filter(looksLikeExpr);
           }
           if (probs2f.length) probs = probs2f;
+        }
+        // Final lesson-specific filtering
+        if (/writing expressions/i.test(lesson.title||'')){
+          probs = probs.filter(p=> isWordPhraseExpressionStem(p.stem));
         }
         if (!probs.length) throw new Error('Bad Gemini response');
         // optional enforcement of word-problem type
