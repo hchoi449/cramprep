@@ -694,16 +694,52 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             const t = String(text||'').trim();
             if (!t) return '$\\text{}$';
             if (isProbablyLatex(t)) return t;
+            // If plain number, render as math number instead of \\text{}
+            if (/^-?\d+(?:\.\d+)?$/.test(t)) return `$${t}$`;
             return `$\\text{${latexEscapeText(t)}}$`;
           } catch { return '$\\text{}$'; }
+        }
+
+        function stripLatexToPlain(text){
+          try {
+            let s = String(text||'');
+            s = s.replace(/^\s*\$\s*/, '').replace(/\s*\$\s*$/, '');
+            s = s.replace(/^\\text\{([\s\S]*)\}$/i, '$1');
+            s = s.replace(/^\\dfrac\{([^}]*)\}\{([^}]*)\}$/i, '$1/$2');
+            s = s.replace(/\\/g, '');
+            return s.trim();
+          } catch { return String(text||''); }
         }
         function sanitizeProblem(problem){
           try {
             if (!problem || !Array.isArray(problem.options)) return problem;
             // Enforce LaTeX for stem/options/explanation if not present
             if (problem.stem) problem.stem = latexifyInline(problem.stem);
-            const opts = problem.options.map(o=> latexifyInline(String(o||'').trim()));
-            const correctIdx = Math.max(0, Math.min(3, Number(problem.correct||0)));
+            const rawOpts = problem.options.map(o=> String(o||'').trim());
+            const opts = rawOpts.map(o=> latexifyInline(o));
+            // Normalize 'correct' accepting index or value
+            let correctIdx = Number.isInteger(problem.correct) ? Number(problem.correct) : Number(String(problem.correct||'').trim());
+            if (!(correctIdx >= 0 && correctIdx <= 3)){
+              const answerValue = problem.answer || problem.ans || problem.solution || '';
+              const plainAnswer = stripLatexToPlain(answerValue);
+              // Try match against raw options first by plain text or number
+              let idx = -1;
+              for (let i=0;i<rawOpts.length;i++){
+                const po = stripLatexToPlain(rawOpts[i]);
+                if (po && plainAnswer && po.toLowerCase() === plainAnswer.toLowerCase()){ idx = i; break; }
+                const n1 = parseFloat(po), n2 = parseFloat(plainAnswer);
+                if (!Number.isNaN(n1) && !Number.isNaN(n2) && Math.abs(n1 - n2) < 1e-9){ idx = i; break; }
+              }
+              if (idx === -1){
+                // Try match against latexified opts
+                for (let i=0;i<opts.length;i++){
+                  const po = stripLatexToPlain(opts[i]);
+                  if (po && plainAnswer && po.toLowerCase() === plainAnswer.toLowerCase()){ idx = i; break; }
+                }
+              }
+              correctIdx = (idx >= 0 && idx <= 3) ? idx : 0;
+            }
+            correctIdx = Math.max(0, Math.min(3, Number(correctIdx||0)));
             const correctText = opts[correctIdx] || '';
             const seen = new Set();
             function mutateOptionText(text){
@@ -768,6 +804,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             problem.options = unique.map(u=> isProbablyLatex(u) ? u : latexifyInline(u));
             problem.correct = newCorrect;
             if (problem.explanation) problem.explanation = latexifyInline(problem.explanation);
+            // also set a canonical numeric answer for robust comparison in UI if present
+            try { problem.answerPlain = stripLatexToPlain(correctText); } catch {}
             return problem;
           } catch { return problem; }
         }
