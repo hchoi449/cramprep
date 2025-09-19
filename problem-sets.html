@@ -722,6 +722,30 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             return s.trim();
           } catch { return String(text||''); }
         }
+
+        function parseNumberLoose(s){
+          try { return parseFloat(String(s||'').replace(/,/g,'').trim()); } catch { return NaN; }
+        }
+        function roundTo(n, places){
+          const f = Math.pow(10, places);
+          return Math.round(n * f) / f;
+        }
+        function findRoundingCorrectIndex(stemText, options){
+          try {
+            const t = String(stemText||'').toLowerCase();
+            const m = t.match(/round\s+([0-9]+(?:\.[0-9]+)?)\s+to\s+the\s+nearest\s+(tenth|hundredth|thousandth)/i);
+            if (!m) return -1;
+            const val = parseNumberLoose(m[1]);
+            const placeWord = m[2];
+            const places = placeWord.includes('thousand') ? 3 : placeWord.includes('hundred') ? 2 : 1;
+            const want = roundTo(val, places);
+            for (let i=0;i<options.length;i++){
+              const v = parseNumberLoose(stripLatexToPlain(options[i]));
+              if (!Number.isNaN(v) && Math.abs(v - want) < 1e-9) return i;
+            }
+            return -1;
+          } catch { return -1; }
+        }
         function sanitizeProblem(problem){
           try {
             if (!problem || !Array.isArray(problem.options)) return problem;
@@ -733,7 +757,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             // Normalize 'correct' accepting index or value
             let correctIdx = Number.isInteger(problem.correct) ? Number(problem.correct) : Number(String(problem.correct||'').trim());
             if (!(correctIdx >= 0 && correctIdx <= 3)){
-              const answerValue = problem.answer || problem.ans || problem.solution || '';
+              const answerValue = problem.answer || problem.ans || problem.solution || problem.correct || '';
               const plainAnswer = stripLatexToPlain(answerValue);
               // Try match against raw options first by plain text or number
               let idx = -1;
@@ -754,6 +778,10 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             }
             correctIdx = Math.max(0, Math.min(3, Number(correctIdx||0)));
             const correctText = opts[correctIdx] || '';
+            // Heuristic fix for rounding tasks: recompute expected and prefer matching option
+            const stemPlain = stripLatexToPlain(problem.stem);
+            const roundingIdx = findRoundingCorrectIndex(stemPlain, opts);
+            if (roundingIdx >= 0 && roundingIdx !== correctIdx){ correctIdx = roundingIdx; }
             const seen = new Set();
             function mutateOptionText(text){
               let s = String(text||'');
