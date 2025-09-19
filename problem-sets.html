@@ -806,7 +806,14 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           // Prefer Gemini to generate structured problems per banding plan (block display until done or 10s timeout)
           try {
             if (!orderedProblems){
-              const ai = await generateProblemsForLesson(course, subtopic, lesson, 24);
+              // Fast path: use cached questions if fresh
+              const cached = getCachedProblems(course, subtopic, lesson, 1000*60*60*24);
+              if (Array.isArray(cached) && cached.length >= 10){
+                orderedProblems = enforceBanding(cached.slice(0,10));
+              }
+            }
+            if (!orderedProblems){
+              const ai = await generateProblemsForLesson(course, subtopic, lesson, 18);
               if (Array.isArray(ai) && ai.length){
                 if (window.__PS_ACTIVE_LESSON_KEY !== lessonKey) return;
                 let pool = ai.map(p=> sanitizeProblem(p));
@@ -816,7 +823,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                 if (lastFourWord < 4){
                   try {
                     // require at least 2 hard-band word problems; request extra for diversity
-                    const hardWord = await generateProblemsForLesson(course, subtopic, lesson, 20, { requireHardWordProblems: true });
+                    const hardWord = await generateProblemsForLesson(course, subtopic, lesson, 10, { requireHardWordProblems: true });
                     if (Array.isArray(hardWord) && hardWord.length){
                       if (window.__PS_ACTIVE_LESSON_KEY !== lessonKey) return;
                       pool = pool.concat(hardWord.map(p=> sanitizeProblem(p)));
@@ -826,9 +833,9 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                 }
                 // Top-up: ensure we have 10 by fetching extra batches if needed
                 let safety = 0;
-                while (ten.length < 10 && safety < 2){
+                while (ten.length < 10 && safety < 1){
                   try {
-                    const extra = await generateProblemsForLesson(course, subtopic, lesson, 24);
+                    const extra = await generateProblemsForLesson(course, subtopic, lesson, 12);
                     if (Array.isArray(extra) && extra.length){
                       if (window.__PS_ACTIVE_LESSON_KEY !== lessonKey) return;
                       pool = pool.concat(extra.map(p=> sanitizeProblem(p)));
@@ -877,6 +884,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           if (window.__PS_ACTIVE_LESSON_KEY !== lessonKey) return;
           if (orderedProblems && orderedProblems.length){
             orderedProblems = makeStemsUnique(orderedProblems);
+            // Save to cache for subsequent loads
+            try { setCachedProblems(course, subtopic, lesson, orderedProblems); } catch {}
           }
           try { if (loadingEl && loadingEl.parentNode) loadingEl.parentNode.removeChild(loadingEl); } catch {}
         } catch {}
@@ -1200,7 +1209,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           const mode = (opts && opts.requireHardWordProblems) ? 'hardWord' : undefined;
           const prompt = buildPrompt(thisCount, mode);
           const body = {
-            model: 'gemini-1.5-pro',
+            model: 'gemini-1.5-flash',
             contents:[ { role:'user', parts:[ { text: sys + "\n\n" + prompt } ] } ],
             generationConfig: { temperature: 0.6, topP: 0.9, candidateCount: 1 }
           };
@@ -1227,7 +1236,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         // If still too few, try a second stricter attempt echoing the exact lesson title multiple times
         if (probs.length < Math.min(count, 5)){
           const strictUser = `Seed: ${nonce}-strict\nLesson: ${lesson.title}\nMake ${count} MC questions ONLY about this lesson. Keep strictly on-topic.\n${kw?`Keywords: ${kw}`:''}\nReturn STRICT JSON { "problems": [ { "stem": string, "options": [string,string,string,string], "correct": number, "explanation": string, "difficulty": "easy"|"medium"|"hard" } ] }`;
-          const strictBody = { model:'gemini-1.5-pro', contents:[ { role:'user', parts:[ { text: sys + "\n\n" + strictUser } ] } ] };
+          const strictBody = { model:'gemini-1.5-flash', contents:[ { role:'user', parts:[ { text: sys + "\n\n" + strictUser } ] } ] };
           const res2 = await fetch(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(strictBody) });
           const j2 = await res2.json();
           let txt2 = (((j2||{}).candidates||[])[0]||{}).content; txt2 = (txt2 && txt2.parts && txt2.parts[0] && txt2.parts[0].text) || '';
