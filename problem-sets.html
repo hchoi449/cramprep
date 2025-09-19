@@ -644,6 +644,18 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             return (hasCue || hasSentence) && !mathOnly;
           } catch { return false; }
         }
+        // Scenario key to avoid repeating the same context (e.g., submarine/sea-level) too often
+        function scenarioKey(text){
+          try {
+            const s = String(text||'').toLowerCase();
+            if (/(submarine|underwater|sea level|ocean)/.test(s)) return 'sea';
+            if (/(bank|account|balance|deposit|withdraw|debt|credit|loan)/.test(s)) return 'bank';
+            if (/(temperature|degrees|celsius|fahrenheit)/.test(s)) return 'temp';
+            if (/(elevator|floor|stairs)/.test(s)) return 'elevator';
+            if (/(mountain|hike|altitude|elevation)/.test(s)) return 'mountain';
+            return 'generic';
+          } catch { return 'generic'; }
+        }
         function selectDiverseTen(pool){
           const unique = [];
           const seen = new Set();
@@ -653,7 +665,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             const norm = String(p.stem||'').toLowerCase().replace(/\s+/g,' ').trim();
             if (!seen.has(norm)){ unique.push(p); seen.add(norm); }
           }
-          // Enforce differentiation by rotating across structural clusters
+          // Enforce differentiation by rotating across structural clusters and scenarios
           function structureKey(s){
             const t = String(s||'').toLowerCase();
             if (/(which is greater|compare|always true|must be true)/.test(t)) return 'compare';
@@ -682,6 +694,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           const word = [], non = [];
           for (const p of pool2){ (isWordProblemStem(p.stem) ? word : non).push(p); }
           const out = [];
+          const scenCount = { sea:0, bank:0, temp:0, elevator:0, mountain:0, generic:0 };
           // First 6: prefer non-word problems (mix in if non is short)
           let iNon = 0, iWord = 0;
           while (out.length < 6 && (iNon < non.length || iWord < word.length)){
@@ -690,10 +703,18 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             else break;
           }
           // Last 4: prefer word problems when available
-          while (out.length < 10 && iWord < word.length){ out.push(word[iWord++]); }
+          while (out.length < 10 && iWord < word.length){
+            const cand = word[iWord++];
+            const sk = scenarioKey(cand.stem);
+            if ((scenCount[sk]||0) < 2){ out.push(cand); scenCount[sk] = (scenCount[sk]||0)+1; }
+          }
           // If still short, fill with remaining items regardless of type
           const rest = non.slice(iNon).concat(word.slice(iWord));
-          while (out.length < 10 && rest.length){ out.push(rest.shift()); }
+          while (out.length < 10 && rest.length){
+            const cand = rest.shift();
+            const sk = scenarioKey(cand.stem);
+            if ((scenCount[sk]||0) < 2){ out.push(cand); scenCount[sk] = (scenCount[sk]||0)+1; }
+          }
           return out.slice(0,10);
         }
         function classify(p, index){
