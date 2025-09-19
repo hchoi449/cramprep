@@ -816,6 +816,22 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             return -1;
           } catch { return -1; }
         }
+
+        function findPerimeterRectangleCorrectIndex(stemText, options){
+          try {
+            const t = String(stemText||'').toLowerCase();
+            const m = t.match(/perimeter\s+of\s+a\s+rectangle\s+with\s+length\s+([0-9][0-9,]*(?:\.[0-9]+)?)\s*(cm|mm|m|in|ft)?\s+and\s+width\s+([0-9][0-9,]*(?:\.[0-9]+)?)\s*(cm|mm|m|in|ft)?/i);
+            if (!m) return -1;
+            const L = parseNumberLoose(m[1]);
+            const W = parseNumberLoose(m[3]);
+            const val = 2 * (L + W);
+            for (let i=0;i<options.length;i++){
+              const v = parseNumberLoose(stripLatexToPlain(options[i]));
+              if (!Number.isNaN(v) && Math.abs(v - val) < 1e-9) return i;
+            }
+            return -1;
+          } catch { return -1; }
+        }
         function sanitizeProblem(problem){
           try {
             if (!problem || !Array.isArray(problem.options)) return problem;
@@ -847,10 +863,12 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
               correctIdx = (idx >= 0 && idx <= 3) ? idx : 0;
             }
             correctIdx = Math.max(0, Math.min(3, Number(correctIdx||0)));
-            // Heuristic fix for rounding tasks: recompute expected and prefer matching option
+            // Heuristic fixes: recompute expected for common numeric tasks and prefer matching option
             const stemPlain = stripLatexToPlain(problem.stem);
             const roundingIdx = findRoundingCorrectIndex(stemPlain, opts);
             if (roundingIdx >= 0) correctIdx = roundingIdx;
+            const periIdx = findPerimeterRectangleCorrectIndex(stemPlain, opts);
+            if (periIdx >= 0) correctIdx = periIdx;
             let correctText = opts[correctIdx] || '';
             const seen = new Set();
             function mutateOptionText(text){
