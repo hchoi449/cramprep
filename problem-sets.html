@@ -604,6 +604,31 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           }
           return list;
         }
+        // Per-lesson cache (localStorage)
+        function getLessonCacheKey(course, subtopic, lesson){
+          const c = (course&&course.id)||'c';
+          const s = (subtopic&&subtopic.id)||'s';
+          const l = (lesson&&lesson.slug)||'l';
+          return `ps-qa-cache-${c}-${s}-${l}`;
+        }
+        function getCachedProblems(course, subtopic, lesson, maxAgeMs){
+          try {
+            const key = getLessonCacheKey(course, subtopic, lesson);
+            const raw = localStorage.getItem(key);
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            if (!parsed || !Array.isArray(parsed.items) || typeof parsed.ts !== 'number') return null;
+            if (Date.now() - parsed.ts > (maxAgeMs||86400000)) return null; // default 24h
+            return parsed.items;
+          } catch { return null; }
+        }
+        function setCachedProblems(course, subtopic, lesson, problems){
+          try {
+            const key = getLessonCacheKey(course, subtopic, lesson);
+            const payload = { ts: Date.now(), items: problems };
+            localStorage.setItem(key, JSON.stringify(payload));
+          } catch {}
+        }
         function selectDiverseTen(pool){
           const out = [];
           const seen = new Set();
@@ -714,26 +739,35 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         // Detect banded lessons and prebuild a fixed ordered set of 10
         // Build ordered banded set for ALL lessons: use specific generator if present; otherwise use Gemini
         try {
-          // Show loading while generating questions via Gemini/local
+          // Try cache first
+          const cached = getCachedProblems(course, subtopic, lesson, 86400000);
+          if (cached && cached.length){
+            orderedProblems = enforceBanding(makeStemsUnique(cached.map(p=> sanitizeProblem(p))));
+          }
+          // Show loading while generating questions via Gemini/local if no cache
           let loadingEl = null;
           try {
-            const bodyEl = document.getElementById('psBody');
-            loadingEl = document.createElement('div');
-            loadingEl.style.padding = '12px';
-            loadingEl.style.margin = '10px 0';
-            loadingEl.style.border = '1px dashed #e5e7eb';
-            loadingEl.style.borderRadius = '8px';
-            loadingEl.style.color = '#6b7280';
-            loadingEl.textContent = 'Generating questions...';
-            if (bodyEl) bodyEl.appendChild(loadingEl);
+            if (!orderedProblems){
+              const bodyEl = document.getElementById('psBody');
+              loadingEl = document.createElement('div');
+              loadingEl.style.padding = '12px';
+              loadingEl.style.margin = '10px 0';
+              loadingEl.style.border = '1px dashed #e5e7eb';
+              loadingEl.style.borderRadius = '8px';
+              loadingEl.style.color = '#6b7280';
+              loadingEl.textContent = 'Generating questions...';
+              if (bodyEl) bodyEl.appendChild(loadingEl);
+            }
           } catch {}
           // Prefer Gemini to generate structured problems per banding plan
           try {
-            const ai = await generateProblemsForLesson(course, subtopic, lesson, 120);
-            if (Array.isArray(ai) && ai.length){
+            if (!orderedProblems){
+              const ai = await generateProblemsForLesson(course, subtopic, lesson, 120);
+              if (Array.isArray(ai) && ai.length){
               const pool = ai.map(p=> sanitizeProblem(p));
               const ten = selectDiverseTen(pool);
               orderedProblems = enforceBanding(ten);
+              }
             }
           } catch {}
           // Fallback to local generator if available
@@ -760,6 +794,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           }
           if (orderedProblems && orderedProblems.length){
             orderedProblems = makeStemsUnique(orderedProblems);
+            // Save to cache for future loads
+            setCachedProblems(course, subtopic, lesson, orderedProblems);
           }
           try { if (loadingEl && loadingEl.parentNode) loadingEl.parentNode.removeChild(loadingEl); } catch {}
         } catch {}
