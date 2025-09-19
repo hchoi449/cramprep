@@ -1072,7 +1072,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
       async function generateProblemsForLesson(course, subtopic, lesson, count){
         const apiKey = getGeminiKey();
         if (!apiKey) throw new Error('No Gemini key');
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`;
         const topic = `${course.title} → ${subtopic.title} → ${lesson.title}`;
         const sys = `You are a math problem generator for middle/high school math. Output STRICT JSON only.`;
         const nonce = `${Date.now()}-${Math.floor(Math.random()*1e6)}`;
