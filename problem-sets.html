@@ -1135,6 +1135,59 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
 
         // Registry of lesson-specific generators
         const gen = {
+          // Absolute value & opposites — Q1–Q10 banding
+          'absolute-value-opposites': (k)=>{ const arr=[]; for(let i=0;i<k;i++){
+            if (i<3){
+              // Q1–Q3: identify absolute value and opposites of small integers
+              const a = rand(-9,9);
+              if (Math.random()<0.5){
+                const corr = `$${Math.abs(a)}$`;
+                const opts = shuffle([corr, `$${-Math.abs(a)}$`, `$${Math.abs(a)+1}$`, '$0$']);
+                arr.push({ stem:`$|${a}|$ equals …`, options:opts, correct: opts.indexOf(corr), explanation:`Absolute value is distance from 0.`, difficulty:'easy' });
+              } else {
+                const corr = `$${-a}$`;
+                const opts = shuffle([corr, `$${a}$`, `$${a+1}$`, `$${a-1}$`]);
+                arr.push({ stem:`The opposite (additive inverse) of $${a}$ is …`, options:opts, correct: opts.indexOf(corr), explanation:`Opposite of $a$ is $-a$.`, difficulty:'easy' });
+              }
+            } else if (i<6){
+              // Q4–Q6: evaluate simple expressions with absolute value
+              const a = rand(-9,9), b = rand(-5,5);
+              const mode = i%3;
+              if (mode===0){
+                const corr = `$${Math.abs(a)+b}$`;
+                const opts = shuffle([corr, `$${Math.abs(a)-b}$`, `$${-Math.abs(a)+b}$`, `$${Math.abs(a)+b+1}$`]);
+                arr.push({ stem:`Evaluate $|${a}|+(${b})$`, options:opts, correct: opts.indexOf(corr), explanation:`Compute absolute value first, then add.`, difficulty:'medium' });
+              } else if (mode===1){
+                const corr = `$${Math.abs(a-b)}$`;
+                const opts = shuffle([corr, `$${Math.abs(a)+Math.abs(b)}$`, `$${a-b}$`, `$${Math.abs(a+b)}$`]);
+                arr.push({ stem:`Evaluate $|${a}-${b}|$`, options:opts, correct: opts.indexOf(corr), explanation:`Inside first, then absolute value.`, difficulty:'medium' });
+              } else {
+                const corr = `$${Math.abs(-a)}$`;
+                const opts = shuffle([corr, `$${-a}$`, `$${a}$`, '$0$']);
+                arr.push({ stem:`Evaluate $|-${a}|$`, options:opts, correct: opts.indexOf(corr), explanation:`$|-a|=|a|$.`, difficulty:'medium' });
+              }
+            } else if (i<8){
+              // Q7–Q8: compare/order integers using absolute value
+              const a = rand(-15,15), b = rand(-15,15);
+              const aa = Math.abs(a), bb = Math.abs(b);
+              const corr = aa>bb? `$|${a}|$` : (aa<bb? `$|${b}|$` : 'They are equal');
+              const opts = shuffle([`$|${a}|$`,`$|${b}|$`,'They are equal','$0$']);
+              arr.push({ stem:`Which is greater: $|${a}|$ or $|${b}|$?`, options:opts, correct: opts.indexOf(corr), explanation:`Compare distances from 0.`, difficulty:'hard' });
+            } else {
+              // Q9–Q10: word problems (distance, temperature)
+              if (Math.random()<0.5){
+                const east = rand(2,12); const west = rand(3,15);
+                const corr = `$${east+west}$`;
+                const opts = shuffle([corr, `$${Math.abs(east-west)}$`, `$${east}$`, `$${west}$`]);
+                arr.push({ stem:`A town is ${east} miles east of home. Another town is ${west} miles west of home. How far apart are the towns?`, options:opts, correct: opts.indexOf(corr), explanation:`Total separation is $|${east}|+|${west}|$.`, difficulty:'hard' });
+              } else {
+                const t1 = -rand(1,20), t2 = rand(1,30);
+                const corr = `$${Math.abs(t2 - t1)}$`;
+                const opts = shuffle([corr, `$${t2+t1}$`, `$${Math.abs(t2 + t1)}$`, `$${Math.abs(t2)}$`]);
+                arr.push({ stem:`Temperature moved from ${t1}\u00B0 to ${t2}\u00B0. What is the change in temperature?`, options:opts, correct: opts.indexOf(corr), explanation:`Change is $|t_2 - t_1|$.`, difficulty:'hard' });
+              }
+            }
+          } return arr; },
           // Place value; rounding & estimation (whole numbers)
           'place-value-rounding': (k)=>{ const arr=[];
             function mkNumber(len){ let s=''; for(let i=0;i<len;i++){ s += String(rand(i===0?1:0,9)); } return parseInt(s,10); }
