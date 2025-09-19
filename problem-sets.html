@@ -758,6 +758,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             s = s.replace(/^\s*\$\s*/, '').replace(/\s*\$\s*$/, '');
             s = s.replace(/^\\text\{([\s\S]*)\}$/i, '$1');
             s = s.replace(/^\\dfrac\{([^}]*)\}\{([^}]*)\}$/i, '$1/$2');
+            // Remove degree markers like ^\circ or \degree
+            s = s.replace(/\^\s*\\?circ/g, '').replace(/\\degree/g, '');
             s = s.replace(/\\/g, '');
             return s.trim();
           } catch { return String(text||''); }
@@ -779,7 +781,17 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         }
 
         function parseNumberLoose(s){
-          try { return parseFloat(String(s||'').replace(/,/g,'').trim()); } catch { return NaN; }
+          try {
+            const t = String(s||'').replace(/,/g,'');
+            // Match fraction a/b first
+            const mFrac = t.match(/(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)/);
+            if (mFrac){
+              const a = parseFloat(mFrac[1]); const b = parseFloat(mFrac[2]);
+              if (!Number.isNaN(a) && !Number.isNaN(b) && b !== 0) return a/b;
+            }
+            const m = t.match(/-?\d+(?:\.\d+)?/);
+            return m ? parseFloat(m[0]) : NaN;
+          } catch { return NaN; }
         }
         function roundToDecimalPlaces(n, places){
           const f = Math.pow(10, places);
