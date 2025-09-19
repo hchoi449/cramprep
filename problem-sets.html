@@ -644,8 +644,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             orderedProblems = genFn(10).map(p=> sanitizeProblem(p));
           }
           if (!orderedProblems || orderedProblems.length < 10){
-            const ai = await generateProblemsForLesson(course, subtopic, lesson, 12);
-            if (Array.isArray(ai) && ai.length){ orderedProblems = ai.slice(0,10).map(p=> sanitizeProblem(p)); }
+            const fb = fallbackProblems(lesson, 12);
+            if (Array.isArray(fb) && fb.length){ orderedProblems = fb.slice(0,10).map(p=> sanitizeProblem(p)); }
           }
         } catch {}
 
