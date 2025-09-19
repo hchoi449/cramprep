@@ -617,7 +617,28 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             // Desmos container if graph is requested
             if (q.graph){
               const graphDiv = document.createElement('div'); graphDiv.style.height='280px'; graphDiv.style.border='1px solid #eee'; graphDiv.style.borderRadius='10px'; graphDiv.style.margin='10px 0'; card.appendChild(graphDiv);
-              try { const calc = Desmos.GraphingCalculator(graphDiv, { expressions:false }); (q.graph.expressions||[]).forEach(expr=> calc.setExpression(expr)); } catch{}
+              try {
+                const calc = Desmos.GraphingCalculator(graphDiv, { expressions:false });
+                const exprs = (q.graph.expressions||[]);
+                const xs = []; const ys = [];
+                exprs.forEach(ex => {
+                  if (ex && ex.type === 'point' && typeof ex.x === 'number' && typeof ex.y === 'number'){
+                    calc.setExpression({ id: ex.id || ('p'+Math.random().toString(36).slice(2)), latex: `(${ex.x},${ex.y})` });
+                    xs.push(ex.x); ys.push(ex.y);
+                  } else if (ex && typeof ex.latex === 'string') {
+                    calc.setExpression({ id: ex.id, latex: ex.latex });
+                  }
+                });
+                if (xs.length){
+                  const minx = Math.min(...xs), maxx = Math.max(...xs);
+                  const miny = Math.min(...ys), maxy = Math.max(...ys);
+                  const padX = Math.max(1, (maxx - minx) || 1);
+                  const padY = Math.max(1, (maxy - miny) || 1);
+                  calc.setMathBounds({ left: minx - padX, right: maxx + padX, bottom: miny - padY, top: maxy + padY });
+                } else {
+                  calc.setMathBounds({ left: -10, right: 10, bottom: -10, top: 10 });
+                }
+              } catch{}
             }
 
             const opts = document.createElement('div'); opts.className='ps-opts'; card.appendChild(opts);
@@ -922,7 +943,22 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
 
           'prime-factorization': (k)=>{ const arr=[]; for(let i=0;i<k;i++){ const n=rand(20,150); const pf=primeFactors(n); const stem=`Prime factorization of $${n}$ is`; const corr = `$${pf.map(p=>p).join('\n\cdot ')}$`.replace(/\n/g,''); const opts = shuffle([corr,`$${n}$`,`$${pf.join('+')}$`,`$${pf.join('-')}$`]); arr.push({ stem, options:opts, correct: opts.indexOf(corr), explanation:`Factor until primes: $${corr}$.`, difficulty: i<k/3?'easy': i<2*k/3?'medium':'hard' }); } return arr; },
 
-          'gcf': (k)=>{ const arr=[]; for(let i=0;i<k;i++){ const a=rand(10,80), b=rand(10,80); const ans=gcd(a,b); const opts = shuffle([ans, ans+rand(1,4), Math.max(ans-rand(1,4),1), rand(2,9)]).map(v=>`$${v}$`); arr.push({ stem:`Find $\\operatorname{GCF}(${a},${b})$.`, options:opts, correct: opts.indexOf(`$${ans}$`), explanation:`$\\gcd(${a},${b})=${ans}$.`, difficulty: i<k/3?'easy': i<2*k/3?'medium':'hard' }); } return arr; },
+          'gcf': (k)=>{ const arr=[]; for(let i=0;i<k;i++){
+            // Adaptive: early (2 numbers), mid (3 numbers), late (4 numbers)
+            if (i < k/3){
+              const a=rand(10,80), b=rand(10,80); const ans=gcd(a,b);
+              const opts = shuffle([ans, ans+rand(1,4), Math.max(ans-rand(1,4),1), rand(2,9)]).map(v=>`$${v}$`);
+              arr.push({ stem:`Find $\\operatorname{GCF}(${a},${b})$.`, options:opts, correct: opts.indexOf(`$${ans}$`), explanation:`$\\gcd(${a},${b})=${ans}$.`, difficulty:'easy' });
+            } else if (i < 2*k/3){
+              const a=rand(12,90), b=rand(12,90), c=rand(10,50); const ans=gcd(gcd(a,b),c);
+              const opts = shuffle([ans, ans+rand(1,6), Math.max(ans-rand(1,6),1), rand(2,12)]).map(v=>`$${v}$`);
+              arr.push({ stem:`Find $\\operatorname{GCF}(${a},${b},${c})$.`, options:opts, correct: opts.indexOf(`$${ans}$`), explanation:`$\\gcd(\\gcd(${a},${b}),${c})=${ans}$.`, difficulty:'medium' });
+            } else {
+              const a=rand(20,120), b=rand(20,120), c=rand(12,60), d=rand(8,48); const ans=gcd(gcd(a,b),gcd(c,d));
+              const opts = shuffle([ans, ans+rand(2,8), Math.max(ans-rand(2,8),1), rand(3,15)]).map(v=>`$${v}$`);
+              arr.push({ stem:`Find $\\operatorname{GCF}(${a},${b},${c},${d})$.`, options:opts, correct: opts.indexOf(`$${ans}$`), explanation:`Use pairwise gcd to combine: ${ans}.`, difficulty:'hard' });
+            }
+          } return arr; },
 
           'lcm': (k)=>{ const arr=[]; for(let i=0;i<k;i++){ const a=rand(2,15), b=rand(2,15); const ans=lcm(a,b); const opts = shuffle([ans, ans+rand(1,5), Math.max(ans-rand(1,5),1), ans*2]).map(v=>`$${v}$`); arr.push({ stem:`Find $\\operatorname{LCM}(${a},${b})$.`, options:opts, correct: opts.indexOf(`$${ans}$`), explanation:`$\\mathrm{lcm}(a,b)=\\dfrac{ab}{\\gcd(a,b)}=${ans}$.`, difficulty: i<k/3?'easy': i<2*k/3?'medium':'hard' }); } return arr; },
 
@@ -954,8 +990,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           'integer-exponents': (k)=>{ const arr=[]; for(let i=0;i<k;i++){ const a=rand(2,6), b=rand(2,6); const type=i%3; if(type===0){ const corr=`$${a**b}$`; const opts=shuffle([corr,`$${a**(b-1)}$`,`$${(a+1)**b}$`,`$${a**(b+1)}$`]); arr.push({ stem:`Evaluate $${a}^{${b}}$.`, options:opts, correct: opts.indexOf(corr), explanation:`Power definition.`, difficulty: i<k/3?'easy': i<2*k/3?'medium':'hard' }); } else if (type===1){ const m=rand(2,5), n=rand(2,5); const corr=`$a^{${m+n}}$`; const opts=shuffle([corr,`$a^{${m*n}}$`,`$a^{${m-n}}$`,`$a^{${m}}$`]); arr.push({ stem:`Simplify $a^{${m}}\cdot a^{${n}}$.`, options:opts, correct: opts.indexOf(corr), explanation:`Add exponents with same base.`, difficulty: i<k/3?'easy': i<2*k/3?'medium':'hard' }); } else { const m=rand(2,5), n=rand(2,5); const corr=`$a^{${m*n}}$`; const opts=shuffle([corr,`$a^{${m+n}}$`,`$a^{${m-n}}$`,`$a^{${m}}$`]); arr.push({ stem:`Simplify $(a^{${m}})^{${n}}$.`, options:opts, correct: opts.indexOf(corr), explanation:`Multiply exponents.`, difficulty: i<k/3?'easy': i<2*k/3?'medium':'hard' }); } } return arr; },
           'scientific-notation-intro': (k)=>{ const arr=[]; for(let i=0;i<k;i++){ const m=+(rand(10,99)/10).toFixed(1), e=rand(1,6); const N=m*10**e; const corr=`$${m}\\times 10^{${e}}$`; const opts=shuffle([corr,`$${(m/10).toFixed(1)}\\times 10^{${e+1}}$`,`$${(m*10).toFixed(1)}\\times 10^{${e-1}}$`,`$${N}$`]); arr.push({ stem:`Write $${N}$ in scientific notation.`, options:opts, correct: opts.indexOf(corr), explanation:`Move decimal to $[1,10)$ and adjust power.`, difficulty: i<k/3?'easy': i<2*k/3?'medium':'hard' }); } return arr; },
 
-          'plotting-points': (k)=>{ const arr=[]; for(let i=0;i<k;i++){ const x=rand(-5,5), y=rand(-5,5); const corr=`$(${x},${y})$`; const opts=shuffle([corr,`$(${y},${x})$`,`$(${x},${-y})$`,`$(${y},${-x})$`]); arr.push({ stem:`Which point is shown?`, options:opts, correct: opts.indexOf(corr), explanation:`(x,y).`, difficulty: i<k/3?'easy': i<2*k/3?'medium':'hard', graph:{ expressions:[{ id:'p', latex:`(x-${x})^2+(y-${y})^2=0` }] } }); } return arr; },
-          'tables-graphs': (k)=>{ const arr=[]; for(let i=0;i<k;i++){ const m=rand(1,4), b=rand(-3,3); const x=rand(0,5); const y=m*x+b; const corr=`$y=${m}x${b>=0?'+':''}${b}$`; const opts=shuffle([corr,`$y=${m+1}x${b>=0?'+':''}${b}$`,`$y=${m}x${b+1>=0?'+':''}${b+1}$`,`$y=x$`]); arr.push({ stem:`A table follows $y=${m}x${b>=0?'+':''}${b}$. Which equation matches the graph?`, options:opts, correct: opts.indexOf(corr), explanation:`Identify slope/intercept.`, difficulty: i<k/3?'easy': i<2*k/3?'medium':'hard' }); } return arr; },
+          'plotting-points': (k)=>{ const arr=[]; for(let i=0;i<k;i++){ const x=rand(-5,5), y=rand(-5,5); const corr=`$(${x},${y})$`; const opts=shuffle([corr,`$(${y},${x})$`,`$(${x},${-y})$`,`$(${y},${-x})$`]); arr.push({ stem:`Which point is shown?`, options:opts, correct: opts.indexOf(corr), explanation:`(x,y).`, difficulty: i<k/3?'easy': i<2*k/3?'medium':'hard', graph:{ expressions:[{ id:'p', type:'point', x, y }] } }); } return arr; },
+          'tables-graphs': (k)=>{ const arr=[]; for(let i=0;i<k;i++){ const m=rand(1,4), b=rand(-3,3); const x=rand(0,5); const y=m*x+b; const corr=`$y=${m}x${b>=0?'+':''}${b}$`; const opts=shuffle([corr,`$y=${m+1}x${b>=0?'+':''}${b}$`,`$y=${m}x${b+1>=0?'+':''}${b+1}$`,`$y=x$`]); arr.push({ stem:`A table follows $y=${m}x${b>=0?'+':''}${b}$. Which equation matches the graph?`, options:opts, correct: opts.indexOf(corr), explanation:`Identify slope/intercept.`, difficulty: i<k/3?'easy': i<2*k/3?'medium':'hard', graph:{ expressions:[{ id:'l1', latex:`y=${m}x${b>=0?'+':''}${b}` }, { id:'p1', type:'point', x, y }] } }); } return arr; },
           'arithmetic-sequences-intro': (k)=>{ const arr=[]; for(let i=0;i<k;i++){ const a1=rand(1,9), d=rand(1,5), n=rand(4,10); const an=a1+(n-1)*d; const corr=`$${an}$`; const opts=shuffle([corr,`$${an+d}$`,`$${an-d}$`,`$${a1+n}$`]); arr.push({ stem:`For $a_1=${a1}$, $d=${d}$, find $a_${n}$.`, options:opts, correct: opts.indexOf(corr), explanation:`$a_n=a_1+(n-1)d$.`, difficulty: i<k/3?'easy': i<2*k/3?'medium':'hard' }); } return arr; },
           'mmm-range': (k)=>{ const arr=[]; for(let i=0;i<k;i++){ const data=shuffle([rand(1,20),rand(1,20),rand(1,20),rand(1,20),rand(1,20)]); const sorted=[...data].sort((a,b)=>a-b); const mean=(data.reduce((s,x)=>s+x,0)/data.length).toFixed(1); const med=sorted[2]; const mode=choice(data); const range=sorted[4]-sorted[0]; const ask=choice(['mean','median','mode','range']); let corr; if (ask==='mean') corr=`$${mean}$`; else if (ask==='median') corr=`$${med}$`; else if (ask==='mode') corr=`$${mode}$`; else corr=`$${range}$`; const opts=shuffle([corr,`$${Number(mean)+1}$`,`$${med+1}$`,`$${range+1}$`]); arr.push({ stem:`For data ${data.join(', ')}, find the ${ask}.`, options:opts, correct: opts.indexOf(corr), explanation:`Compute requested statistic.`, difficulty: i<k/3?'easy': i<2*k/3?'medium':'hard' }); } return arr; },
           'theoretical-vs-experimental': (k)=>{ const arr=[]; for(let i=0;i<k;i++){ const faces=6; const trials=rand(20,60); const exp=rand(5,15); const theo=1/6; const ask=choice(['theoretical','experimental']); const corr = ask==='theoretical'? `$${theo.toFixed(2)}$`:`$${(exp/trials).toFixed(2)}$`; const opts=shuffle([corr,`$${(1/4).toFixed(2)}$`,`$${(1/3).toFixed(2)}$`,`$${(1/2).toFixed(2)}$`]); arr.push({ stem:`A die is rolled ${trials} times and a "3" occurs ${exp} times. What is the ${ask} probability of a 3?`, options:opts, correct: opts.indexOf(corr), explanation:`Theoretical: $1/6$; Experimental: successes/trials.`, difficulty: i<k/3?'easy': i<2*k/3?'medium':'hard' }); } return arr; },
