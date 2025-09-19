@@ -628,18 +628,39 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             localStorage.setItem(key, JSON.stringify(payload));
           } catch {}
         }
+        function isWordProblemStem(text){
+          try {
+            const s = String(text||'').toLowerCase();
+            const wordCues = ['miles','kilometers','feet','inches','pounds','dollars','cost','price','bank','interest','tax','tip','store','shop','ticket','temperature','degrees','elevation','above','below','distance','speed','rate','time','minutes','hours','days','recipe','mixture','class','students','apples','books','boxes','travel','trip','bus','train','water','tank','pool','garden','field','work'];
+            const hasCue = wordCues.some(k=> s.includes(k));
+            const hasSentence = /[a-z]{3,}\s+[a-z]{3,}/.test(s) && /[.?]/.test(s);
+            const mathOnly = /^\s*(\$[^$]*\$|[-+*/^()=0-9\\\s])+\s*$/.test(s);
+            return (hasCue || hasSentence) && !mathOnly;
+          } catch { return false; }
+        }
         function selectDiverseTen(pool){
-          const out = [];
+          const unique = [];
           const seen = new Set();
-          for (let i=0;i<pool.length && out.length<10;i++){
+          for (let i=0;i<pool.length && unique.length<30;i++){
             const p = pool[i]; if (!p || !p.stem) continue;
             const norm = normalizeStemText(p.stem);
-            if (!seen.has(norm)){ out.push(p); seen.add(norm); }
+            if (!seen.has(norm)){ unique.push(p); seen.add(norm); }
           }
-          // if still short, fill with remaining regardless
-          for (let i=0;i<pool.length && out.length<10;i++){
-            if (!out.includes(pool[i])) out.push(pool[i]);
+          const word = [], non = [];
+          for (const p of unique){ (isWordProblemStem(p.stem) ? word : non).push(p); }
+          const out = [];
+          // First 6: prefer non-word problems (mix in if non is short)
+          let iNon = 0, iWord = 0;
+          while (out.length < 6 && (iNon < non.length || iWord < word.length)){
+            if (iNon < non.length) out.push(non[iNon++]);
+            else if (iWord < word.length) out.push(word[iWord++]);
+            else break;
           }
+          // Last 4: enforce word problems when available
+          while (out.length < 10 && iWord < word.length){ out.push(word[iWord++]); }
+          // If still short, fill with remaining non-word, then word
+          while (out.length < 10 && iNon < non.length){ out.push(non[iNon++]); }
+          while (out.length < 10 && iWord < word.length){ out.push(word[iWord++]); }
           return out.slice(0,10);
         }
         function classify(p, index){
@@ -1080,7 +1101,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         const kws = [...buildKeywords(course, subtopic, lesson), ...lessonKeywords(course, subtopic, lesson)];
         const kw = kws.join(', ');
         const banding = getBandingProgression(course, subtopic, lesson);
-        const user = `Seed: ${nonce}\nLessonTitle: "${lesson.title}"\nCreate ${Math.max(10,count)} multiple‑choice questions ONLY for: ${topic}.\nSTRICT SCOPE (must align; do NOT drift): ${guidance}.\nREQUIRED KEYWORDS/CONCEPTS: ${kw}.\n${banding ? 'FOLLOW THIS PER-ITEM DIFFICULTY PROGRESSION (Q1..Q10):\n' + banding + '\n' : ''}Requirements:\n- Tag each with 'difficulty' ∈ {easy, medium, hard}; evenly distribute; later items should be harder.\n- Hard band emphasis: For Q7–Q10, generate ~10× more variants than easy items, predominantly as real‑world word problems, each with a different scenario.\n- Strong variation across structures: computation, short word problems, comparisons (which is larger/always true), statement selection (must be true), counterexample identification, translate phrase→expression/equation, and (when relevant) graph interpretation/creation.\n- Vary SCENARIOS and PHRASING. Do NOT reuse the same template with different numbers. Rotate real‑world contexts (distance, temperature, finance, shopping, travel, sports, science, etc.). No two items may share the same scenario pattern.\n- Use LaTeX in stems/options/explanations where appropriate.\n- Provide 4 options; 'correct' is the index (0-3).\n- If graphing is relevant, include graph: { expressions: [{ id: 'g1', latex: 'y=x+1' }, ...] } OR points: { expressions: [{ id:'p', type:'point', x: number, y: number }] }.\n- Include an optional 'structure' field (string) describing the structure you used.\nReturn STRICT JSON exactly: { "problems": [ { "stem": string, "options": [string,string,string,string], "correct": number, "explanation": string, "difficulty": "easy"|"medium"|"hard", "graph"?: { "expressions": (Array) } , "structure"?: string } ] } with NO prose.`;
+        const user = `Seed: ${nonce}\nLessonTitle: "${lesson.title}"\nCreate ${Math.max(10,count)} multiple‑choice questions ONLY for: ${topic}.\nSTRICT SCOPE (must align; do NOT drift): ${guidance}.\nREQUIRED KEYWORDS/CONCEPTS: ${kw}.\n${banding ? 'FOLLOW THIS PER-ITEM DIFFICULTY PROGRESSION (Q1..Q10):\n' + banding + '\n' : ''}Requirements:\n- Tag each with 'difficulty' ∈ {easy, medium, hard}; evenly distribute; later items should be harder.\n- Hard band REQUIREMENT: Q7–Q10 MUST be distinct real‑world word problems with different scenarios (e.g., distance, temperature, finance, travel, sports). NO template reuse.\n- Strong variation across structures: computation, short word problems, comparisons (which is larger/always true), statement selection (must be true), counterexample identification, translate phrase→expression/equation, and (when relevant) graph interpretation/creation.\n- Vary SCENARIOS and PHRASING. Do NOT reuse the same template with different numbers. Rotate real‑world contexts (distance, temperature, finance, shopping, travel, sports, science, etc.). No two items may share the same scenario pattern.\n- Use LaTeX in stems/options/explanations where appropriate.\n- Provide 4 options; 'correct' is the index (0-3).\n- If graphing is relevant, include graph: { expressions: [{ id: 'g1', latex: 'y=x+1' }, ...] } OR points: { expressions: [{ id:'p', type:'point', x: number, y: number }] }.\n- Include an optional 'structure' field (string) describing the structure you used.\nReturn STRICT JSON exactly: { "problems": [ { "stem": string, "options": [string,string,string,string], "correct": number, "explanation": string, "difficulty": "easy"|"medium"|"hard", "graph"?: { "expressions": (Array) } , "structure"?: string } ] } with NO prose.`;
         function fetchWithTimeout(url, options, timeoutMs){
           const controller = new AbortController();
           const id = setTimeout(()=> controller.abort(), timeoutMs);
