@@ -1455,10 +1455,11 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         }
       }
 
-      // Generate problems via server proxy (no client API key)
+      // Generate problems: prefer Agent 2 retrieval; fallback to Gemini proxy if empty
       async function generateProblemsForLesson(course, subtopic, lesson, count, opts){
         const AUTH_BASE = (window && window.TBP_AUTH_BASE) ? window.TBP_AUTH_BASE.replace(/\/$/,'') : '';
         const endpoint = `${AUTH_BASE}/ai/generate`;
+        const agent2 = `${AUTH_BASE}/ai/agent2/questions?lesson=${encodeURIComponent(lesson.slug)}&n=${Math.max(10, count||10)}`;
         const topic = `${course.title} → ${subtopic.title} → ${lesson.title}`;
         const isWritingExpr = /writing expressions/i.test(String((lesson && lesson.title) || ''));
         const sys = `You create math MC questions. Return STRICT JSON only.`;
@@ -1491,6 +1492,19 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           try { return String(text||'').toLowerCase().replace(/\$[^$]*\$/g,'$x$').replace(/-?\d+(?:\.\d+)?/g,'#').replace(/\\dfrac\{[^}]*\}\{[^}]*\}/g,'$f$').replace(/[()^*=+\\/]/g,' ').replace(/\s+/g,' ').trim(); } catch { return String(text||''); }
         }
         let probs = [];
+        // Try Agent 2 fast path
+        try {
+          const r = await fetch(agent2, { method:'GET' });
+          if (r.ok){
+            const j = await r.json();
+            if (j && j.ok && Array.isArray(j.questions) && j.questions.length){
+              probs = j.questions.map(q=> ({ stem: q.stem, options: q.options, correct: q.correct, explanation: q.solution || q.explanation || '' }));
+            }
+          }
+        } catch {}
+        if (probs.length >= Math.min(10, count||10)){
+          return probs.slice(0, Math.max(10, count||10));
+        }
         const batchSize = Math.min(6, Math.max(4, Math.ceil(count/3)));
         const numBatches = Math.max(3, Math.ceil(count / batchSize));
         // Shuffle which batch sizes we use slightly to vary output
