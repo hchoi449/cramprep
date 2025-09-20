@@ -344,6 +344,158 @@ async function bootstrap() {
     }
   });
 
+  // ===== Agent pipeline: Question Generation (Agent 1) and Serving (Agent 2) =====
+  const MONGO_URI = process.env.MONGODB_URI || process.env.MONGODB_URL || process.env.MONGO_URI;
+  const QUESTIONS_DB = 'thinkpod';
+  const QUESTIONS_COL = 'questionbank';
+
+  async function getQuestionCollection(client){
+    const col = client.db(QUESTIONS_DB).collection(QUESTIONS_COL);
+    try {
+      await col.createIndex({ lessonSlug: 1, generatedAt: -1 });
+      await col.createIndex({ sourceHash: 1 }, { unique: true });
+    } catch(err){ /* ignore if exists */ }
+    return col;
+  }
+
+  function sha256Hex(input){
+    return crypto.createHash('sha256').update(input).digest('hex');
+  }
+
+  function normalizeStem(s){
+    return String(s||'').toLowerCase().replace(/\s+/g,' ').trim();
+  }
+
+  async function callGeminiGenerate(model, prompt){
+    const key = process.env.GEMINI_API_KEY || process.env.gemini_api_key || process.env.GOOGLE_GEMINI_API_KEY;
+    const useModel = model || 'gemini-1.5-flash-8b';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(useModel)}:generateContent?key=${encodeURIComponent(key)}`;
+    const body = {
+      contents: [ { role: 'user', parts: [ { text: prompt } ] } ],
+      generationConfig: { temperature: 0.3, topP: 0.8, candidateCount: 1 }
+    };
+    const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const j = await r.json();
+    const txt = ((((j||{}).candidates||[])[0]||{}).content||{}).parts?.[0]?.text || '';
+    return txt;
+  }
+
+  function buildLessonPrompt(lessonTitle, lessonSlug, count){
+    const nowRnd = Math.floor(Date.now()/1000);
+    const seed = `${nowRnd}-${Math.floor(Math.random()*1e9)}`;
+    const isWriting = /writing expressions/i.test(String(lessonTitle||''));
+    const rules = isWriting
+      ? `RULES: Create WORD-PHRASE → EXPRESSION translation items ONLY. Each stem must be a short word phrase (e.g., "three more than twice a number"). The correct option must be an algebraic expression with variables and operations (e.g., 2n+3, (m+5)/2). Do NOT ask to simplify or solve; do NOT produce numeric answers.`
+      : `RULES: Stay strictly on lesson scope. Avoid off-topic content.`;
+    return `Seed: ${seed}\nLesson: ${lessonTitle} (slug: ${lessonSlug})\nMake ${count} multiple‑choice questions. Each item format:\n{
+  "stem": string,
+  "options": [string,string,string,string],
+  "correct": number, // 0..3
+  "explanation": string
+}\n${rules}\nReturn STRICT JSON: { "problems": [ ... ] }`;
+  }
+
+  // Agent 1: Generate and store ≥30 questions for a lesson
+  app.post('/ai/agent1/generate', async (req, res) => {
+    const lessonSlug = String(req.query.lesson || '').trim();
+    const lessonTitle = String(req.body && req.body.title || req.query.title || lessonSlug).trim();
+    if (!lessonSlug) return res.status(400).json({ error: 'lesson (slug) is required' });
+    try {
+      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+      await client.connect();
+      const col = await getQuestionCollection(client);
+
+      const perBatch = 12; // small fast batches
+      const target = Math.max(30, Number(req.query.target||0) || 30);
+      const rounds = Math.ceil(target / perBatch);
+      const parallel = Math.min(4, rounds);
+      const prompts = new Array(parallel).fill(0).map(()=> buildLessonPrompt(lessonTitle, lessonSlug, perBatch));
+
+      const results = await Promise.all(prompts.map(p=> callGeminiGenerate('gemini-1.5-flash-8b', p).catch(()=>'')));
+      const all = [];
+      for (const txt of results){
+        try {
+          const m = txt.match(/```json[\s\S]*?```/i);
+          const raw = m ? m[0].replace(/```json/i,'').replace(/```/,'').trim() : (txt.trim().startsWith('{')? txt.trim(): null);
+          if (!raw) continue;
+          const j = JSON.parse(raw);
+          if (j && Array.isArray(j.problems)) all.push(...j.problems);
+        } catch {}
+      }
+      // dedupe and shape
+      const seen = new Set();
+      const docs = [];
+      for (const p of all){
+        const stem = String(p && p.stem || '').trim();
+        const options = Array.isArray(p && p.options) ? p.options.slice(0,4).map(String) : [];
+        const correct = Math.max(0, Math.min(3, Number(p && p.correct || 0)));
+        const explanation = String(p && p.explanation || '').trim();
+        if (!stem || options.length !== 4) continue;
+        const key = normalizeStem(stem);
+        if (seen.has(key)) continue; seen.add(key);
+        const sourceHash = sha256Hex(stem + '||' + options.join('||'));
+        docs.push({
+          lessonSlug,
+          lessonTitle,
+          stem, options, correct, solution: explanation,
+          citations: [],
+          sourceHash,
+          generatedAt: new Date().toISOString(),
+          generator: 'agent1'
+        });
+        if (docs.length >= target) break;
+      }
+      // upsert
+      const bulk = col.initializeUnorderedBulkOp();
+      for (const d of docs){ bulk.find({ sourceHash: d.sourceHash }).upsert().replaceOne(d); }
+      if (docs.length) await bulk.execute();
+      await client.close();
+      return res.json({ ok:true, insertedOrUpserted: docs.length });
+    } catch (e){ console.error(e); return res.status(500).json({ error:'generation_failed' }); }
+  });
+
+  // Agent 2: Retrieve random 10 for a lesson
+  app.get('/ai/agent2/questions', async (req, res) => {
+    const lessonSlug = String(req.query.lesson || '').trim();
+    const n = Math.max(1, Math.min(20, Number(req.query.n || 10)));
+    if (!lessonSlug) return res.status(400).json({ error: 'lesson (slug) is required' });
+    try {
+      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+      await client.connect();
+      const col = await getQuestionCollection(client);
+      const pipeline = [ { $match: { lessonSlug } }, { $sample: { size: n } } ];
+      const docs = await col.aggregate(pipeline).toArray();
+      await client.close();
+      return res.json({ ok: true, lesson: lessonSlug, count: docs.length, questions: docs });
+    } catch (e){ console.error(e); return res.status(500).json({ error:'retrieve_failed' }); }
+  });
+
+  // Nightly (3AM EST) refresh loop
+  (function scheduleNightlyRefresh(){
+    let lastRunDateNY = null;
+    async function maybeRun(){
+      try {
+        const now = new Date();
+        const nyStr = now.toLocaleString('en-US', { timeZone: 'America/New_York', hour12:false });
+        const [mdy, hms] = nyStr.split(',');
+        const hour = parseInt((hms||'').trim().split(':')[0]||'0',10);
+        const dateOnly = (mdy||'').trim();
+        if (hour === 3 && lastRunDateNY !== dateOnly){
+          lastRunDateNY = dateOnly;
+          const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+          await client.connect();
+          const col = await getQuestionCollection(client);
+          const slugs = await col.distinct('lessonSlug');
+          await client.close();
+          for (const slug of slugs.slice(0,200)){
+            try { await fetch(`${process.env.PUBLIC_BASE_URL || ''}/ai/agent1/generate?lesson=${encodeURIComponent(slug)}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title: slug }) }); } catch {}
+          }
+        }
+      } catch {}
+    }
+    setInterval(maybeRun, 10 * 60 * 1000); // every 10 minutes
+  })();
+
   const port = PORT || 8080;
   app.listen(port, () => console.log(`Auth API listening on ${port}`));
 }
