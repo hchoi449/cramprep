@@ -366,6 +366,17 @@ async function bootstrap() {
     return String(s||'').toLowerCase().replace(/\s+/g,' ').trim();
   }
 
+  function computeDifficulty(stem, explanation){
+    try {
+      const s = String(stem||'');
+      const ops = (s.match(/[+\-*/()^]/g) || []).length;
+      const len = s.length;
+      if (ops <= 1 && len < 60) return 'easy';
+      if (ops <= 3 && len < 140) return 'medium';
+      return 'hard';
+    } catch { return 'medium'; }
+  }
+
   async function callGeminiGenerate(model, prompt){
     const key = process.env.GEMINI_API_KEY || process.env.gemini_api_key || process.env.GOOGLE_GEMINI_API_KEY;
     const useModel = model || 'gemini-1.5-flash-8b';
@@ -434,11 +445,13 @@ async function bootstrap() {
         const key = normalizeStem(stem);
         if (seen.has(key)) continue; seen.add(key);
         const sourceHash = sha256Hex(stem + '||' + options.join('||'));
+        const difficulty = computeDifficulty(stem, explanation);
         docs.push({
           lessonSlug,
           lessonTitle,
           stem, options, correct, solution: explanation,
           citations: [],
+          difficulty,
           sourceHash,
           generatedAt: new Date().toISOString(),
           generator: 'agent1'
@@ -463,8 +476,26 @@ async function bootstrap() {
       const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
       await client.connect();
       const col = await getQuestionCollection(client);
-      const pipeline = [ { $match: { lessonSlug } }, { $sample: { size: n } } ];
-      const docs = await col.aggregate(pipeline).toArray();
+      // target mix 3 easy, 4 medium, 3 hard
+      const target = { easy:3, medium:4, hard:3 };
+      const buckets = {};
+      for (const [k, size] of Object.entries(target)){
+        if (size <= 0) continue;
+        const docsK = await col.aggregate([
+          { $match: { lessonSlug, difficulty: k } },
+          { $sample: { size } }
+        ]).toArray();
+        buckets[k] = docsK;
+      }
+      let docs = [...(buckets.easy||[]), ...(buckets.medium||[]), ...(buckets.hard||[])];
+      if (docs.length < n){
+        const remaining = n - docs.length;
+        const extra = await col.aggregate([
+          { $match: { lessonSlug, sourceHash: { $nin: docs.map(d=> d.sourceHash) } } },
+          { $sample: { size: remaining } }
+        ]).toArray();
+        docs = docs.concat(extra);
+      }
       await client.close();
       return res.json({ ok: true, lesson: lessonSlug, count: docs.length, questions: docs });
     } catch (e){ console.error(e); return res.status(500).json({ error:'retrieve_failed' }); }
