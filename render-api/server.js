@@ -420,25 +420,27 @@ async function bootstrap() {
 
       const perBatch = 12; // small fast batches
       const target = Math.max(30, Number(req.query.target||0) || 30);
-      const rounds = Math.ceil(target / perBatch);
-      const parallel = Math.min(4, rounds);
-      const prompts = new Array(parallel).fill(0).map(()=> buildLessonPrompt(lessonTitle, lessonSlug, perBatch));
-
-      const results = await Promise.all(prompts.map(p=> callGeminiGenerate('gemini-1.5-flash-8b', p).catch(()=>'')));
-      const all = [];
-      for (const txt of results){
-        try {
-          const m = txt.match(/```json[\s\S]*?```/i);
-          const raw = m ? m[0].replace(/```json/i,'').replace(/```/,'').trim() : (txt.trim().startsWith('{')? txt.trim(): null);
-          if (!raw) continue;
-          const j = JSON.parse(raw);
-          if (j && Array.isArray(j.problems)) all.push(...j.problems);
-        } catch {}
-      }
-      // dedupe and shape
+      const maxAttempts = 6;
       const seen = new Set();
       const docs = [];
-      for (const p of all){
+      let attempts = 0;
+      while (docs.length < target && attempts < maxAttempts){
+        attempts++;
+        const need = target - docs.length;
+        const batches = Math.min(4, Math.max(1, Math.ceil(need / perBatch)));
+        const prompts = new Array(batches).fill(0).map(()=> buildLessonPrompt(lessonTitle, lessonSlug, perBatch));
+        const results = await Promise.all(prompts.map(p=> callGeminiGenerate('gemini-1.5-flash-8b', p).catch(()=>'')));
+        const all = [];
+        for (const txt of results){
+          try {
+            const m = txt.match(/```json[\s\S]*?```/i);
+            const raw = m ? m[0].replace(/```json/i,'').replace(/```/,'').trim() : (txt.trim().startsWith('{')? txt.trim(): null);
+            if (!raw) continue;
+            const j = JSON.parse(raw);
+            if (j && Array.isArray(j.problems)) all.push(...j.problems);
+          } catch {}
+        }
+        for (const p of all){
         const stem = String(p && p.stem || '').trim();
         const options = Array.isArray(p && p.options) ? p.options.slice(0,4).map(String) : [];
         const correct = Math.max(0, Math.min(3, Number(p && p.correct || 0)));
@@ -458,7 +460,8 @@ async function bootstrap() {
           generatedAt: new Date().toISOString(),
           generator: 'agent1'
         });
-        if (docs.length >= target) break;
+          if (docs.length >= target) break;
+        }
       }
       // Replace old questions for this lesson
       const del = await col.deleteMany({ lessonSlug });
@@ -466,7 +469,7 @@ async function bootstrap() {
         await col.insertMany(docs, { ordered: false });
       }
       await client.close();
-      return res.json({ ok:true, deleted: del.deletedCount || 0, inserted: docs.length });
+      return res.json({ ok:true, deleted: del.deletedCount || 0, inserted: docs.length, attempts });
     } catch (e){ console.error(e); return res.status(500).json({ error:'generation_failed' }); }
   });
 
