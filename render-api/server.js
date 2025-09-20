@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const { MongoClient, ObjectId } = require('mongodb');
 
 const app = express();
@@ -526,6 +528,53 @@ async function bootstrap() {
     }
     setInterval(maybeRun, 10 * 60 * 1000); // every 10 minutes
   })();
+
+  // ===== Lesson extractor and bulk seeding =====
+  function tryReadLessonsFromRepo(){
+    const candidates = [
+      path.resolve(__dirname, '../problem-sets.html'),
+      path.resolve(__dirname, '../../problem-sets.html'),
+      path.resolve(process.cwd(), 'problem-sets.html')
+    ];
+    for (const p of candidates){
+      try {
+        const txt = fs.readFileSync(p, 'utf8');
+        // Match objects like { slug:'...', title:'...' }
+        const re = /\{\s*slug:\s*'([^']+)'\s*,\s*title:\s*'([^']+)'/g;
+        const out = [];
+        let m; while ((m = re.exec(txt))){ out.push({ slug: m[1], title: m[2] }); }
+        if (out.length) return out;
+      } catch {}
+    }
+    return [];
+  }
+
+  app.get('/ai/lessons', (req, res)=>{
+    const lessons = tryReadLessonsFromRepo();
+    return res.json({ ok:true, count: lessons.length, lessons });
+  });
+
+  app.post('/ai/seed-all', async (req, res)=>{
+    try {
+      const lessons = tryReadLessonsFromRepo();
+      if (!lessons.length) return res.status(404).json({ error:'no_lessons_found' });
+      const target = Math.max(30, Number(req.query.target||0) || 30);
+      const limit = 4; // concurrency
+      let idx = 0, okCount = 0, failCount = 0;
+      async function worker(){
+        while (idx < lessons.length){
+          const i = idx++;
+          const { slug, title } = lessons[i];
+          try {
+            await fetch(`${process.env.PUBLIC_BASE_URL || ''}/ai/agent1/generate?lesson=${encodeURIComponent(slug)}&target=${target}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title }) });
+            okCount++;
+          } catch { failCount++; }
+        }
+      }
+      await Promise.all(new Array(limit).fill(0).map(worker));
+      return res.json({ ok:true, seeded: okCount, failed: failCount, total: lessons.length });
+    } catch (e){ console.error(e); return res.status(500).json({ error:'seed_failed' }); }
+  });
 
   const port = PORT || 8080;
   app.listen(port, () => console.log(`Auth API listening on ${port}`));
