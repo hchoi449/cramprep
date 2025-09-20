@@ -446,7 +446,7 @@ async function bootstrap() {
         if (!stem || options.length !== 4) continue;
         const key = normalizeStem(stem);
         if (seen.has(key)) continue; seen.add(key);
-        const sourceHash = sha256Hex(stem + '||' + options.join('||'));
+        const sourceHash = sha256Hex(lessonSlug + '||' + stem + '||' + options.join('||'));
         const difficulty = computeDifficulty(stem, explanation);
         docs.push({
           lessonSlug,
@@ -460,12 +460,13 @@ async function bootstrap() {
         });
         if (docs.length >= target) break;
       }
-      // upsert
-      const bulk = col.initializeUnorderedBulkOp();
-      for (const d of docs){ bulk.find({ sourceHash: d.sourceHash }).upsert().replaceOne(d); }
-      if (docs.length) await bulk.execute();
+      // Replace old questions for this lesson
+      const del = await col.deleteMany({ lessonSlug });
+      if (docs.length) {
+        await col.insertMany(docs, { ordered: false });
+      }
       await client.close();
-      return res.json({ ok:true, insertedOrUpserted: docs.length });
+      return res.json({ ok:true, deleted: del.deletedCount || 0, inserted: docs.length });
     } catch (e){ console.error(e); return res.status(500).json({ error:'generation_failed' }); }
   });
 
@@ -503,6 +504,22 @@ async function bootstrap() {
     } catch (e){ console.error(e); return res.status(500).json({ error:'retrieve_failed' }); }
   });
 
+  // Agent 1 stats: counts per lesson
+  app.get('/ai/agent1/stats', async (req, res) => {
+    try {
+      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+      await client.connect();
+      const col = await getQuestionCollection(client);
+      const rows = await col.aggregate([
+        { $group: { _id: '$lessonSlug', count: { $sum: 1 }, latest: { $max: '$generatedAt' } } },
+        { $project: { lessonSlug: '$_id', _id: 0, count: 1, latest: 1 } },
+        { $sort: { lessonSlug: 1 } }
+      ]).toArray();
+      await client.close();
+      return res.json({ ok: true, lessons: rows.length, breakdown: rows });
+    } catch (e) { console.error(e); return res.status(500).json({ error: 'stats_failed' }); }
+  });
+
   // Nightly (3AM EST) refresh loop
   (function scheduleNightlyRefresh(){
     let lastRunDateNY = null;
@@ -520,8 +537,9 @@ async function bootstrap() {
           const col = await getQuestionCollection(client);
           const slugs = await col.distinct('lessonSlug');
           await client.close();
+          const baseUrl = (process.env.PUBLIC_BASE_URL && process.env.PUBLIC_BASE_URL.trim()) || `http://127.0.0.1:${process.env.PORT||8080}`;
           for (const slug of slugs.slice(0,200)){
-            try { await fetch(`${process.env.PUBLIC_BASE_URL || ''}/ai/agent1/generate?lesson=${encodeURIComponent(slug)}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title: slug }) }); } catch {}
+            try { await fetch(`${baseUrl}/ai/agent1/generate?lesson=${encodeURIComponent(slug)}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title: slug }) }); } catch {}
           }
         }
       } catch {}
@@ -561,18 +579,21 @@ async function bootstrap() {
       const target = Math.max(30, Number(req.query.target||0) || 30);
       const limit = 4; // concurrency
       let idx = 0, okCount = 0, failCount = 0;
+      const baseUrl = (process.env.PUBLIC_BASE_URL && process.env.PUBLIC_BASE_URL.trim()) || `http://127.0.0.1:${process.env.PORT||8080}`;
+      const errors = [];
       async function worker(){
         while (idx < lessons.length){
           const i = idx++;
           const { slug, title } = lessons[i];
           try {
-            await fetch(`${process.env.PUBLIC_BASE_URL || ''}/ai/agent1/generate?lesson=${encodeURIComponent(slug)}&target=${target}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title }) });
-            okCount++;
-          } catch { failCount++; }
+            const r = await fetch(`${baseUrl}/ai/agent1/generate?lesson=${encodeURIComponent(slug)}&target=${target}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title }) });
+            if (!r.ok) { failCount++; const t = await r.text().catch(()=> ''); errors.push({ slug, status:r.status, body:t.slice(0,200) }); }
+            else { okCount++; }
+          } catch (e) { failCount++; errors.push({ slug, error: String(e).slice(0,200) }); }
         }
       }
       await Promise.all(new Array(limit).fill(0).map(worker));
-      return res.json({ ok:true, seeded: okCount, failed: failCount, total: lessons.length });
+      return res.json({ ok:true, seeded: okCount, failed: failCount, total: lessons.length, baseUrlUsed: baseUrl, errors });
     } catch (e){ console.error(e); return res.status(500).json({ error:'seed_failed' }); }
   });
 
