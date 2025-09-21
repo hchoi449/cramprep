@@ -2020,20 +2020,12 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           const zeroY = (ymin <= 0 && 0 <= ymax) ? mapY(0) : null;
           // always draw both axes centered
           const axX = mapX(0); const axY = mapY(0);
-          svg += `<line x1="${axX}" y1="${pad}" x2="${axX}" y2="${h-pad}" stroke="#111827" stroke-width="2" marker-end="url(#arrow)"/>`;
-          svg += `<line x1="${pad}" y1="${axY}" x2="${w-pad}" y2="${axY}" stroke="#111827" stroke-width="2" marker-end="url(#arrow)"/>`;
+          svg += `<line x1="${axX}" y1="${pad}" x2="${axX}" y2="${h-pad}" stroke="#111827" stroke-width="2" marker-start="url(#arrow)" marker-end="url(#arrow)"/>`;
+          svg += `<line x1="${pad}" y1="${axY}" x2="${w-pad}" y2="${axY}" stroke="#111827" stroke-width="2" marker-start="url(#arrow)" marker-end="url(#arrow)"/>`;
           // axis labels, avoid numeric labels to prevent answer leakage
           if (zeroY !== null) svg += `<text x="${w-pad-12}" y="${zeroY-6}" font-size="12" fill="#111827">x</text>`;
           if (zeroX !== null) svg += `<text x="${zeroX+6}" y="${pad+12}" font-size="12" fill="#111827">y</text>`;
-          // ticks (integers only)
-          const stepGuess = Math.max(1, Math.round((xmax - xmin)/10));
-          for (let x = Math.ceil(xmin); x <= Math.floor(xmax); x += stepGuess){
-            const X = mapX(x); svg += `<line x1="${X}" y1="${(h-pad)-4}" x2="${X}" y2="${(h-pad)+4}" stroke="#cbd5e1"/>`;
-          }
-          const yStepGuess = Math.max(1, Math.round((ymax - ymin)/10));
-          for (let y = Math.ceil(ymin); y <= Math.floor(ymax); y += yStepGuess){
-            const Y = mapY(y); svg += `<line x1="${pad-4}" y1="${Y}" x2="${pad+4}" y2="${Y}" stroke="#cbd5e1"/>`;
-          }
+          // no tick marks
           // draw latex lines
           exprs.forEach(e=>{
             if (e && typeof e.latex === 'string'){
