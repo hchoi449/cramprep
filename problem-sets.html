@@ -2055,8 +2055,11 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           svg += `</svg>`;
           const img = new Image();
           img.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
-          img.style.width = `${w}px`;
-          img.style.height = `${h}px`;
+          // Make it square and responsive within the column
+          img.style.width = '100%';
+          img.style.maxWidth = `${w}px`;
+          img.style.height = 'auto';
+          try { img.style.aspectRatio = '1 / 1'; } catch {}
           img.style.border = '1px solid #eee';
           img.style.borderRadius = '10px';
           img.style.display = 'block';
