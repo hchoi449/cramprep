@@ -1225,29 +1225,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                 const stem = document.createElement('div'); stem.className='ps-stem'; stem.textContent = `${step+1}. ${q.stem}`; card.appendChild(stem);
                 try { if (window.katex && window.renderMathInElement) { renderMathInElement(stem, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
                 if (q.graph){
-                  const graphDiv = document.createElement('div'); graphDiv.style.height='280px'; graphDiv.style.border='1px solid #eee'; graphDiv.style.borderRadius='10px'; graphDiv.style.margin='10px 0'; card.appendChild(graphDiv);
-                  try {
-                    const calc = Desmos.GraphingCalculator(graphDiv, { expressions:false });
-                    const exprs = (q.graph.expressions||[]);
-                    const xs = []; const ys = [];
-                    exprs.forEach(ex => {
-                      if (ex && ex.type === 'point' && typeof ex.x === 'number' && typeof ex.y === 'number'){
-                        calc.setExpression({ id: ex.id || ('p'+Math.random().toString(36).slice(2)), latex: `(${ex.x},${ex.y})` });
-                        xs.push(ex.x); ys.push(ex.y);
-                      } else if (ex && typeof ex.latex === 'string') {
-                        calc.setExpression({ id: ex.id, latex: ex.latex });
-                      }
-                    });
-                    if (xs.length){
-                      const minx = Math.min(...xs), maxx = Math.max(...xs);
-                      const miny = Math.min(...ys), maxy = Math.max(...ys);
-                      const padX = Math.max(1, (maxx - minx) || 1);
-                      const padY = Math.max(1, (maxy - miny) || 1);
-                      calc.setMathBounds({ left: minx - padX, right: maxx + padX, bottom: miny - padY, top: maxy + padY });
-                    } else {
-                      calc.setMathBounds({ left: -10, right: 10, bottom: -10, top: 10 });
-                    }
-                  } catch{}
+                  const img = renderGraphAsImage(q.graph.expressions||[], 600, 280);
+                  card.appendChild(img);
                 }
                 // Render table if provided
                 if (q.table && Array.isArray(q.table.rows)){
@@ -1431,29 +1410,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                 const stem = document.createElement('div'); stem.className='ps-stem'; stem.textContent = `${step+1}. ${q.stem}`; card.appendChild(stem);
                 try { if (window.katex && window.renderMathInElement) { renderMathInElement(stem, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
                 if (q.graph){
-                  const graphDiv = document.createElement('div'); graphDiv.style.height='280px'; graphDiv.style.border='1px solid #eee'; graphDiv.style.borderRadius='10px'; graphDiv.style.margin='10px 0'; card.appendChild(graphDiv);
-                  try {
-                    const calc = Desmos.GraphingCalculator(graphDiv, { expressions:false });
-                    const exprs = (q.graph.expressions||[]);
-                    const xs = []; const ys = [];
-                    exprs.forEach(ex => {
-                      if (ex && ex.type === 'point' && typeof ex.x === 'number' && typeof ex.y === 'number'){
-                        calc.setExpression({ id: ex.id || ('p'+Math.random().toString(36).slice(2)), latex: `(${ex.x},${ex.y})` });
-                        xs.push(ex.x); ys.push(ex.y);
-                      } else if (ex && typeof ex.latex === 'string') {
-                        calc.setExpression({ id: ex.id, latex: ex.latex });
-                      }
-                    });
-                    if (xs.length){
-                      const minx = Math.min(...xs), maxx = Math.max(...xs);
-                      const miny = Math.min(...ys), maxy = Math.max(...ys);
-                      const padX = Math.max(1, (maxx - minx) || 1);
-                      const padY = Math.max(1, (maxy - miny) || 1);
-                      calc.setMathBounds({ left: minx - padX, right: maxx + padX, bottom: miny - padY, top: maxy + padY });
-                    } else {
-                      calc.setMathBounds({ left: -10, right: 10, bottom: -10, top: 10 });
-                    }
-                  } catch{}
+                  const img = renderGraphAsImage(q.graph.expressions||[], 600, 280);
+                  card.appendChild(img);
                 }
                 // Render table if provided
                 if (q.table && Array.isArray(q.table.rows)){
@@ -1976,6 +1934,101 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
       function containsAnyKeyword(problem, kws){
         const blob = `${problem.stem||''} ${(problem.explanation||'')} ${((problem.options||[]).join(' '))}`.toLowerCase();
         return kws.some(k=> blob.includes(k));
+      }
+
+      // Lightweight graph renderer (SVG -> data URL image)
+      function renderGraphAsImage(expressions, width, height){
+        try {
+          const w = width || 600, h = height || 280;
+          const exprs = Array.isArray(expressions) ? expressions : [];
+          const pts = exprs.filter(e=> e && e.type==='point' && Number.isFinite(e.x) && Number.isFinite(e.y));
+          let xmin = -10, xmax = 10, ymin = -10, ymax = 10;
+          if (pts.length){
+            const xs = pts.map(p=> p.x), ys = pts.map(p=> p.y);
+            const minx = Math.min(...xs), maxx = Math.max(...xs);
+            const miny = Math.min(...ys), maxy = Math.max(...ys);
+            const padX = Math.max(1, (maxx - minx) || 1);
+            const padY = Math.max(1, (maxy - miny) || 1);
+            xmin = Math.floor(minx - padX); xmax = Math.ceil(maxx + padX);
+            ymin = Math.floor(miny - padY); ymax = Math.ceil(maxy + padY);
+          }
+          const pad = 32;
+          const mapX = (x)=> pad + (w - 2*pad) * ((x - xmin) / (xmax - xmin || 1));
+          const mapY = (y)=> (h - pad) - (h - 2*pad) * ((y - ymin) / (ymax - ymin || 1));
+          function parseLatexLine(s){
+            try {
+              const t = String(s||'').replace(/\s+/g,'');
+              if (!t) return null;
+              if (/^x=/.test(t)){
+                const a = parseFloat(t.slice(2)); if (!Number.isNaN(a)) return { type:'x', a };
+              }
+              if (/^y=/.test(t)){
+                const r = t.slice(2);
+                if (/^[+-]?\d*\.?\d*x([+-]\d*\.?\d+)?$/.test(r)){
+                  const mPart = r.split('x')[0];
+                  const bPart = r.slice(r.indexOf('x')+1) || '0';
+                  let m = 1; if (mPart === '-' ) m = -1; else if (mPart === '' || mPart === '+') m = 1; else m = parseFloat(mPart);
+                  const b = parseFloat(bPart) || 0;
+                  return { type:'y', m, b };
+                }
+                if (/^[+-]?\d*\.?\d+$/.test(r)){
+                  const b = parseFloat(r); return { type:'y', m:0, b };
+                }
+              }
+            } catch{}
+            return null;
+          }
+          // Build SVG
+          let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">`;
+          // background
+          svg += `<rect x="0" y="0" width="${w}" height="${h}" fill="#ffffff"/>`;
+          // axes
+          const zeroX = (xmin <= 0 && 0 <= xmax) ? mapX(0) : null;
+          const zeroY = (ymin <= 0 && 0 <= ymax) ? mapY(0) : null;
+          if (zeroX !== null) svg += `<line x1="${zeroX}" y1="${pad}" x2="${zeroX}" y2="${h-pad}" stroke="#94a3b8" stroke-width="1"/>`;
+          if (zeroY !== null) svg += `<line x1="${pad}" y1="${zeroY}" x2="${w-pad}" y2="${zeroY}" stroke="#94a3b8" stroke-width="1"/>`;
+          // ticks (integers only)
+          const stepGuess = Math.max(1, Math.round((xmax - xmin)/10));
+          for (let x = Math.ceil(xmin); x <= Math.floor(xmax); x += stepGuess){
+            const X = mapX(x); svg += `<line x1="${X}" y1="${(h-pad)-4}" x2="${X}" y2="${(h-pad)+4}" stroke="#cbd5e1"/>`;
+          }
+          const yStepGuess = Math.max(1, Math.round((ymax - ymin)/10));
+          for (let y = Math.ceil(ymin); y <= Math.floor(ymax); y += yStepGuess){
+            const Y = mapY(y); svg += `<line x1="${pad-4}" y1="${Y}" x2="${pad+4}" y2="${Y}" stroke="#cbd5e1"/>`;
+          }
+          // draw latex lines
+          exprs.forEach(e=>{
+            if (e && typeof e.latex === 'string'){
+              const L = parseLatexLine(e.latex);
+              if (L && L.type==='y'){
+                const x1 = xmin, y1 = L.m * xmin + L.b;
+                const x2 = xmax, y2 = L.m * xmax + L.b;
+                svg += `<line x1="${mapX(x1)}" y1="${mapY(y1)}" x2="${mapX(x2)}" y2="${mapY(y2)}" stroke="#2563eb" stroke-width="2"/>`;
+              } else if (L && L.type==='x'){
+                const X = mapX(L.a);
+                svg += `<line x1="${X}" y1="${pad}" x2="${X}" y2="${h-pad}" stroke="#2563eb" stroke-width="2"/>`;
+              }
+            }
+          });
+          // draw points
+          pts.forEach((p)=>{
+            svg += `<circle cx="${mapX(p.x)}" cy="${mapY(p.y)}" r="4" fill="#10b981" stroke="#0f766e" stroke-width="1"/>`;
+          });
+          svg += `</svg>`;
+          const img = new Image();
+          img.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+          img.style.width = '100%';
+          img.style.height = '280px';
+          img.style.border = '1px solid #eee';
+          img.style.borderRadius = '10px';
+          img.style.margin = '10px 0';
+          return img;
+        } catch {
+          const fallback = document.createElement('div');
+          fallback.textContent = 'Graph unavailable';
+          fallback.style.color = '#6b7280';
+          return fallback;
+        }
       }
 
       function parseJsonFromText(t){
