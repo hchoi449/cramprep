@@ -837,6 +837,29 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           } catch { return false; }
         }
 
+        // Strict string equality (no numeric evaluation). Used for "simplify/lowest terms" tasks
+        function plainsEqualStrict(a,b){
+          try {
+            const na = normalizePlain(stripLatexToPlain(a)).replace(/\s+/g,'');
+            const nb = normalizePlain(stripLatexToPlain(b)).replace(/\s+/g,'');
+            return na === nb;
+          } catch { return false; }
+        }
+
+        function requiresExactOptionMatch(stem){
+          try {
+            const s = String(stem||'').toLowerCase();
+            return (
+              s.includes('simplify') ||
+              s.includes('simplest form') ||
+              s.includes('lowest terms') ||
+              s.includes('reduce to lowest') ||
+              s.includes('write as a simplified fraction') ||
+              s.includes('equivalent fractions; simplifying')
+            );
+          } catch { return false; }
+        }
+
         function parseNumberLoose(s){
           try {
             const t = String(s||'').replace(/,/g,'');
@@ -1364,7 +1387,12 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   const correctIdxNow = Math.max(0, Math.min(3, q.correct||0));
                   const correctRendered = opts.children[correctIdxNow] ? opts.children[correctIdxNow].textContent : '';
                   const correctSource = (q && Array.isArray(q.options)) ? q.options[correctIdxNow] : '';
-                  const correct = (chosen === correctIdxNow) || plainsEqualLoose(chosenText, correctRendered) || plainsEqualLoose(chosenText, correctSource);
+                  let correct = false;
+                  if (requiresExactOptionMatch(q.stem)){
+                    correct = (chosen === correctIdxNow) || plainsEqualStrict(chosenText, correctRendered) || plainsEqualStrict(chosenText, correctSource);
+                  } else {
+                    correct = (chosen === correctIdxNow) || plainsEqualLoose(chosenText, correctRendered) || plainsEqualLoose(chosenText, correctSource);
+                  }
                   if (correct) { correctCount++; }
                   [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
                   submit.disabled = true; next.disabled = false;
@@ -1564,7 +1592,12 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   const correctIdxNow = Math.max(0, Math.min(3, q.correct||0));
                   const correctRendered = opts.children[correctIdxNow] ? opts.children[correctIdxNow].textContent : '';
                   const correctSource = (q && Array.isArray(q.options)) ? q.options[correctIdxNow] : '';
-                  const correct = (chosen === correctIdxNow) || plainsEqualLoose(chosenText, correctRendered) || plainsEqualLoose(chosenText, correctSource);
+                  let correct = false;
+                  if (requiresExactOptionMatch(q.stem)){
+                    correct = (chosen === correctIdxNow) || plainsEqualStrict(chosenText, correctRendered) || plainsEqualStrict(chosenText, correctSource);
+                  } else {
+                    correct = (chosen === correctIdxNow) || plainsEqualLoose(chosenText, correctRendered) || plainsEqualLoose(chosenText, correctSource);
+                  }
                   if (correct) { correctCount++; }
                   [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
                   submit.disabled = true; next.disabled = false;
@@ -1646,7 +1679,12 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
               const correctIdxNow = Math.max(0, Math.min(3, q.correct||0));
               const correctRendered = opts.children[correctIdxNow] ? opts.children[correctIdxNow].textContent : '';
               const correctSource = (q && Array.isArray(q.options)) ? q.options[correctIdxNow] : '';
-                  const correct = (chosen === correctIdxNow) || plainsEqualLoose(chosenText, correctRendered) || plainsEqualLoose(chosenText, correctSource);
+                  let correct = false;
+                  if (requiresExactOptionMatch(q.stem)){
+                    correct = (chosen === correctIdxNow) || plainsEqualStrict(chosenText, correctRendered) || plainsEqualStrict(chosenText, correctSource);
+                  } else {
+                    correct = (chosen === correctIdxNow) || plainsEqualLoose(chosenText, correctRendered) || plainsEqualLoose(chosenText, correctSource);
+                  }
               if (correct) { correctCount++; }
               [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
               submit.disabled = true; next.disabled = false;
