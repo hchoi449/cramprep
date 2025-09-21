@@ -1255,7 +1255,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   tbl.appendChild(tbody);
                   card.appendChild(tbl);
                 }
-                // Render number line if provided
+                // Render number line if provided (avoid revealing answer via labels)
                 if (q.numberLine){
                   const nl = q.numberLine;
                   const wrap = document.createElement('div');
@@ -1277,6 +1277,13 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   const xmax = typeof nl.max === 'number' ? nl.max : 10;
                   const step = typeof nl.step === 'number' ? nl.step : (xmax - xmin >= 10 ? 1 : 0.5);
                   const xmap = (x)=> pad + (w - 2*pad) * ((x - xmin) / (xmax - xmin || 1));
+                  // compute numeric correct to avoid labeling it
+                  let correctNum = NaN;
+                  try {
+                    const cidx = Math.max(0, Math.min(3, q.correct||0));
+                    const ctext = (q && Array.isArray(q.options)) ? q.options[cidx] : '';
+                    correctNum = parseNumberLoose(stripLatexToPlain(ctext));
+                  } catch{}
                   // axis
                   const axis = document.createElementNS(svgNS, 'line');
                   axis.setAttribute('x1', String(pad));
@@ -1293,11 +1300,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                     t.setAttribute('x1', String(X)); t.setAttribute('x2', String(X));
                     t.setAttribute('y1', '35'); t.setAttribute('y2', '45');
                     t.setAttribute('stroke', '#6b7280'); svg.appendChild(t);
-                    const lbl = document.createElementNS(svgNS, 'text');
-                    lbl.setAttribute('x', String(X)); lbl.setAttribute('y', '60');
-                    lbl.setAttribute('font-size', '10'); lbl.setAttribute('text-anchor', 'middle');
-                    lbl.textContent = String(x);
-                    svg.appendChild(lbl);
+                    // omit numeric tick labels to reduce answer leakage
                   }
                   // intervals
                   (nl.intervals||[]).forEach(int=>{
@@ -1325,16 +1328,13 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                     const X = xmap(x);
                     const c = document.createElementNS(svgNS, 'circle');
                     c.setAttribute('cx', String(X)); c.setAttribute('cy', '40'); c.setAttribute('r', '5');
-                    c.setAttribute('fill', open ? '#fff' : '#10b981');
-                    c.setAttribute('stroke', '#10b981'); c.setAttribute('stroke-width', '2');
+                    const nearCorrect = Number.isFinite(correctNum) && Math.abs(x - correctNum) < 1e-9;
+                    const fillColor = nearCorrect ? '#fff' : (open ? '#fff' : '#10b981');
+                    const strokeColor = nearCorrect ? '#9ca3af' : '#10b981';
+                    c.setAttribute('fill', fillColor);
+                    c.setAttribute('stroke', strokeColor); c.setAttribute('stroke-width', '2');
                     svg.appendChild(c);
-                    if (label){
-                      const lbl = document.createElementNS(svgNS, 'text');
-                      lbl.setAttribute('x', String(X)); lbl.setAttribute('y', '24');
-                      lbl.setAttribute('font-size', '10'); lbl.setAttribute('text-anchor', 'middle');
-                      lbl.textContent = label;
-                      svg.appendChild(lbl);
-                    }
+                    // suppress labels to avoid revealing answers
                   });
                 }
                 const opts = document.createElement('div'); opts.className='ps-opts'; card.appendChild(opts);
@@ -1364,7 +1364,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   const correctIdxNow = Math.max(0, Math.min(3, q.correct||0));
                   const correctRendered = opts.children[correctIdxNow] ? opts.children[correctIdxNow].textContent : '';
                   const correctSource = (q && Array.isArray(q.options)) ? q.options[correctIdxNow] : '';
-                  const correct = plainsEqualLoose(chosenText, correctRendered) || plainsEqualLoose(chosenText, correctSource);
+                  const correct = (chosen === correctIdxNow) || plainsEqualLoose(chosenText, correctRendered) || plainsEqualLoose(chosenText, correctSource);
                   if (correct) { correctCount++; }
                   [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
                   submit.disabled = true; next.disabled = false;
@@ -1564,7 +1564,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   const correctIdxNow = Math.max(0, Math.min(3, q.correct||0));
                   const correctRendered = opts.children[correctIdxNow] ? opts.children[correctIdxNow].textContent : '';
                   const correctSource = (q && Array.isArray(q.options)) ? q.options[correctIdxNow] : '';
-                  const correct = plainsEqualLoose(chosenText, correctRendered) || plainsEqualLoose(chosenText, correctSource);
+                  const correct = (chosen === correctIdxNow) || plainsEqualLoose(chosenText, correctRendered) || plainsEqualLoose(chosenText, correctSource);
                   if (correct) { correctCount++; }
                   [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
                   submit.disabled = true; next.disabled = false;
@@ -1646,7 +1646,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
               const correctIdxNow = Math.max(0, Math.min(3, q.correct||0));
               const correctRendered = opts.children[correctIdxNow] ? opts.children[correctIdxNow].textContent : '';
               const correctSource = (q && Array.isArray(q.options)) ? q.options[correctIdxNow] : '';
-              const correct = plainsEqualLoose(chosenText, correctRendered) || plainsEqualLoose(chosenText, correctSource);
+                  const correct = (chosen === correctIdxNow) || plainsEqualLoose(chosenText, correctRendered) || plainsEqualLoose(chosenText, correctSource);
               if (correct) { correctCount++; }
               [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
               submit.disabled = true; next.disabled = false;
