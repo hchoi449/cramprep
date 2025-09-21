@@ -718,6 +718,58 @@ async function bootstrap() {
     app._router.handle(req, res, ()=>{});
   });
 
+  // ===== Agent 4: Verification (determine correct index using LLM) =====
+  async function agent4DecideCorrectIndex(stem, options){
+    try {
+      const sanitized = {
+        stem: String(stem||'').slice(0, 2000),
+        options: (Array.isArray(options)? options : []).slice(0,4).map(o=> String(o||'').slice(0,500))
+      };
+      if (sanitized.options.length !== 4) return null;
+      const instruction = `You are a strict multiple-choice checker. Given a stem and four options (indices 0..3), return STRICT JSON { "correct": number } with the index of the best correct option. If ambiguous, pick the most mathematically correct or most defensible.\n${JSON.stringify(sanitized, null, 2)}`;
+      const j = await callGeminiJSON('gemini-1.5-flash-8b', instruction);
+      if (j && typeof j.correct === 'number' && j.correct >= 0 && j.correct <= 3) return j.correct;
+      return null;
+    } catch { return null; }
+  }
+
+  // Single-item verify
+  app.post('/ai/agent4/verify', async (req, res) => {
+    try {
+      const { stem, options, correct } = req.body || {};
+      if (!Array.isArray(options) || options.length !== 4) return res.status(400).json({ error: 'options[4] required' });
+      const decided = await agent4DecideCorrectIndex(stem, options);
+      if (decided === null) return res.json({ ok:true, verified: false, reason: 'undecided' });
+      const verified = Number(correct) === decided;
+      return res.json({ ok:true, verified, decided, provided: Number(correct) });
+    } catch (e){ console.error(e); return res.status(500).json({ error: 'verify_failed' }); }
+  });
+
+  // Bulk verify for a lesson
+  app.post('/ai/agent4/verify-lesson', async (req, res) => {
+    const lessonSlug = String(req.query.lesson || '').trim();
+    const limit = Math.max(1, Math.min(60, Number(req.query.limit || 30)));
+    if (!lessonSlug) return res.status(400).json({ error: 'lesson (slug) is required' });
+    try {
+      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+      await client.connect();
+      const col = await getQuestionCollection(client);
+      const docs = await col.find({ lessonSlug }).sort({ generatedAt: -1 }).limit(limit).toArray();
+      let verifiedCount = 0; let mismatches = 0; let undecided = 0;
+      for (const d of docs){
+        const decided = await agent4DecideCorrectIndex(d.stem, d.options);
+        if (decided === null){ undecided++; continue; }
+        const isMatch = Number(d.correct) === decided;
+        const update = { verified: isMatch, verifiedAt: new Date().toISOString(), verifiedBy: 'agent4', decidedCorrect: decided };
+        if (!isMatch) mismatches++;
+        else verifiedCount++;
+        await col.updateOne({ _id: d._id }, { $set: update });
+      }
+      await client.close();
+      return res.json({ ok:true, lesson: lessonSlug, verified: verifiedCount, mismatches, undecided });
+    } catch (e){ console.error(e); return res.status(500).json({ error: 'verify_lesson_failed' }); }
+  });
+
   // Agent 1 stats: counts per lesson
   app.get('/ai/agent1/stats', async (req, res) => {
     try {
@@ -756,6 +808,7 @@ async function bootstrap() {
             try {
               await fetch(`${baseUrl}/ai/agent1/generate?lesson=${encodeURIComponent(slug)}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title: slug }) });
               await fetch(`${baseUrl}/ai/agent2/enrich?lesson=${encodeURIComponent(slug)}`, { method:'POST' });
+              await fetch(`${baseUrl}/ai/agent4/verify-lesson?lesson=${encodeURIComponent(slug)}`, { method:'POST' });
             } catch {}
           }
         }
@@ -807,6 +860,7 @@ async function bootstrap() {
             if (!r.ok) { failCount++; const t = await r.text().catch(()=> ''); errors.push({ slug, status:r.status, body:t.slice(0,200) }); }
             else {
               try { await fetch(`${baseUrl}/ai/agent2/enrich?lesson=${encodeURIComponent(slug)}`, { method:'POST' }); } catch {}
+              try { await fetch(`${baseUrl}/ai/agent4/verify-lesson?lesson=${encodeURIComponent(slug)}`, { method:'POST' }); } catch {}
               okCount++;
             }
           } catch (e) { failCount++; errors.push({ slug, error: String(e).slice(0,200) }); }
