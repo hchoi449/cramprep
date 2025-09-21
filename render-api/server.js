@@ -417,8 +417,10 @@ async function bootstrap() {
   "stem": string,
   "options": [string,string,string,string],
   "correct": number, // 0..3
-  "explanation": string
-}\n${rules}\nReturn STRICT JSON: { "problems": [ ... ] }`;
+  "explanation": string,
+  "graph"?: { "expressions": Array< { "id"?: string, "latex"?: string } | { "type": "point", "x": number, "y": number } > },
+  "table"?: { "headers"?: string[], "rows": string[][] }
+}\n${rules}\nNotes: If the source contains tables or describes data, include a concise table under "table". If a graph is implied or useful (lines, parabolas, plotted points), include a minimal set of Desmos-compatible expressions under "graph.expressions".\nReturn STRICT JSON: { "problems": [ ... ] }`;
   }
 
   // Ingest textbook PDF (upload by URL) and chunk text

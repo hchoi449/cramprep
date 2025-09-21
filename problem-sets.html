@@ -1226,6 +1226,35 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                     }
                   } catch{}
                 }
+                // Render table if provided
+                if (q.table && Array.isArray(q.table.rows)){
+                  const tbl = document.createElement('table');
+                  tbl.style.width = '100%';
+                  tbl.style.borderCollapse = 'collapse';
+                  tbl.style.margin = '10px 0';
+                  const addCell = (tr, tag, text)=>{
+                    const el = document.createElement(tag);
+                    el.textContent = String(text||'');
+                    el.style.border = '1px solid #e5e7eb';
+                    el.style.padding = '6px 8px';
+                    tr.appendChild(el);
+                  };
+                  if (Array.isArray(q.table.headers) && q.table.headers.length){
+                    const thead = document.createElement('thead');
+                    const tr = document.createElement('tr');
+                    q.table.headers.forEach(h=> addCell(tr, 'th', h));
+                    thead.appendChild(tr);
+                    tbl.appendChild(thead);
+                  }
+                  const tbody = document.createElement('tbody');
+                  q.table.rows.forEach(row=>{
+                    const tr = document.createElement('tr');
+                    (row||[]).forEach(cell=> addCell(tr, 'td', cell));
+                    tbody.appendChild(tr);
+                  });
+                  tbl.appendChild(tbody);
+                  card.appendChild(tbl);
+                }
                 const opts = document.createElement('div'); opts.className='ps-opts'; card.appendChild(opts);
                 const order = _.shuffle(q.options.map((opt, idx)=> ({opt, idx})));
                 order.forEach(pair=>{
@@ -1315,6 +1344,35 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                       calc.setMathBounds({ left: -10, right: 10, bottom: -10, top: 10 });
                     }
                   } catch{}
+                }
+                // Render table if provided
+                if (q.table && Array.isArray(q.table.rows)){
+                  const tbl = document.createElement('table');
+                  tbl.style.width = '100%';
+                  tbl.style.borderCollapse = 'collapse';
+                  tbl.style.margin = '10px 0';
+                  const addCell = (tr, tag, text)=>{
+                    const el = document.createElement(tag);
+                    el.textContent = String(text||'');
+                    el.style.border = '1px solid #e5e7eb';
+                    el.style.padding = '6px 8px';
+                    tr.appendChild(el);
+                  };
+                  if (Array.isArray(q.table.headers) && q.table.headers.length){
+                    const thead = document.createElement('thead');
+                    const tr = document.createElement('tr');
+                    q.table.headers.forEach(h=> addCell(tr, 'th', h));
+                    thead.appendChild(tr);
+                    tbl.appendChild(thead);
+                  }
+                  const tbody = document.createElement('tbody');
+                  q.table.rows.forEach(row=>{
+                    const tr = document.createElement('tr');
+                    (row||[]).forEach(cell=> addCell(tr, 'td', cell));
+                    tbody.appendChild(tr);
+                  });
+                  tbl.appendChild(tbody);
+                  card.appendChild(tbl);
                 }
                 const opts = document.createElement('div'); opts.className='ps-opts'; card.appendChild(opts);
                 const order = _.shuffle(q.options.map((opt, idx)=> ({opt, idx})));
