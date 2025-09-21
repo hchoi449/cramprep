@@ -1939,7 +1939,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
       // Lightweight graph renderer (SVG -> data URL image)
       function renderGraphAsImage(expressions, width, height){
         try {
-          const w = width || 600, h = height || 280;
+          const w = width || 320, h = height || 320; // square
           const exprs = Array.isArray(expressions) ? expressions : [];
           const pts = exprs.filter(e=> e && e.type==='point' && Number.isFinite(e.x) && Number.isFinite(e.y));
           let xmin = -10, xmax = 10, ymin = -10, ymax = 10;
@@ -1952,6 +1952,11 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             xmin = Math.floor(minx - padX); xmax = Math.ceil(maxx + padX);
             ymin = Math.floor(miny - padY); ymax = Math.ceil(maxy + padY);
           }
+          // enforce equal aspect ratios (square units)
+          const spanX = xmax - xmin; const spanY = ymax - ymin;
+          const span = Math.max(spanX, spanY) || 20;
+          const cx = (xmin + xmax)/2; const cy = (ymin + ymax)/2;
+          xmin = cx - span/2; xmax = cx + span/2; ymin = cy - span/2; ymax = cy + span/2;
           const pad = 32;
           const mapX = (x)=> pad + (w - 2*pad) * ((x - xmin) / (xmax - xmin || 1));
           const mapY = (y)=> (h - pad) - (h - 2*pad) * ((y - ymin) / (ymax - ymin || 1));
@@ -1982,11 +1987,11 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">`;
           // background
           svg += `<rect x="0" y="0" width="${w}" height="${h}" fill="#ffffff"/>`;
-          // axes
+          // axes (darker, with arrows)
           const zeroX = (xmin <= 0 && 0 <= xmax) ? mapX(0) : null;
           const zeroY = (ymin <= 0 && 0 <= ymax) ? mapY(0) : null;
-          if (zeroX !== null) svg += `<line x1="${zeroX}" y1="${pad}" x2="${zeroX}" y2="${h-pad}" stroke="#94a3b8" stroke-width="1"/>`;
-          if (zeroY !== null) svg += `<line x1="${pad}" y1="${zeroY}" x2="${w-pad}" y2="${zeroY}" stroke="#94a3b8" stroke-width="1"/>`;
+          if (zeroX !== null) svg += `<line x1="${zeroX}" y1="${pad}" x2="${zeroX}" y2="${h-pad}" stroke="#334155" stroke-width="1.5"/>`;
+          if (zeroY !== null) svg += `<line x1="${pad}" y1="${zeroY}" x2="${w-pad}" y2="${zeroY}" stroke="#334155" stroke-width="1.5"/>`;
           // ticks (integers only)
           const stepGuess = Math.max(1, Math.round((xmax - xmin)/10));
           for (let x = Math.ceil(xmin); x <= Math.floor(xmax); x += stepGuess){
@@ -2017,8 +2022,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           svg += `</svg>`;
           const img = new Image();
           img.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
-          img.style.width = '100%';
-          img.style.height = '280px';
+          img.style.width = '320px';
+          img.style.height = '320px';
           img.style.border = '1px solid #eee';
           img.style.borderRadius = '10px';
           img.style.margin = '10px 0';
