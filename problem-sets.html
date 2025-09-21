@@ -1720,7 +1720,15 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           if (r.ok){
             const j = await r.json();
             if (j && j.ok && Array.isArray(j.questions) && j.questions.length){
-              probs = j.questions.map(q=> ({ stem: q.stem, options: q.options, correct: q.correct, explanation: q.solution || q.explanation || '' }));
+              probs = j.questions.map(q=> ({
+                stem: q.stem,
+                options: q.options,
+                correct: q.correct,
+                explanation: q.solution || q.explanation || '',
+                graph: q.graph && Array.isArray(q.graph.expressions) ? { expressions: q.graph.expressions } : undefined,
+                table: (q.table && Array.isArray(q.table.rows)) ? { headers: Array.isArray(q.table.headers) ? q.table.headers : undefined, rows: q.table.rows } : undefined,
+                numberLine: q.numberLine || undefined
+              }));
             }
           }
         } catch {}
@@ -1823,7 +1831,15 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           if (wp.length >= Math.min(6, count)) probs = wp;
         }
         // sanitize
-        return probs.slice(0, count).map(p=>({ stem: String(p.stem||''), options: (p.options||[]).slice(0,4).map(String), correct: Number(p.correct||0), explanation: String(p.explanation||''), graph: p.graph && p.graph.expressions ? { expressions: p.graph.expressions } : undefined }));
+        return probs.slice(0, count).map(p=>({
+          stem: String(p.stem||''),
+          options: (p.options||[]).slice(0,4).map(String),
+          correct: Number(p.correct||0),
+          explanation: String(p.explanation||''),
+          graph: (p.graph && Array.isArray(p.graph.expressions)) ? { expressions: p.graph.expressions } : undefined,
+          table: (p.table && Array.isArray(p.table.rows)) ? { headers: Array.isArray(p.table.headers) ? p.table.headers : undefined, rows: p.table.rows } : undefined,
+          numberLine: p.numberLine || undefined
+        }));
       }
 
       
