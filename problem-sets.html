@@ -1286,13 +1286,13 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                     const ctext = (q && Array.isArray(q.options)) ? q.options[cidx] : '';
                     correctNum = parseNumberLoose(stripLatexToPlain(ctext));
                   } catch{}
-                  // axis
+                  // axis (keep visible x/y but no numeric labels to avoid revealing answers)
                   const axis = document.createElementNS(svgNS, 'line');
                   axis.setAttribute('x1', String(pad));
                   axis.setAttribute('x2', String(w - pad));
                   axis.setAttribute('y1', '40');
                   axis.setAttribute('y2', '40');
-                  axis.setAttribute('stroke', '#374151');
+                  axis.setAttribute('stroke', '#111827');
                   axis.setAttribute('stroke-width', '2');
                   svg.appendChild(axis);
                   // ticks
@@ -1304,6 +1304,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                     t.setAttribute('stroke', '#6b7280'); svg.appendChild(t);
                     // omit numeric tick labels to reduce answer leakage
                   }
+                  // axis label
+                  const xl = document.createElementNS(svgNS, 'text'); xl.setAttribute('x', String(w - pad - 8)); xl.setAttribute('y', '32'); xl.setAttribute('font-size','12'); xl.textContent='x'; svg.appendChild(xl);
                   // intervals
                   (nl.intervals||[]).forEach(int=>{
                     const X1 = xmap(int.from), X2 = xmap(int.to);
@@ -1985,13 +1987,18 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           }
           // Build SVG
           let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">`;
+          // arrowhead marker
+          svg += `<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#111827"/></marker></defs>`;
           // background
           svg += `<rect x="0" y="0" width="${w}" height="${h}" fill="#ffffff"/>`;
           // axes (darker, with arrows)
           const zeroX = (xmin <= 0 && 0 <= xmax) ? mapX(0) : null;
           const zeroY = (ymin <= 0 && 0 <= ymax) ? mapY(0) : null;
-          if (zeroX !== null) svg += `<line x1="${zeroX}" y1="${pad}" x2="${zeroX}" y2="${h-pad}" stroke="#334155" stroke-width="1.5"/>`;
-          if (zeroY !== null) svg += `<line x1="${pad}" y1="${zeroY}" x2="${w-pad}" y2="${zeroY}" stroke="#334155" stroke-width="1.5"/>`;
+          if (zeroX !== null) svg += `<line x1="${zeroX}" y1="${pad}" x2="${zeroX}" y2="${h-pad}" stroke="#111827" stroke-width="2" marker-end="url(#arrow)"/>`;
+          if (zeroY !== null) svg += `<line x1="${pad}" y1="${zeroY}" x2="${w-pad}" y2="${zeroY}" stroke="#111827" stroke-width="2" marker-end="url(#arrow)"/>`;
+          // axis labels, avoid numeric labels to prevent answer leakage
+          if (zeroY !== null) svg += `<text x="${w-pad-12}" y="${zeroY-6}" font-size="12" fill="#111827">x</text>`;
+          if (zeroX !== null) svg += `<text x="${zeroX+6}" y="${pad+12}" font-size="12" fill="#111827">y</text>`;
           // ticks (integers only)
           const stepGuess = Math.max(1, Math.round((xmax - xmin)/10));
           for (let x = Math.ceil(xmin); x <= Math.floor(xmax); x += stepGuess){
