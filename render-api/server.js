@@ -419,6 +419,16 @@ async function bootstrap() {
     return txt;
   }
 
+  async function callGeminiJSON(model, instruction){
+    const txt = await callGeminiGenerate(model, instruction);
+    try {
+      const m = txt && txt.match(/```json[\s\S]*?```/i);
+      const raw = m ? m[0].replace(/```json/i,'').replace(/```/,'').trim() : (txt && txt.trim().startsWith('{')? txt.trim(): null);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch { return null; }
+  }
+
   function buildLessonPrompt(lessonTitle, lessonSlug, count){
     const nowRnd = Math.floor(Date.now()/1000);
     const seed = `${nowRnd}-${Math.floor(Math.random()*1e9)}`;
@@ -646,6 +656,68 @@ async function bootstrap() {
     } catch (e){ console.error(e); return res.status(500).json({ error:'retrieve_failed' }); }
   });
 
+  // Agent 2 (visual enrichment)
+  app.post('/ai/agent2/enrich', async (req, res) => {
+    const lessonSlug = String(req.query.lesson || '').trim();
+    const limit = Math.max(1, Math.min(60, Number(req.query.limit || 30)));
+    if (!lessonSlug) return res.status(400).json({ error: 'lesson (slug) is required' });
+    try {
+      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+      await client.connect();
+      const col = await getQuestionCollection(client);
+      const docs = await col.find({ lessonSlug }).sort({ generatedAt: -1 }).limit(limit).toArray();
+      let updated = 0;
+      for (const d of docs){
+        const hasVisual = (d.graph && Array.isArray((d.graph||{}).expressions) && d.graph.expressions.length) || (d.table && Array.isArray((d.table||{}).rows) && d.table.rows.length) || !!d.numberLine;
+        if (hasVisual) continue;
+        const instruction = `You are enhancing a math MC item with minimal visuals only when helpful. Input:\n${JSON.stringify({ stem: d.stem, options: d.options, correct: d.correct }, null, 2)}\nReturn STRICT JSON with optional fields only as needed: { "graph"?: { "expressions": Array< { "latex"?: string } | { "type":"point","x":number,"y":number } > }, "table"?: { "headers"?: string[], "rows": string[][] }, "numberLine"?: { "min":number, "max":number, "step"?:number, "points"?: Array<number|{ "x":number, "label"?:string, "open"?:boolean }>, "intervals"?: Array<{ "from":number, "to":number, "openLeft"?:boolean, "openRight"?:boolean, "label"?:string }> } }`;
+        const j = await callGeminiJSON('gemini-1.5-flash-8b', instruction);
+        if (!j) continue;
+        const update = {};
+        try {
+          if (j.graph && Array.isArray(j.graph.expressions)){
+            const exprs = j.graph.expressions.filter(Boolean).slice(0,12).map(e=>{
+              if (e && typeof e.latex === 'string') return { latex: e.latex };
+              if (e && e.type === 'point' && Number.isFinite(e.x) && Number.isFinite(e.y)) return { type:'point', x:Number(e.x), y:Number(e.y) };
+              return null;
+            }).filter(Boolean);
+            if (exprs.length) update.graph = { expressions: exprs };
+          }
+        } catch{}
+        try {
+          if (j.table && Array.isArray(j.table.rows)){
+            const headers = Array.isArray(j.table.headers) ? j.table.headers.slice(0,10).map(String) : undefined;
+            const rows = j.table.rows.slice(0,20).map(r=> (Array.isArray(r)? r.slice(0,10) : []).map(String));
+            if (rows.length) update.table = { headers, rows };
+          }
+        } catch{}
+        try {
+          if (j.numberLine && typeof j.numberLine === 'object'){
+            const nl = j.numberLine;
+            update.numberLine = {
+              min: Number(nl.min), max: Number(nl.max), step: typeof nl.step === 'number' ? nl.step : undefined,
+              points: Array.isArray(nl.points) ? nl.points.slice(0,20).map(pt=> (typeof pt === 'number')? pt : (pt && Number.isFinite(pt.x) ? { x:Number(pt.x), label: pt.label ? String(pt.label) : undefined, open: !!pt.open } : null)).filter(Boolean) : undefined,
+              intervals: Array.isArray(nl.intervals) ? nl.intervals.slice(0,10).map(iv=> ({ from: Number(iv.from), to: Number(iv.to), openLeft: !!iv.openLeft, openRight: !!iv.openRight, label: iv.label ? String(iv.label) : undefined })) : undefined
+            };
+          }
+        } catch{}
+        if (Object.keys(update).length){
+          update.enrichedAt = new Date().toISOString();
+          await col.updateOne({ _id: d._id }, { $set: update });
+          updated++;
+        }
+      }
+      await client.close();
+      return res.json({ ok:true, lesson: lessonSlug, updated });
+    } catch (e){ console.error(e); return res.status(500).json({ error:'enrich_failed' }); }
+  });
+
+  // Agent 3: compile (alias to Agent 2 retrieval)
+  app.get('/ai/agent3/questions', async (req, res) => {
+    req.url = req.url.replace('/ai/agent3/questions', '/ai/agent2/questions');
+    app._router.handle(req, res, ()=>{});
+  });
+
   // Agent 1 stats: counts per lesson
   app.get('/ai/agent1/stats', async (req, res) => {
     try {
@@ -681,7 +753,10 @@ async function bootstrap() {
           await client.close();
           const baseUrl = (process.env.PUBLIC_BASE_URL && process.env.PUBLIC_BASE_URL.trim()) || `http://127.0.0.1:${process.env.PORT||8080}`;
           for (const slug of slugs.slice(0,200)){
-            try { await fetch(`${baseUrl}/ai/agent1/generate?lesson=${encodeURIComponent(slug)}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title: slug }) }); } catch {}
+            try {
+              await fetch(`${baseUrl}/ai/agent1/generate?lesson=${encodeURIComponent(slug)}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title: slug }) });
+              await fetch(`${baseUrl}/ai/agent2/enrich?lesson=${encodeURIComponent(slug)}`, { method:'POST' });
+            } catch {}
           }
         }
       } catch {}
@@ -730,7 +805,10 @@ async function bootstrap() {
           try {
             const r = await fetch(`${baseUrl}/ai/agent1/generate?lesson=${encodeURIComponent(slug)}&target=${target}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title }) });
             if (!r.ok) { failCount++; const t = await r.text().catch(()=> ''); errors.push({ slug, status:r.status, body:t.slice(0,200) }); }
-            else { okCount++; }
+            else {
+              try { await fetch(`${baseUrl}/ai/agent2/enrich?lesson=${encodeURIComponent(slug)}`, { method:'POST' }); } catch {}
+              okCount++;
+            }
           } catch (e) { failCount++; errors.push({ slug, error: String(e).slice(0,200) }); }
         }
       }
