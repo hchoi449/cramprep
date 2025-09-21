@@ -1255,6 +1255,88 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   tbl.appendChild(tbody);
                   card.appendChild(tbl);
                 }
+                // Render number line if provided
+                if (q.numberLine){
+                  const nl = q.numberLine;
+                  const wrap = document.createElement('div');
+                  wrap.style.margin = '10px 0';
+                  wrap.style.height = '80px';
+                  wrap.style.position = 'relative';
+                  wrap.style.border = '1px solid #eee';
+                  wrap.style.borderRadius = '10px';
+                  card.appendChild(wrap);
+                  const svgNS = 'http://www.w3.org/2000/svg';
+                  const svg = document.createElementNS(svgNS, 'svg');
+                  svg.setAttribute('width', '100%');
+                  svg.setAttribute('height', '80');
+                  wrap.appendChild(svg);
+                  const pad = 24;
+                  const w = wrap.clientWidth || 600;
+                  const h = 80;
+                  const xmin = typeof nl.min === 'number' ? nl.min : 0;
+                  const xmax = typeof nl.max === 'number' ? nl.max : 10;
+                  const step = typeof nl.step === 'number' ? nl.step : (xmax - xmin >= 10 ? 1 : 0.5);
+                  const xmap = (x)=> pad + (w - 2*pad) * ((x - xmin) / (xmax - xmin || 1));
+                  // axis
+                  const axis = document.createElementNS(svgNS, 'line');
+                  axis.setAttribute('x1', String(pad));
+                  axis.setAttribute('x2', String(w - pad));
+                  axis.setAttribute('y1', '40');
+                  axis.setAttribute('y2', '40');
+                  axis.setAttribute('stroke', '#374151');
+                  axis.setAttribute('stroke-width', '2');
+                  svg.appendChild(axis);
+                  // ticks
+                  for (let x = xmin; x <= xmax + 1e-9; x += step){
+                    const X = xmap(x);
+                    const t = document.createElementNS(svgNS, 'line');
+                    t.setAttribute('x1', String(X)); t.setAttribute('x2', String(X));
+                    t.setAttribute('y1', '35'); t.setAttribute('y2', '45');
+                    t.setAttribute('stroke', '#6b7280'); svg.appendChild(t);
+                    const lbl = document.createElementNS(svgNS, 'text');
+                    lbl.setAttribute('x', String(X)); lbl.setAttribute('y', '60');
+                    lbl.setAttribute('font-size', '10'); lbl.setAttribute('text-anchor', 'middle');
+                    lbl.textContent = String(x);
+                    svg.appendChild(lbl);
+                  }
+                  // intervals
+                  (nl.intervals||[]).forEach(int=>{
+                    const X1 = xmap(int.from), X2 = xmap(int.to);
+                    const bar = document.createElementNS(svgNS, 'line');
+                    bar.setAttribute('x1', String(X1)); bar.setAttribute('x2', String(X2));
+                    bar.setAttribute('y1', '40'); bar.setAttribute('y2', '40');
+                    bar.setAttribute('stroke', '#2563eb'); bar.setAttribute('stroke-width', '6'); bar.setAttribute('stroke-linecap', 'round');
+                    svg.appendChild(bar);
+                    // end caps open/closed
+                    const cap = (X, open)=>{
+                      const c = document.createElementNS(svgNS, 'circle');
+                      c.setAttribute('cx', String(X)); c.setAttribute('cy', '40'); c.setAttribute('r', '5');
+                      c.setAttribute('fill', open ? '#fff' : '#2563eb');
+                      c.setAttribute('stroke', '#2563eb'); c.setAttribute('stroke-width', '2');
+                      svg.appendChild(c);
+                    };
+                    cap(X1, !!int.openLeft); cap(X2, !!int.openRight);
+                  });
+                  // points
+                  (nl.points||[]).forEach(pt=>{
+                    const x = typeof pt === 'number' ? pt : pt.x;
+                    const label = typeof pt === 'number' ? '' : (pt.label||'');
+                    const open = typeof pt === 'number' ? false : !!pt.open;
+                    const X = xmap(x);
+                    const c = document.createElementNS(svgNS, 'circle');
+                    c.setAttribute('cx', String(X)); c.setAttribute('cy', '40'); c.setAttribute('r', '5');
+                    c.setAttribute('fill', open ? '#fff' : '#10b981');
+                    c.setAttribute('stroke', '#10b981'); c.setAttribute('stroke-width', '2');
+                    svg.appendChild(c);
+                    if (label){
+                      const lbl = document.createElementNS(svgNS, 'text');
+                      lbl.setAttribute('x', String(X)); lbl.setAttribute('y', '24');
+                      lbl.setAttribute('font-size', '10'); lbl.setAttribute('text-anchor', 'middle');
+                      lbl.textContent = label;
+                      svg.appendChild(lbl);
+                    }
+                  });
+                }
                 const opts = document.createElement('div'); opts.className='ps-opts'; card.appendChild(opts);
                 const order = _.shuffle(q.options.map((opt, idx)=> ({opt, idx})));
                 order.forEach(pair=>{
@@ -1373,6 +1455,88 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   });
                   tbl.appendChild(tbody);
                   card.appendChild(tbl);
+                }
+                // Render number line if provided
+                if (q.numberLine){
+                  const nl = q.numberLine;
+                  const wrap = document.createElement('div');
+                  wrap.style.margin = '10px 0';
+                  wrap.style.height = '80px';
+                  wrap.style.position = 'relative';
+                  wrap.style.border = '1px solid #eee';
+                  wrap.style.borderRadius = '10px';
+                  card.appendChild(wrap);
+                  const svgNS = 'http://www.w3.org/2000/svg';
+                  const svg = document.createElementNS(svgNS, 'svg');
+                  svg.setAttribute('width', '100%');
+                  svg.setAttribute('height', '80');
+                  wrap.appendChild(svg);
+                  const pad = 24;
+                  const w = wrap.clientWidth || 600;
+                  const h = 80;
+                  const xmin = typeof nl.min === 'number' ? nl.min : 0;
+                  const xmax = typeof nl.max === 'number' ? nl.max : 10;
+                  const step = typeof nl.step === 'number' ? nl.step : (xmax - xmin >= 10 ? 1 : 0.5);
+                  const xmap = (x)=> pad + (w - 2*pad) * ((x - xmin) / (xmax - xmin || 1));
+                  // axis
+                  const axis = document.createElementNS(svgNS, 'line');
+                  axis.setAttribute('x1', String(pad));
+                  axis.setAttribute('x2', String(w - pad));
+                  axis.setAttribute('y1', '40');
+                  axis.setAttribute('y2', '40');
+                  axis.setAttribute('stroke', '#374151');
+                  axis.setAttribute('stroke-width', '2');
+                  svg.appendChild(axis);
+                  // ticks
+                  for (let x = xmin; x <= xmax + 1e-9; x += step){
+                    const X = xmap(x);
+                    const t = document.createElementNS(svgNS, 'line');
+                    t.setAttribute('x1', String(X)); t.setAttribute('x2', String(X));
+                    t.setAttribute('y1', '35'); t.setAttribute('y2', '45');
+                    t.setAttribute('stroke', '#6b7280'); svg.appendChild(t);
+                    const lbl = document.createElementNS(svgNS, 'text');
+                    lbl.setAttribute('x', String(X)); lbl.setAttribute('y', '60');
+                    lbl.setAttribute('font-size', '10'); lbl.setAttribute('text-anchor', 'middle');
+                    lbl.textContent = String(x);
+                    svg.appendChild(lbl);
+                  }
+                  // intervals
+                  (nl.intervals||[]).forEach(int=>{
+                    const X1 = xmap(int.from), X2 = xmap(int.to);
+                    const bar = document.createElementNS(svgNS, 'line');
+                    bar.setAttribute('x1', String(X1)); bar.setAttribute('x2', String(X2));
+                    bar.setAttribute('y1', '40'); bar.setAttribute('y2', '40');
+                    bar.setAttribute('stroke', '#2563eb'); bar.setAttribute('stroke-width', '6'); bar.setAttribute('stroke-linecap', 'round');
+                    svg.appendChild(bar);
+                    // end caps open/closed
+                    const cap = (X, open)=>{
+                      const c = document.createElementNS(svgNS, 'circle');
+                      c.setAttribute('cx', String(X)); c.setAttribute('cy', '40'); c.setAttribute('r', '5');
+                      c.setAttribute('fill', open ? '#fff' : '#2563eb');
+                      c.setAttribute('stroke', '#2563eb'); c.setAttribute('stroke-width', '2');
+                      svg.appendChild(c);
+                    };
+                    cap(X1, !!int.openLeft); cap(X2, !!int.openRight);
+                  });
+                  // points
+                  (nl.points||[]).forEach(pt=>{
+                    const x = typeof pt === 'number' ? pt : pt.x;
+                    const label = typeof pt === 'number' ? '' : (pt.label||'');
+                    const open = typeof pt === 'number' ? false : !!pt.open;
+                    const X = xmap(x);
+                    const c = document.createElementNS(svgNS, 'circle');
+                    c.setAttribute('cx', String(X)); c.setAttribute('cy', '40'); c.setAttribute('r', '5');
+                    c.setAttribute('fill', open ? '#fff' : '#10b981');
+                    c.setAttribute('stroke', '#10b981'); c.setAttribute('stroke-width', '2');
+                    svg.appendChild(c);
+                    if (label){
+                      const lbl = document.createElementNS(svgNS, 'text');
+                      lbl.setAttribute('x', String(X)); lbl.setAttribute('y', '24');
+                      lbl.setAttribute('font-size', '10'); lbl.setAttribute('text-anchor', 'middle');
+                      lbl.textContent = label;
+                      svg.appendChild(lbl);
+                    }
+                  });
                 }
                 const opts = document.createElement('div'); opts.className='ps-opts'; card.appendChild(opts);
                 const order = _.shuffle(q.options.map((opt, idx)=> ({opt, idx})));

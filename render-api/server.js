@@ -419,8 +419,9 @@ async function bootstrap() {
   "correct": number, // 0..3
   "explanation": string,
   "graph"?: { "expressions": Array< { "id"?: string, "latex"?: string } | { "type": "point", "x": number, "y": number } > },
-  "table"?: { "headers"?: string[], "rows": string[][] }
-}\n${rules}\nNotes: If the source contains tables or describes data, include a concise table under "table". If a graph is implied or useful (lines, parabolas, plotted points), include a minimal set of Desmos-compatible expressions under "graph.expressions".\nReturn STRICT JSON: { "problems": [ ... ] }`;
+  "table"?: { "headers"?: string[], "rows": string[][] },
+  "numberLine"?: { "min": number, "max": number, "step"?: number, "points"?: Array<number | { "x": number, "label"?: string, "open"?: boolean }>, "intervals"?: Array<{ "from": number, "to": number, "openLeft"?: boolean, "openRight"?: boolean, "label"?: string }> }
+}\n${rules}\nNotes: If the source contains tables or describes data, include a concise table under "table". If a graph is implied or useful (lines, parabolas, plotted points), include a minimal set of Desmos-compatible expressions under "graph.expressions". For integer comparisons, ordering, absolute value, or inequalities on a 1D axis, include a compact number line structure under "numberLine".\nReturn STRICT JSON: { "problems": [ ... ] }`;
   }
 
   // Ingest textbook PDF (upload by URL) and chunk text
