@@ -509,10 +509,59 @@ async function bootstrap() {
         if (seen.has(key)) continue; seen.add(key);
         const sourceHash = sha256Hex(lessonSlug + '||' + stem + '||' + options.join('||'));
         const difficulty = computeDifficulty(stem, explanation);
+          // optional visuals
+          let graph = undefined;
+          try {
+            if (p && p.graph && Array.isArray(p.graph.expressions)){
+              const exprs = p.graph.expressions
+                .filter(Boolean)
+                .slice(0, 12)
+                .map(e => {
+                  if (e && typeof e === 'object'){
+                    if (typeof e.latex === 'string') return { id: e.id || undefined, latex: e.latex };
+                    if (e.type === 'point' && typeof e.x === 'number' && typeof e.y === 'number') return { type: 'point', x: e.x, y: e.y, id: e.id || undefined };
+                  }
+                  return null;
+                })
+                .filter(Boolean);
+              if (exprs.length) graph = { expressions: exprs };
+            }
+          } catch {}
+          let table = undefined;
+          try {
+            if (p && p.table && Array.isArray(p.table.rows)){
+              const headers = Array.isArray(p.table.headers) ? p.table.headers.slice(0,10).map(String) : undefined;
+              const rows = p.table.rows.slice(0, 20).map(r => (Array.isArray(r)? r.slice(0,10) : []).map(String));
+              if (rows.length) table = { headers, rows };
+            }
+          } catch {}
+          let numberLine = undefined;
+          try {
+            if (p && p.numberLine && typeof p.numberLine === 'object'){
+              const nl = p.numberLine;
+              const norm = {
+                min: typeof nl.min === 'number' ? nl.min : 0,
+                max: typeof nl.max === 'number' ? nl.max : 10,
+                step: typeof nl.step === 'number' ? nl.step : undefined,
+                points: Array.isArray(nl.points) ? nl.points.slice(0,20).map(pt => {
+                  if (typeof pt === 'number') return pt;
+                  if (pt && typeof pt.x === 'number') return { x: pt.x, label: pt.label ? String(pt.label) : undefined, open: !!pt.open };
+                  return null;
+                }).filter(Boolean) : undefined,
+                intervals: Array.isArray(nl.intervals) ? nl.intervals.slice(0,10).map(iv => ({
+                  from: Number(iv.from), to: Number(iv.to),
+                  openLeft: !!iv.openLeft, openRight: !!iv.openRight,
+                  label: iv.label ? String(iv.label) : undefined
+                })) : undefined
+              };
+              numberLine = norm;
+            }
+          } catch {}
         docs.push({
           lessonSlug,
           lessonTitle,
-          stem, options, correct, solution: explanation,
+            stem, options, correct, solution: explanation,
+            graph, table, numberLine,
           citations: [],
           difficulty,
           sourceHash,
