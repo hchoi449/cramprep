@@ -392,6 +392,19 @@ async function bootstrap() {
     } catch { return 'medium'; }
   }
 
+  function extractCoordinatePairsFromText(text){
+    try {
+      const s = String(text||'');
+      const re = /\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)/g;
+      const out = [];
+      let m; while ((m = re.exec(s))){
+        const x = Number(m[1]); const y = Number(m[2]);
+        if (Number.isFinite(x) && Number.isFinite(y)) out.push({ x, y });
+      }
+      return out;
+    } catch { return []; }
+  }
+
   async function callGeminiGenerate(model, prompt){
     const key = process.env.GEMINI_API_KEY || process.env.gemini_api_key || process.env.GOOGLE_GEMINI_API_KEY;
     const useModel = model || 'gemini-1.5-flash-8b';
@@ -536,6 +549,15 @@ async function bootstrap() {
               if (exprs.length) graph = { expressions: exprs };
             }
           } catch {}
+          // Synthesize graph from coordinates if missing
+          if (!graph || !Array.isArray(graph.expressions) || graph.expressions.length === 0){
+            const allText = [stem, ...options].join(' ');
+            const coords = extractCoordinatePairsFromText(allText).slice(0, 12);
+            if (coords.length){
+              const exprs = coords.map((pt, i) => ({ type: 'point', x: pt.x, y: pt.y, id: `pt${i}` }));
+              graph = { expressions: exprs };
+            }
+          }
           let table = undefined;
           try {
             if (p && p.table && Array.isArray(p.table.rows)){
