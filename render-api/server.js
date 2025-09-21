@@ -477,6 +477,14 @@ async function bootstrap() {
       const seen = new Set();
       const docs = [];
       let attempts = 0;
+      const requireVisual = String(req.query.require || '').toLowerCase();
+      const visualNote = requireVisual === 'graph'
+        ? 'REQUIREMENT: Include a minimal graph under "graph.expressions" relevant to the item.'
+        : requireVisual === 'table'
+        ? 'REQUIREMENT: Include a concise table under "table" with headers and rows relevant to the item.'
+        : requireVisual === 'numberline'
+        ? 'REQUIREMENT: Include a compact number line under "numberLine" (min, max, points or intervals) relevant to the item.'
+        : '';
       // Prefer ingested chunks for the lesson, fall back to model-only
       const chunks = await ing.find({ $or:[ { lessonSlug }, { lessonSlug: null } ] }).limit(500).toArray();
       const contextText = chunks && chunks.length ? chunks.slice(0,40).map(c=> `p.${c.page}: ${c.text}`).join('\n\n') : '';
@@ -486,7 +494,8 @@ async function bootstrap() {
         const batches = Math.min(4, Math.max(1, Math.ceil(need / perBatch)));
         const prompts = new Array(batches).fill(0).map(()=> {
           const base = buildLessonPrompt(lessonTitle, lessonSlug, perBatch);
-          return contextText ? `${base}\n\nUse this textbook context (extract key facts, captions, tables, graphs):\n${contextText.substring(0, 8000)}` : base;
+          const withContext = contextText ? `${base}\n\nUse this textbook context (extract key facts, captions, tables, graphs):\n${contextText.substring(0, 8000)}` : base;
+          return visualNote ? `${withContext}\n\n${visualNote}` : withContext;
         });
         const results = await Promise.all(prompts.map(p=> callGeminiGenerate('gemini-1.5-flash-8b', p).catch(()=>'')));
         const all = [];
