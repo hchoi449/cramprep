@@ -837,6 +837,30 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           } catch { return false; }
         }
 
+        // Fix items that ask for quadrant but refer to the origin (0,0)
+        function fixQuadrantOrigin(problem){
+          try {
+            const stemPlain = normalizePlain(stripLatexToPlain(problem.stem||''));
+            const mentionsOrigin = /(\(\s*0\s*,\s*0\s*\)|\borigin\b)/i.test(stemPlain);
+            const mentionsQuadrant = /quadrant/i.test(stemPlain);
+            if (!mentionsQuadrant) return problem;
+            if (!mentionsOrigin) return problem;
+            const opts = Array.isArray(problem.options) ? problem.options.slice(0,4).map(String) : [];
+            const hasOriginChoice = opts.some(o=> /origin|none of/i.test(normalizePlain(stripLatexToPlain(o))));
+            if (!hasOriginChoice){
+              // Replace last option with Origin choice and set correct index
+              while (opts.length < 4) opts.push('');
+              const originLabel = '$\\text{Origin (none of the quadrants)}$';
+              opts[3] = originLabel;
+              problem.options = opts;
+              problem.correct = 3;
+              const note = ' The point $(0,0)$ is the origin and is not in any quadrant.';
+              problem.explanation = String(problem.explanation||'') + note;
+            }
+            return problem;
+          } catch { return problem; }
+        }
+
         // Strict string equality (no numeric evaluation). Used for "simplify/lowest terms" tasks
         function plainsEqualStrict(a,b){
           try {
@@ -927,6 +951,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         function sanitizeProblem(problem){
           try {
             if (!problem || !Array.isArray(problem.options)) return problem;
+            problem = fixQuadrantOrigin(problem);
             // Enforce LaTeX for stem/options/explanation if not present
             if (problem.stem) problem.stem = latexifyInline(problem.stem);
             // Ensure any remaining bare LaTeX in stem/options gets wrapped
@@ -1261,8 +1286,9 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                 if (q.numberLine){
                   const nl = q.numberLine;
                   const wrap = document.createElement('div');
-                  wrap.style.margin = '10px 0';
-                  wrap.style.height = '80px';
+                  wrap.style.margin = '10px auto';
+                  wrap.style.height = '120px';
+                  wrap.style.width = '420px';
                   wrap.style.position = 'relative';
                   wrap.style.border = '1px solid #eee';
                   wrap.style.borderRadius = '10px';
@@ -1941,7 +1967,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
       // Lightweight graph renderer (SVG -> data URL image)
       function renderGraphAsImage(expressions, width, height){
         try {
-          const w = width || 320, h = height || 320; // square
+          const w = width || 420, h = height || 420; // larger square
           const exprs = Array.isArray(expressions) ? expressions : [];
           const pts = exprs.filter(e=> e && e.type==='point' && Number.isFinite(e.x) && Number.isFinite(e.y));
           let xmin = -10, xmax = 10, ymin = -10, ymax = 10;
@@ -2029,11 +2055,12 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           svg += `</svg>`;
           const img = new Image();
           img.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
-          img.style.width = '320px';
-          img.style.height = '320px';
+          img.style.width = `${w}px`;
+          img.style.height = `${h}px`;
           img.style.border = '1px solid #eee';
           img.style.borderRadius = '10px';
-          img.style.margin = '10px 0';
+          img.style.display = 'block';
+          img.style.margin = '10px auto';
           return img;
         } catch {
           const fallback = document.createElement('div');
