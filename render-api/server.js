@@ -3,6 +3,7 @@ const cors = require('cors');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const pdfParse = require('pdf-parse');
 const { MongoClient, ObjectId } = require('mongodb');
 
 const app = express();
@@ -63,6 +64,8 @@ async function bootstrap() {
   const SESS_DB = process.env.MONGODB_DATABASE_SESSIONS || 'thinkpod';
   const SESS_COL = process.env.MONGODB_COLLECTION_SESSIONS || 'sessiontime';
   const sessionsCol = client.db(SESS_DB).collection(SESS_COL);
+  const assetsDir = path.resolve(__dirname, '../assets_ingest');
+  try { fs.mkdirSync(assetsDir, { recursive: true }); } catch {}
 
   app.get('/auth/ping', (req, res) => res.json({ ok: true, ts: Date.now() }));
 
@@ -350,6 +353,7 @@ async function bootstrap() {
   const MONGO_URI = process.env.MONGODB_URI || process.env.MONGODB_URL || process.env.MONGO_URI;
   const QUESTIONS_DB = 'thinkpod';
   const QUESTIONS_COL = 'questionbank';
+  const INGEST_COL = 'textbook_chunks';
 
   async function getQuestionCollection(client){
     const col = client.db(QUESTIONS_DB).collection(QUESTIONS_COL);
@@ -357,6 +361,15 @@ async function bootstrap() {
       await col.createIndex({ lessonSlug: 1, generatedAt: -1 });
       await col.createIndex({ sourceHash: 1 }, { unique: true });
     } catch(err){ /* ignore if exists */ }
+    return col;
+  }
+
+  async function getIngestCollection(client){
+    const col = client.db(QUESTIONS_DB).collection(INGEST_COL);
+    try {
+      await col.createIndex({ lessonSlug: 1 });
+      await col.createIndex({ sourceId: 1 });
+    } catch(err){}
     return col;
   }
 
@@ -408,6 +421,42 @@ async function bootstrap() {
 }\n${rules}\nReturn STRICT JSON: { "problems": [ ... ] }`;
   }
 
+  // Ingest textbook PDF (upload by URL) and chunk text
+  app.post('/ai/agent1/ingest', async (req, res) => {
+    try {
+      const { url, lessonSlug, lessonTitle } = req.body || {};
+      if (!url) return res.status(400).json({ error: 'url required' });
+      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+      await client.connect();
+      const col = await getIngestCollection(client);
+      const r = await fetch(url);
+      if (!r.ok) { await client.close(); return res.status(400).json({ error: 'fetch_failed' }); }
+      const buf = Buffer.from(await r.arrayBuffer());
+      const pdf = await pdfParse(buf);
+      const text = String(pdf && pdf.text || '');
+      const lines = text.split(/\n+/).map(s=> s.trim()).filter(Boolean);
+      const chunks = [];
+      let acc = [];
+      let page = 1;
+      for (const line of lines){
+        acc.push(line);
+        if (acc.join(' ').length > 1200){
+          chunks.push({ page, text: acc.join(' ') });
+          acc = [];
+        }
+        if (/^\s*Page\s+\d+\s*$/i.test(line)) page = parseInt(line.replace(/\D+/g,''),10)||page;
+      }
+      if (acc.length) chunks.push({ page, text: acc.join(' ') });
+      const sourceId = sha256Hex(url);
+      // optional lesson association
+      const docs = chunks.map((c,i)=> ({ sourceId, url, page: c.page, text: c.text, lessonSlug: lessonSlug||null, lessonTitle: lessonTitle||null, createdAt: new Date().toISOString() }));
+      await col.deleteMany({ sourceId });
+      if (docs.length) await col.insertMany(docs, { ordered: false });
+      await client.close();
+      return res.json({ ok:true, sourceId, chunks: docs.length });
+    } catch (e){ console.error(e); return res.status(500).json({ error: 'ingest_failed' }); }
+  });
+
   // Agent 1: Generate and store ≥30 questions for a lesson
   app.post('/ai/agent1/generate', async (req, res) => {
     const lessonSlug = String(req.query.lesson || '').trim();
@@ -417,6 +466,7 @@ async function bootstrap() {
       const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
       await client.connect();
       const col = await getQuestionCollection(client);
+      const ing = await getIngestCollection(client);
 
       const perBatch = 12; // small fast batches
       const target = Math.max(30, Number(req.query.target||0) || 30);
@@ -424,11 +474,17 @@ async function bootstrap() {
       const seen = new Set();
       const docs = [];
       let attempts = 0;
+      // Prefer ingested chunks for the lesson, fall back to model-only
+      const chunks = await ing.find({ $or:[ { lessonSlug }, { lessonSlug: null } ] }).limit(500).toArray();
+      const contextText = chunks && chunks.length ? chunks.slice(0,40).map(c=> `p.${c.page}: ${c.text}`).join('\n\n') : '';
       while (docs.length < target && attempts < maxAttempts){
         attempts++;
         const need = target - docs.length;
         const batches = Math.min(4, Math.max(1, Math.ceil(need / perBatch)));
-        const prompts = new Array(batches).fill(0).map(()=> buildLessonPrompt(lessonTitle, lessonSlug, perBatch));
+        const prompts = new Array(batches).fill(0).map(()=> {
+          const base = buildLessonPrompt(lessonTitle, lessonSlug, perBatch);
+          return contextText ? `${base}\n\nUse this textbook context (extract key facts, captions, tables, graphs):\n${contextText.substring(0, 8000)}` : base;
+        });
         const results = await Promise.all(prompts.map(p=> callGeminiGenerate('gemini-1.5-flash-8b', p).catch(()=>'')));
         const all = [];
         for (const txt of results){
