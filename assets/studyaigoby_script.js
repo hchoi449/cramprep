@@ -1,12 +1,3 @@
-const chatBody = document.querySelector(".chat-body");
-const messageInput = document.querySelector(".message-input");
-const sendMessage = document.querySelector("#send-message");
-const fileInput = document.querySelector("#file-input");
-const fileUploadWrapper = document.querySelector(".file-upload-wrapper");
-const fileCancelButton = fileUploadWrapper.querySelector("#file-cancel");
-const chatbotToggler = document.querySelector("#chatbot-toggler");
-const closeChatbot = document.querySelector("#close-chatbot");
-
 /* Study AI - isolated chatbot (separate from Schedule AI)
  * Mounts its own UI and uses the server proxy /ai/generate.
  * Open with any element having [data-open="study-ai"].
@@ -254,8 +245,11 @@ document.addEventListener('click', function(e){
   const target = e.target.closest('[data-open="study-ai"]');
   if (!target) return;
   e.preventDefault();
+  // Ensure DOM is attached before showing
+  if (!document.body.contains(root)) document.body.appendChild(root);
   root.style.display = 'block';
   overlay.style.display = 'block';
+  try { messageInput.focus(); } catch {}
 });
 
 overlay.addEventListener('click', ()=> { root.style.display='none'; overlay.style.display='none'; });
