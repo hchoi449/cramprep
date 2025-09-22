@@ -979,6 +979,30 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             return -1;
           } catch { return -1; }
         }
+
+        // Prime-in-range helper – accept any prime option strictly between a and b
+        function isPrimeInt(n){
+          try{ n = Number(n); if (!Number.isInteger(n) || n < 2) return false; if (n%2===0) return n===2; const r = Math.floor(Math.sqrt(n)); for(let d=3; d<=r; d+=2){ if(n%d===0) return false; } return true; }catch{return false}
+        }
+        function findPrimeInRangeOptionIndices(stemText, options){
+          try{
+            const s = String(stemText||'').toLowerCase();
+            if (!/\bprime\b/.test(s)) return [];
+            const m = s.match(/between\s+(\d+)\s+and\s+(\d+)/i);
+            if (!m) return [];
+            const a = parseInt(m[1],10), b = parseInt(m[2],10);
+            if (!Number.isFinite(a) || !Number.isFinite(b)) return [];
+            const lo = Math.min(a,b), hi = Math.max(a,b);
+            const idxs = [];
+            const raw = Array.isArray(options)? options : [];
+            for (let i=0;i<raw.length;i++){
+              const t = String(raw[i]||'').replace(/,/g,'');
+              const n = parseFloat(t);
+              if (Number.isFinite(n) && n>lo && n<hi && isPrimeInt(n)) idxs.push(i);
+            }
+            return idxs;
+          } catch { return []; }
+        }
         function findRoundingCorrectIndex(stemText, options){
           try {
             const t = String(stemText||'').toLowerCase();
@@ -1059,6 +1083,9 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             const stemPlain = stripLatexToPlain(problem.stem);
             const roundingIdx = findRoundingCorrectIndex(stemPlain, opts);
             if (roundingIdx >= 0) correctIdx = roundingIdx;
+            // If the stem asks for a prime number in a range and multiple options are valid primes,
+            // accept any of those as correct by aligning the index to the user's eventual choice.
+            const primeIdxs = findPrimeInRangeOptionIndices(stemPlain, opts);
             const placeIdx = findPlaceValueCorrectIndex(stemPlain, opts);
             if (placeIdx >= 0) correctIdx = placeIdx;
             const periIdx = findPerimeterRectangleCorrectIndex(stemPlain, opts);
@@ -1511,6 +1538,10 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                     try { const toast=document.createElement('div'); toast.textContent='Please select an answer first.'; toast.setAttribute('role','status'); toast.style.position='fixed'; toast.style.top='14px'; toast.style.right='16px'; toast.style.padding='8px 12px'; toast.style.borderRadius='9999px'; toast.style.background='#b45309'; toast.style.color='#fff'; toast.style.boxShadow='0 6px 20px rgba(0,0,0,0.12)'; toast.style.zIndex='1000'; toast.style.opacity='0'; toast.style.transform='translateY(-6px)'; toast.style.transition='all .2s ease'; document.body.appendChild(toast); requestAnimationFrame(()=>{ toast.style.opacity='1'; toast.style.transform='translateY(0)'; }); setTimeout(()=>{ toast.style.opacity='0'; toast.style.transform='translateY(-6px)'; setTimeout(()=>{ try{ toast.remove(); }catch{} }, 250); }, 1200); } catch{}
                     return; }
                   const chosen = Number(chosenBtn.dataset.chosen);
+                  // If multiple primes are valid and the chosen option is one of them, force-correct
+                  if (primeIdxs && primeIdxs.length>=2 && primeIdxs.includes(chosen)){
+                    q.correct = chosen; // update local question's correct index
+                  }
                   // robust correctness: compare plain/number and also accept unit spacing
                   const chosenText = chosenBtn.textContent || chosenBtn.innerText || '';
                   // Map correct index to the actual rendered button (because options are shuffled)
