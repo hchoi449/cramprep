@@ -239,7 +239,7 @@ if (fileCancelButton) fileCancelButton.addEventListener("click", () => {
 sendMessage.addEventListener("click", (e) => handleOutgoingMessage(e));
 const fileUploadBtn = root.querySelector("#study-file-upload");
 if (fileUploadBtn) fileUploadBtn.addEventListener("click", () => fileInput.click());
-closeChatbot.addEventListener("click", () => { root.style.display='none'; overlay.style.display='none'; });
+  closeChatbot.addEventListener("click", () => { root.style.display='none'; overlay.style.display='none'; try{ document.body.classList.remove('show-chatbot'); }catch{} });
 
 // Open Study AI via data-open="study-ai"
 document.addEventListener('click', function(e){
@@ -250,8 +250,9 @@ document.addEventListener('click', function(e){
   if (!document.body.contains(root)) document.body.appendChild(root);
   root.style.display = 'block';
   overlay.style.display = 'block';
+  try { document.body.classList.add('show-chatbot'); } catch {}
   try { messageInput.focus(); } catch {}
 });
 
-overlay.addEventListener('click', ()=> { root.style.display='none'; overlay.style.display='none'; });
+overlay.addEventListener('click', ()=> { root.style.display='none'; overlay.style.display='none'; try{ document.body.classList.remove('show-chatbot'); }catch{} });
 })();
