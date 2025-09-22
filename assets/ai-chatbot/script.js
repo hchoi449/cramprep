@@ -65,13 +65,13 @@
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
 
     const userData = { message: null, file: { data:null, mime_type:null } };
-    const SEED_PROMPT = "You are ThinkBigPrep's scheduling assistant. Help students book sessions. Keep every reply within 300 characters. If the student's profile is available, do not ask for their name, school, or grade; use the provided profile data. Ask only what is necessary (subject, help type, preferred day/time). Be friendly and professional.";
+    const SEED_PROMPT = "You are a Homework Helper for ThinkBigPrep. Goal: help students understand and solve problems without giving the final answer. Provide: 1) brief concept recap, 2) step-by-step strategy, 3) one worked example of a similar problem (not the same numbers), 4) a hint specific to their problem. Keep replies concise, clear, and encouraging. Avoid scheduling/marketing unless explicitly asked. Use inline math like 2/3, x^2.";
     const chatHistory = [];
     // Seed assistant role and constraints
     chatHistory.push({ role: 'model', parts: [{ text: SEED_PROMPT }] });
     const initialInputHeight = messageInput.scrollHeight;
 
-    let userIsAuthed = false;
+    let userIsAuthed = true; // homework help available to all
     let cachedProfile = null;
     let hasAskedHelp = false;
     let helpTopic = null;
@@ -153,114 +153,20 @@
       return null;
     }
 
-    function setAuthUI(authed){
-      userIsAuthed = !!authed;
-      if (!userIsAuthed) {
-        messageInput.disabled = true;
-        sendMessage.disabled = true;
-        messageInput.placeholder = 'Please log in or sign up to continue scheduling.';
-      } else {
-        messageInput.disabled = false;
-        sendMessage.disabled = false;
-        messageInput.placeholder = 'Message...';
-      }
-    }
+    function setAuthUI(){ messageInput.disabled = false; sendMessage.disabled = false; messageInput.placeholder = 'Ask about your homework...'; }
 
     function renderLoginPromptOnce(){
       if (loginPromptShown) return;
-      const div = createMessageElement(`<div class=\"message-text\">Please log in or sign up to continue scheduling.<br><button class=\"btn btn-secondary btn-chat open-login-btn\" aria-label=\"Open login\">Open login</button></div>`, 'bot-message');
+      const div = createMessageElement(`<div class="message-text">How can I help with your homework?</div>`, 'bot-message');
       chatBody.appendChild(div);
-      const btnOpen = div.querySelector('.open-login-btn');
-      if (btnOpen) btnOpen.addEventListener('click', function(e){ e.preventDefault();
-        try { document.body.classList.remove('show-chatbot'); } catch {}
-        try {
-          const a = document.querySelector('.student-login-link');
-          if (a) a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-        } catch {}
-      });
       chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
       loginPromptShown = true;
     }
 
     async function generateBotResponse(incomingMessageDiv){
-      const messageElement = incomingMessageDiv.querySelector('.message-text');
       chatHistory.push({ role:'user', parts:[{ text: userData.message }, ...(userData.file.data ? [{ inline_data: userData.file }] : [])] });
-      // Provide strict available sessions only from timetable (/sessions)
       try {
-        if (helpTopic) {
-          chatHistory.push({ role:'user', parts:[{ text: `HelpTopic: ${helpTopic}` }] });
-        }
-        if (contextHelpType) {
-          chatHistory.push({ role:'user', parts:[{ text: `HelpType: ${contextHelpType}` }] });
-        }
-        if (contextSubject) {
-          chatHistory.push({ role:'user', parts:[{ text: `Subject: ${contextSubject}` }] });
-        }
-        const desiredType = contextHelpType;
-        const freeAll = await fetchSessionsUntil(dueDateIso, desiredType, false);
-        let filtered = freeAll;
-        if (preferredDay !== null) {
-          filtered = freeAll.filter(ev => ev.start.getDay() === preferredDay);
-        }
-        const fmt = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York', weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
-        const choices = (filtered || []).slice(0, 8).map(ev=> fmt.format(ev.start));
-        const firstName = cachedProfile && cachedProfile.fullName ? (String(cachedProfile.fullName).trim().split(' ')[0] || 'there') : 'there';
-        const school = cachedProfile && cachedProfile.school ? cachedProfile.school : 'N/A';
-        const grade = cachedProfile && cachedProfile.grade ? cachedProfile.grade : 'N/A';
-        const authRule = userIsAuthed ? '' : `\nIf NotLoggedIn: Reply EXACTLY: Please log in or sign up to continue scheduling.`;
-        const missing = [];
-        if (!helpTopic) missing.push('AssignmentTitle');
-        if (!contextSubject) missing.push('Subject');
-        if (!contextHelpType) missing.push('HelpType');
-        if (preferredDay === null) missing.push('PreferredDay');
-        if (missing.length) {
-          const ask = `MissingFields: ${missing.join(', ')}. Compose ONE concise, grammatically correct question to gather ONLY the missing info. Do NOT guess details, do NOT repeat the user's name, and do NOT start with filler like 'Okay'. Keep it under 12 words. Do NOT suggest times yet.${authRule}`;
-          chatHistory.push({ role:'user', parts:[{ text: ask }] });
-        } else {
-          // We have enough info; render a session table like Get Help flow
-          const list = filtered;
-          const fmtDate = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York', weekday:'short', month:'short', day:'numeric' });
-          const fmtTime = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York', hour:'numeric', minute:'2-digit' });
-          if (list && list.length) {
-            const headerText = `${helpTopic ? `I see that you need help with ${helpTopic}. ` : ''}Here are the available ${(contextHelpType||'session')} times:`;
-            const rows = list.slice(0,5).map((ev,i)=>{
-              const dateStr = fmtDate.format(ev.start);
-              const timeStr = `${fmtTime.format(ev.start)} – ${fmtTime.format(ev.end)} (EST)`;
-              const titleStr = ev.title || (ev.type==='exam' ? 'Exam Prep Session' : 'Homework Prep Session');
-              return `<tr><td>${titleStr}</td><td>${dateStr}</td><td>${timeStr}</td><td><button class=\"btn btn-primary btn-sm register-session\" data-idx=\"${i}\">Register</button></td></tr>`;
-            }).join('');
-            const html = `${headerText}<br><table class=\"ai-table\"><thead><tr><th>Session</th><th>Date</th><th>Time</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
-            messageElement.innerHTML = html;
-            incomingMessageDiv.classList.remove('thinking');
-            // Add follow-up with Contact us
-            const follow = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">Let me know if these times don’t work.<br><button class=\"btn btn-secondary btn-chat contact-us\" aria-label=\"Contact us for scheduling help\">Contact us</button></div>`, 'bot-message');
-            chatBody.appendChild(follow);
-            // Wire register buttons
-            incomingMessageDiv.querySelectorAll('.register-session').forEach(btn=>{
-              btn.addEventListener('click', function(){
-                try { if (window.tbpOpenEnroll) window.tbpOpenEnroll(); else document.querySelector('.floating-consult-btn')?.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true})); } catch {}
-              });
-            });
-            const btn = follow.querySelector('.contact-us');
-            if (btn) btn.addEventListener('click', async function(){
-              const ack = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">Someone will contact you shortly to help with scheduling.</div>`, 'bot-message');
-              chatBody.appendChild(ack);
-              chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
-              if (window.tbpFallbackNotify) try { await window.tbpFallbackNotify(); } catch {}
-            });
-            // Early return: no Gemini call needed
-            incomingMessageDiv.classList.remove('thinking');
-            chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
-            return;
-          } else {
-            // No sessions available with current constraints
-            const none = `It seems that there is no available session at this time${helpTopic?` for ${helpTopic}`:''}. Someone from our team will contact you to help with scheduling as soon as possible.`;
-            messageElement.innerText = none;
-            incomingMessageDiv.classList.remove('thinking');
-            if (window.tbpFallbackNotify) try { await window.tbpFallbackNotify(); } catch {}
-            return;
-          }
-        }
+        // Homework mode: direct call to Gemini for explanations
       } catch {}
       const requestOptions = { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ contents: chatHistory }) };
       try {
@@ -363,7 +269,7 @@
       messageInput.value = '';
       messageInput.dispatchEvent(new Event('input'));
       if (fileUploadWrapper) fileUploadWrapper.classList.remove('file-uploaded');
-      const messageContent = `<div class=\"message-text\"></div>${userData.file.data ? `<img src=\"data:${userData.file.mime_type};base64,${userData.file.data}\" class=\"attachment\" />` : ''}`;
+      const messageContent = `<div class="message-text"></div>${userData.file.data ? `<img src="data:${userData.file.mime_type};base64,${userData.file.data}" class="attachment" />` : ''}`;
       const outgoingMessageDiv = createMessageElement(messageContent, 'user-message');
       outgoingMessageDiv.querySelector('.message-text').innerText = userData.message;
       chatBody.appendChild(outgoingMessageDiv);
@@ -402,9 +308,9 @@
                 const dateStr = fmtDate.format(ev.start);
                 const timeStr = `${fmtTime.format(ev.start)} – ${fmtTime.format(ev.end)} (EST)`;
                 const titleStr = ev.title || (ev.type==='exam' ? 'Exam Prep Session' : 'Homework Prep Session');
-                return `<tr><td>${titleStr}</td><td>${dateStr}</td><td>${timeStr}</td><td><button class=\"btn btn-primary btn-sm register-session\" data-idx=\"${i}\">Register</button></td></tr>`;
+                return `<tr><td>${titleStr}</td><td>${dateStr}</td><td>${timeStr}</td><td><button class="btn btn-primary btn-sm register-session" data-idx="${i}">Register</button></td></tr>`;
               }).join('');
-              const table = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">Here are some alternatives around your time:<br><table class=\"ai-table\"><thead><tr><th>Session</th><th>Date</th><th>Time</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`, 'bot-message');
+              const table = createMessageElement(`<svg class="bot-avatar" xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 1024 1024"><path d="M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z"/></svg><div class="message-text">Here are some alternatives around your time:<br><table class="ai-table"><thead><tr><th>Session</th><th>Date</th><th>Time</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`, 'bot-message');
               chatBody.appendChild(table);
               chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
               // Wire register buttons
@@ -418,7 +324,7 @@
           } catch {}
           const nm = (cachedProfile && cachedProfile.fullName ? String(cachedProfile.fullName).trim() : '') || '';
           const first = (nm.split(' ')[0] || nm || 'there');
-          const reply = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">Got it. Thanks ${first}. Someone will contact you through text shortly. Is there anything else I can help with?</div>`, 'bot-message');
+          const reply = createMessageElement(`<svg class="bot-avatar" xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 1024 1024"><path d="M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z"/></svg><div class="message-text">Got it. Thanks ${first}. Someone will contact you through text shortly. Is there anything else I can help with?</div>`, 'bot-message');
           chatBody.appendChild(reply);
           chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
           if (window.tbpFallbackNotify) {
@@ -443,7 +349,7 @@
         const looksGreeting = /^(hi|hey|hello|yo|sup|good\s*(morning|afternoon|evening))\b/i.test(userData.message);
         const hasKeywords = /(homework|exam|test|quiz|assessment|assignment|project|paper|lab|due|study|help)\b/i.test(userData.message);
         if (!hasKeywords && (looksGreeting || userData.message.length < 15)) {
-          const ask = createMessageElement(`<div class=\"message-text\">Got it. What do you need help with? (e.g., Algebra homework due Thu)</div>`, 'bot-message');
+          const ask = createMessageElement(`<div class="message-text">Got it. What do you need help with? (e.g., Algebra homework due Thu)</div>`, 'bot-message');
           chatBody.appendChild(ask);
           chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
           return;
@@ -466,7 +372,7 @@
       }
       // If missing details, let Gemini ask for them (no fixed follow-up text here)
       setTimeout(()=>{
-        const messageContent = `<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\"><div class=\"thinking-indicator\"><div class=\"dot\"></div><div class=\"dot\"></div><div class=\"dot\"></div></div></div>`;
+        const messageContent = `<svg class="bot-avatar" xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 1024 1024"><path d="M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z"/></svg><div class="message-text"><div class="thinking-indicator"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`;
         const incomingMessageDiv = createMessageElement(messageContent, 'bot-message', 'thinking');
         chatBody.appendChild(incomingMessageDiv);
         chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
@@ -519,7 +425,7 @@
     }
     // On login, update cached profile and mark to refresh on next open
     window.addEventListener('tbp:auth:login', async function(){
-      try { const profile = await getProfile(); cachedProfile = profile; setAuthUI(!!profile); } catch {}
+      try { const profile = await getProfile(); cachedProfile = profile; setAuthUI(); } catch {}
       try { window.__tbp_clearOnNextOpen = true; } catch {}
     });
     async function initializeOnOpen(){
@@ -529,18 +435,13 @@
         chatBody.innerHTML = '';
         const msg = document.createElement('div');
         msg.className = 'message bot-message';
-        if (!profile) {
-          msg.innerHTML = `<div class=\"message-text\">Please log in or sign up to continue scheduling.<br><button class=\"btn btn-secondary btn-chat open-login-btn\" aria-label=\"Open login\">Open login</button></div>`;
+        const nm = (profile && profile.fullName ? String(profile.fullName).trim() : '') || '';
+        const first = (nm.split(' ')[0] || nm || 'there');
+        if (!window.__tbp_hasGreeted) {
+          msg.innerHTML = `<svg class="bot-avatar" xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 1024 1024"><path d="M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z"/></svg><div class="message-text">Hey ${first} 👋 What problem are you working on?</div>`;
+          window.__tbp_hasGreeted = true;
         } else {
-          const nm = (profile && profile.fullName ? String(profile.fullName).trim() : '') || '';
-          const first = (nm.split(' ')[0] || nm || 'there');
-          if (!window.__tbp_hasGreeted) {
-            msg.innerHTML = `<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">Hey ${first} 👋 How can I help?</div>`;
-            window.__tbp_hasGreeted = true;
-          } else {
-            msg.innerHTML = `<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">How can I help?</div>`;
-          }
-          hasAskedHelp = false; helpTopic = null; contextHelpType = null; contextSubject = null;
+          msg.innerHTML = `<svg class="bot-avatar" xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 1024 1024"><path d="M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z"/></svg><div class="message-text">What problem can I help with?</div>`;
         }
         chatBody.appendChild(msg);
         // Wire open-login link to trigger login modal
@@ -572,7 +473,7 @@
       document.body.classList.add('show-chatbot');
       if (willOpen) {
         (async ()=>{
-          try { const profile = await getProfile(); cachedProfile = profile; setAuthUI(!!profile); } catch { cachedProfile = null; setAuthUI(false); }
+          try { const profile = await getProfile(); cachedProfile = profile; setAuthUI(); } catch { cachedProfile = null; setAuthUI(); }
           try {
             const hasHistory = !!(chatBody && chatBody.children && chatBody.children.length > 0);
             const hasLoginPrompt = hasHistory && /Please log in or sign up/i.test(chatBody.textContent||'');
@@ -594,7 +495,7 @@
       if (willOpen) { 
         // Initialize without clearing existing transcript unless it was a login prompt
         (async ()=>{
-          try { const profile = await getProfile(); cachedProfile = profile; setAuthUI(!!profile); } catch { cachedProfile = null; setAuthUI(false); }
+          try { const profile = await getProfile(); cachedProfile = profile; setAuthUI(); } catch { cachedProfile = null; setAuthUI(); }
           try {
             const hasHistory = !!(chatBody && chatBody.children && chatBody.children.length > 0);
             const hasLoginPrompt = hasHistory && /Please log in or sign up/i.test(chatBody.textContent||'');
@@ -648,7 +549,7 @@
         // If not logged in, instruct to sign up / log in and stop
         if (!profile) {
           try { chatBody.innerHTML = ''; } catch {}
-          const msg = createMessageElement(`<div class=\"message-text\">Please log in or sign up to continue scheduling. <a href=\"#\" class=\"open-login\">Open login</a></div>`, 'bot-message');
+          const msg = createMessageElement(`<div class="message-text">Please log in or sign up to continue scheduling. <a href="#" class="open-login">Open login</a></div>`, 'bot-message');
           chatBody.appendChild(msg);
           const link = msg.querySelector('.open-login');
           if (link) link.addEventListener('click', function(e){ e.preventDefault();
@@ -663,7 +564,7 @@
 
         const list = await fetchSessionsUntil(dueIso, helpType, true);
         // Always show thinking dots before any bot message
-        const thinkingContent = `<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\"><div class=\"thinking-indicator\"><div class=\"dot\"></div><div class=\"dot\"></div><div class=\"dot\"></div></div></div>`;
+        const thinkingContent = `<svg class="bot-avatar" xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 1024 1024"><path d="M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z"/></svg><div class="message-text"><div class="thinking-indicator"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`;
         const thinkingDiv = createMessageElement(thinkingContent, 'bot-message', 'thinking');
         chatBody.appendChild(thinkingDiv);
         chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
@@ -675,9 +576,9 @@
             const dateStr = fmtDate.format(ev.start);
             const timeStr = `${fmtTime.format(ev.start)} – ${fmtTime.format(ev.end)} (EST)`;
             const titleStr = ev.title || (ev.type==='exam' ? 'Exam Prep Session' : 'Homework Prep Session');
-            return `<tr><td>${titleStr}</td><td>${dateStr}</td><td>${timeStr}</td><td><button class=\"btn btn-primary btn-sm register-session\" data-idx=\"${i}\">Register</button></td></tr>`;
+            return `<tr><td>${titleStr}</td><td>${dateStr}</td><td>${timeStr}</td><td><button class="btn btn-primary btn-sm register-session" data-idx="${i}">Register</button></td></tr>`;
           }).join('');
-          const html = `${headerText}<br><table class=\"ai-table\"><thead><tr><th>Session</th><th>Date</th><th>Time</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+          const html = `${headerText}<br><table class="ai-table"><thead><tr><th>Session</th><th>Date</th><th>Time</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
           // Replace thinking with the table message
           try { thinkingDiv.querySelector('.message-text').innerHTML = html; thinkingDiv.classList.remove('thinking'); } catch { }
           const msg = thinkingDiv;
@@ -693,7 +594,7 @@
           chatBody.appendChild(followThinking);
           chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
           const follow = followThinking;
-          try { follow.querySelector('.message-text').innerHTML = `Let me know if these times don’t work.<br><button class=\"btn btn-secondary btn-chat contact-us\" aria-label=\"Contact us for scheduling help\">Contact us</button>`; follow.classList.remove('thinking'); } catch {}
+          try { follow.querySelector('.message-text').innerHTML = `Let me know if these times don’t work.<br><button class="btn btn-secondary btn-chat contact-us" aria-label="Contact us for scheduling help">Contact us</button>`; follow.classList.remove('thinking'); } catch {}
           // Local fallback sender using current context
           async function sendFallbackNow(){
             try {
@@ -707,7 +608,7 @@
           }
           const btn = follow.querySelector('.contact-us');
           if (btn) btn.addEventListener('click', async function(){
-            const ack = createMessageElement(`<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">Someone will contact you shortly to help with scheduling.</div>`, 'bot-message');
+            const ack = createMessageElement(`<svg class="bot-avatar" xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 1024 1024"><path d="M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z"/></svg><div class="message-text">Someone will contact you shortly to help with scheduling.</div>`, 'bot-message');
             chatBody.appendChild(ack);
             chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
             if (window.tbpFallbackNotify) { try { await window.tbpFallbackNotify(); } catch {} } else { await sendFallbackNow(); }
