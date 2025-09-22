@@ -1069,7 +1069,16 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         function availableCount(){
           return ['easy','medium','hard'].reduce((s,g)=> s + groups[g].filter(x=> !used.has(x.id)).length, 0);
         }
-        function ensurePool(minNeeded){ /* no-op: no local fallback */ }
+        function ensurePool(minNeeded){
+          try {
+            const need = Math.max(1, Number(minNeeded||0));
+            const avail = availableCount();
+            if (avail >= need) return;
+            // Generate local fallback problems to guarantee supply
+            const extra = fallbackProblems(lesson, Math.max(need*2, 10));
+            if (Array.isArray(extra) && extra.length){ addProblems(extra); }
+          } catch {}
+        }
         // Detect banded lessons and prebuild a fixed ordered set of 10
         // Build ordered banded set for ALL lessons: use specific generator if present; otherwise use Gemini
         try {
@@ -1733,7 +1742,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
       async function generateProblemsForLesson(course, subtopic, lesson, count, opts){
         const AUTH_BASE = (window && window.TBP_AUTH_BASE) ? window.TBP_AUTH_BASE.replace(/\/$/,'') : '';
         const endpoint = `${AUTH_BASE}/ai/generate`;
-        const agent2 = `${AUTH_BASE}/ai/agent2/questions?lesson=${encodeURIComponent(lesson.slug)}&n=${Math.max(10, count||10)}`;
+        const agent2 = `${AUTH_BASE}/ai/agent2/questions?lesson=${encodeURIComponent(lesson.slug)}&n=${Math.max(15, count||15)}`;
         const topic = `${course.title} → ${subtopic.title} → ${lesson.title}`;
         const isWritingExpr = /writing expressions/i.test(String((lesson && lesson.title) || ''));
         const sys = `You create math MC questions. Return STRICT JSON only.`;

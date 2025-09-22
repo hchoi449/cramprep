@@ -687,14 +687,22 @@ async function bootstrap() {
   // Agent 2: Retrieve random 10 for a lesson
   app.get('/ai/agent2/questions', async (req, res) => {
     const lessonSlug = String(req.query.lesson || '').trim();
-    const n = Math.max(1, Math.min(20, Number(req.query.n || 10)));
+    const n = Math.max(1, Math.min(20, Number(req.query.n || 15)));
     if (!lessonSlug) return res.status(400).json({ error: 'lesson (slug) is required' });
     try {
       const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
       await client.connect();
       const col = await getQuestionCollection(client);
-      // target mix 3 easy, 4 medium, 3 hard
-      const target = { easy:3, medium:4, hard:3 };
+      // target mix ~30% easy, 40% medium, 30% hard (sum to n)
+      const calcMix = (total)=>{
+        const e = Math.floor(total * 0.3);
+        const h = Math.floor(total * 0.3);
+        let m = total - e - h;
+        // slight bias toward medium if rounding lost
+        if (m < 0) m = 0;
+        return { easy: e, medium: m, hard: h };
+      };
+      const target = calcMix(n);
       const buckets = {};
       for (const [k, size] of Object.entries(target)){
         if (size <= 0) continue;
