@@ -1808,7 +1808,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
       const menu = document.getElementById('tool-menu');
       function toggleMenu(show){ menu.style.display = show === true ? 'block' : (show === false ? 'none' : (menu.style.display==='block'?'none':'block')); }
       if (fab){ fab.addEventListener('click', ()=> toggleMenu()); }
-      document.addEventListener('click', (e)=>{ const t=e.target as HTMLElement; if (!t) return; if (t.closest('#tools-fab') || t.closest('#tool-menu')) return; menu.style.display='none'; });
+      document.addEventListener('click', (e)=>{ const t=e.target; if (!t) return; if (t.closest && (t.closest('#tools-fab') || t.closest('#tool-menu'))) return; menu.style.display='none'; });
 
       function makeWindow(title){
         const win = document.createElement('div'); win.className='tool-window';
@@ -1818,8 +1818,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         if (closeBtn) closeBtn.addEventListener('click', ()=> win.remove());
         // Drag
         let sx=0, sy=0, ox=0, oy=0, dragging=false;
-        function onDown(ev){ dragging=true; sx = (ev as MouseEvent).clientX; sy = (ev as MouseEvent).clientY; const r = win.getBoundingClientRect(); ox=r.left; oy=r.top; document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp); }
-        function onMove(ev){ if (!dragging) return; const dx=(ev as MouseEvent).clientX - sx; const dy=(ev as MouseEvent).clientY - sy; win.style.left = Math.max(8, Math.min(window.innerWidth-80, ox+dx))+'px'; win.style.top = Math.max(8, Math.min(window.innerHeight-80, oy+dy))+'px'; win.style.right='auto'; win.style.bottom='auto'; }
+        function onDown(ev){ dragging=true; sx = ev.clientX; sy = ev.clientY; const r = win.getBoundingClientRect(); ox=r.left; oy=r.top; document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp); }
+        function onMove(ev){ if (!dragging) return; const dx=ev.clientX - sx; const dy=ev.clientY - sy; win.style.left = Math.max(8, Math.min(window.innerWidth-80, ox+dx))+'px'; win.style.top = Math.max(8, Math.min(window.innerHeight-80, oy+dy))+'px'; win.style.right='auto'; win.style.bottom='auto'; }
         function onUp(){ dragging=false; document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
         if (header) header.addEventListener('mousedown', onDown);
         return win;
@@ -1832,7 +1832,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         const win = makeWindow('Desmos');
         const body = win.querySelector('.tool-body'); if (!body) return;
         const api = document.createElement('script'); api.src = 'https://www.desmos.com/api/v1.11/calculator.js?apiKey=demo'; document.head.appendChild(api);
-        api.onload = ()=>{ const el = document.createElement('div'); el.style.width='100%'; el.style.height='100%'; body.appendChild(el); const calc = (window as any).Desmos && (window as any).Desmos.GraphingCalculator ? (window as any).Desmos.GraphingCalculator(el, { expressions:true }) : null; };
+        api.onload = ()=>{ const el = document.createElement('div'); el.style.width='100%'; el.style.height='100%'; body.appendChild(el); try { if (window.Desmos && window.Desmos.GraphingCalculator) { window.Desmos.GraphingCalculator(el, { expressions:true }); } } catch{} };
       }); }
 
       // TI-84
@@ -1856,7 +1856,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
 
       // Study AI opens existing Study AI popup
       const openStudy = document.getElementById('open-study-ai');
-      if (openStudy){ openStudy.addEventListener('click', ()=>{ toggleMenu(false); try { const btn = document.querySelector('[data-open="study-ai"]') as HTMLElement; if (btn) btn.click(); } catch {} }); }
+      if (openStudy){ openStudy.addEventListener('click', ()=>{ toggleMenu(false); try { const btn = document.querySelector('[data-open="study-ai"]'); if (btn && btn.click) btn.click(); } catch {} }); }
     })();
 
       // Generate problems: prefer Agent 2 retrieval; fallback to Gemini proxy if empty
@@ -2917,12 +2917,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
     </script>
     <script src="index.js"></script>
     <script src="login.js?v=1.0"></script>
-    <!-- Study AI only (no Schedule AI on Think Lab) -->
-    <link rel="stylesheet" href="/assets/ai-chatbot/style.css">
-    <button aria-label="Open Study AI" title="Study AI" data-open="study-ai" id="study-ai-fab" class="btn btn-primary floating-ai-btn" style="position:fixed;right:18px;bottom:18px;z-index:9999;">
-      <i class="bi bi-lightbulb"></i> Study AI
-    </button>
-    <script src="/assets/studyaigoby_script.js"></script>
+    <!-- Removed floating Study AI; Study AI can still be opened from Tools menu -->
   </body>
   </html>
 
