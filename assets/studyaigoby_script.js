@@ -39,13 +39,8 @@
   </div>`;
   document.body.appendChild(root);
 
-  // Override watermark to Study AI teacher avatar (scoped)
-  if (!document.getElementById('study-ai-theme')){
-    const style = document.createElement('style');
-    style.id = 'study-ai-theme';
-    style.textContent = `.study-chatbot-root .chat-body::before{content:"";background:url('/assets/images/people/man2.jpg') center center / 280px 280px no-repeat !important;}`;
-    document.head.appendChild(style);
-  }
+  // Remove any custom Study AI watermark override; fall back to default icon from shared CSS
+  try { const s = document.getElementById('study-ai-theme'); if (s) s.remove(); } catch {}
 
   // Overlay to close on outside click (reuse schedule overlay class for identical style)
   let overlay = document.querySelector('.tbp-chat-overlay');
@@ -245,6 +240,15 @@ document.addEventListener('click', function(e){
   root.style.display = 'block';
   overlay.style.display = 'block';
   try { document.body.classList.add('show-chatbot'); } catch {}
+  try {
+    // Default greeting when opening Study AI
+    if (!chatBody.children.length) {
+      const msg = document.createElement('div');
+      msg.className = 'message bot-message';
+      msg.innerHTML = `<svg class="bot-avatar" xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 1024 1024"><path d="M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z"/></svg><div class="message-text">Hi! I’m your Study AI. Tell me what problem you’re working on and I’ll explain, outline steps, and give hints—without giving away the final answer.</div>`;
+      chatBody.appendChild(msg);
+    }
+  } catch {}
   try { messageInput.focus(); } catch {}
 });
 
