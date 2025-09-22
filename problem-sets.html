@@ -1878,8 +1878,13 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         closeMenu();
         const win = makeWindow('Desmos');
         const body = win.querySelector('.tool-body'); if (!body) return;
-        const api = document.createElement('script'); api.src = 'https://www.desmos.com/api/v1.11/calculator.js?apiKey=demo'; document.head.appendChild(api);
-        api.onload = ()=>{ const el = document.createElement('div'); el.style.width='100%'; el.style.height='100%'; body.appendChild(el); try { if (window.Desmos && window.Desmos.GraphingCalculator) { window.Desmos.GraphingCalculator(el, { expressions:true }); } } catch{} };
+        function mountCalc(){
+          const el = document.createElement('div'); el.id = 'calculator'; el.style.width='100%'; el.style.height='100%'; body.appendChild(el);
+          try { if (window.Desmos && window.Desmos.GraphingCalculator) { window.Desmos.GraphingCalculator(el); } } catch{}
+        }
+        if (!(window.Desmos && window.Desmos.GraphingCalculator)){
+          const api = document.createElement('script'); api.src = 'https://www.desmos.com/api/v1.11/calculator.js?apiKey=10948293c8a34275a0f7647db98602d6'; document.head.appendChild(api); api.onload = mountCalc;
+        } else { mountCalc(); }
       }); }
 
       // TI-84
