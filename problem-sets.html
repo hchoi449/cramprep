@@ -10,6 +10,12 @@
     <link rel="stylesheet" href="css/timetable.css?v=1.0" />
     <link rel="stylesheet" href="css/login.css?v=1.0" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" />
+    <style>
+      .ps-controls .celebrate { position: relative; box-shadow: 0 0 0 0 rgba(16,185,129,0.6); animation: pulseRing 1s ease; }
+      .ps-controls .confetti-burst{ position:absolute; inset:-6px; pointer-events:none; background: radial-gradient(circle at 10% 10%, #facc15 0 6px, transparent 7px), radial-gradient(circle at 90% 20%, #f472b6 0 6px, transparent 7px), radial-gradient(circle at 20% 80%, #34d399 0 6px, transparent 7px), radial-gradient(circle at 80% 85%, #60a5fa 0 6px, transparent 7px); animation: fadeOut 1s ease forwards; border-radius:12px; }
+      @keyframes pulseRing{ 0%{ box-shadow: 0 0 0 0 rgba(16,185,129,0.6);} 100%{ box-shadow: 0 0 0 12px rgba(16,185,129,0); } }
+      @keyframes fadeOut{ from{ opacity:1 } to{ opacity:0 } }
+    </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.13.6/underscore-min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <!-- Perseus dependencies (Khan Academy open-source) -->
@@ -1278,6 +1284,18 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           }
 
           function renderOne(){
+            // helper for celebration
+            function playCelebrate(target){
+              try {
+                const snd = new Audio('data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCAAZAAAACcQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
+                snd.volume = 0.4; snd.play().catch(()=>{});
+              } catch {}
+              try {
+                target.classList.add('celebrate');
+                const el = document.createElement('span'); el.className='confetti-burst'; target.appendChild(el);
+                setTimeout(()=>{ try{ target.classList.remove('celebrate'); if (el && el.parentNode) el.parentNode.removeChild(el); }catch{} }, 1000);
+              } catch {}
+            }
             // ensure single-question rendering
             stage.innerHTML = '';
             const picked = (orderedProblems && orderedPointer < orderedProblems.length) ? null : pickNextProblem();
@@ -1419,12 +1437,12 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   opts.appendChild(btn);
                 });
                 try { if (window.katex && window.renderMathInElement) { renderMathInElement(opts, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
-                const submit = document.createElement('button'); submit.className='btn btn-primary'; submit.textContent='Submit';
-                const next = document.createElement('button'); next.className='btn btn-secondary'; next.textContent='Next'; next.disabled = true; next.style.marginLeft='8px';
+                const controls = document.createElement('div'); controls.className='ps-controls'; controls.style.display='flex'; controls.style.justifyContent='flex-end'; controls.style.marginTop='10px'; card.appendChild(controls);
+                const action = document.createElement('button'); action.className='btn btn-primary'; action.textContent='Check'; action.dataset.mode='check';
                 const explain = document.createElement('div'); explain.className='ps-explain';
-                submit.addEventListener('click', async ()=>{
+                async function onCheck(){
                   const chosenBtn = [...opts.children].find(ch=> ch.classList.contains('sel'));
-                  if (!chosenBtn){ results.textContent='Please select an answer before submitting.'; results.style.color='#8B4513'; return; }
+                  if (!chosenBtn){ results.textContent='Please select an answer before checking.'; results.style.color='#8B4513'; return; }
                   const chosen = Number(chosenBtn.dataset.chosen);
                   // robust correctness: compare plain/number and also accept unit spacing
                   const chosenText = chosenBtn.textContent || chosenBtn.innerText || '';
@@ -1441,19 +1459,19 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   }
                   if (correct) { correctCount++; }
                   [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
-                  submit.disabled = true; next.disabled = false;
+                  action.dataset.mode = 'next'; action.textContent = 'Next question';
                   explain.innerHTML = correct ? `<span style="color:#155e2b"><i class='bi bi-check-circle'></i> Correct.</span> ${q.explanation||''}` : `<span style=\"color:#991b1b\"><i class='bi bi-x-circle'></i> Incorrect.</span> ${q.explanation||''}`;
                   try { if (window.katex && window.renderMathInElement) { renderMathInElement(explain, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
                   await bumpSessionCount(correct, q);
-                });
-                next.addEventListener('click', ()=>{
-                  if (!next.disabled){
-                    step++;
-                    if (step < 10){ idxLabel.textContent = `${step+1} / 10`; renderOne(); }
-                    else { const pct = correctCount / 10; results.innerHTML = `Score: ${Math.round(pct*100)}%`; if (pct > scoreBest){ scoreBest = pct; saveProgress(`ps-best-${course.id}-${subtopic.id}-${lesson.slug}`, scoreBest); renderSidebar(); } }
-                  }
-                });
-                card.appendChild(submit); card.appendChild(next); card.appendChild(explain);
+                  if (correct) { try { playCelebrate(action); } catch{} }
+                }
+                function onNext(){
+                  step++;
+                  if (step < 10){ idxLabel.textContent = `${step+1} / 10`; renderOne(); }
+                  else { const pct = correctCount / 10; results.innerHTML = `Score: ${Math.round(pct*100)}%`; if (pct > scoreBest){ scoreBest = pct; saveProgress(`ps-best-${course.id}-${subtopic.id}-${lesson.slug}`, scoreBest); renderSidebar(); } }
+                }
+                action.addEventListener('click', ()=>{ if (action.dataset.mode==='next') onNext(); else onCheck(); });
+                controls.appendChild(action); card.appendChild(explain);
                 return;
               }
 
@@ -1606,12 +1624,12 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   opts.appendChild(btn);
                 });
                 try { if (window.katex && window.renderMathInElement) { renderMathInElement(opts, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
-                const submit = document.createElement('button'); submit.className='btn btn-primary'; submit.textContent='Submit';
-                const next = document.createElement('button'); next.className='btn btn-secondary'; next.textContent='Next'; next.disabled = true; next.style.marginLeft='8px';
+                const controls = document.createElement('div'); controls.className='ps-controls'; controls.style.display='flex'; controls.style.justifyContent='flex-end'; controls.style.marginTop='10px'; card.appendChild(controls);
+                const action = document.createElement('button'); action.className='btn btn-primary'; action.textContent='Check'; action.dataset.mode='check';
                 const explain = document.createElement('div'); explain.className='ps-explain';
-                submit.addEventListener('click', async ()=>{
+                async function onCheck(){
                   const chosenBtn = [...opts.children].find(ch=> ch.classList.contains('sel'));
-                  if (!chosenBtn){ results.textContent='Please select an answer before submitting.'; results.style.color='#8B4513'; return; }
+                  if (!chosenBtn){ results.textContent='Please select an answer before checking.'; results.style.color='#8B4513'; return; }
                   const chosen = Number(chosenBtn.dataset.chosen);
                   // robust correctness: compare plain/number and also accept unit spacing
                   const chosenText = chosenBtn.textContent || chosenBtn.innerText || '';
@@ -1627,21 +1645,21 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   }
                   if (correct) { correctCount++; }
                   [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
-                  submit.disabled = true; next.disabled = false;
+                  action.dataset.mode = 'next'; action.textContent = 'Next question';
                   explain.innerHTML = correct ? `<span style="color:#155e2b"><i class='bi bi-check-circle'></i> Correct.</span> ${q.explanation||''}` : `<span style=\"color:#991b1b\"><i class='bi bi-x-circle'></i> Incorrect.</span> ${q.explanation||''}`;
                   try { if (window.katex && window.renderMathInElement) { renderMathInElement(explain, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
                   if (correct){ currentDifficulty = currentDifficulty==='easy' ? 'medium' : (currentDifficulty==='medium' ? 'hard' : 'hard'); }
                   else { currentDifficulty = currentDifficulty==='hard' ? 'medium' : (currentDifficulty==='medium' ? 'easy' : 'easy'); }
                   await bumpSessionCount(correct, q);
-                });
-                next.addEventListener('click', ()=>{
-                  if (!next.disabled){
-                    step++;
-                    if (step < 10){ idxLabel.textContent = `${step+1} / 10`; renderOne(); }
-                    else { const pct = correctCount / 10; results.innerHTML = `Score: ${Math.round(pct*100)}%`; if (pct > scoreBest){ scoreBest = pct; saveProgress(`ps-best-${course.id}-${subtopic.id}-${lesson.slug}`, scoreBest); renderSidebar(); } }
-                  }
-                });
-                card.appendChild(submit); card.appendChild(next); card.appendChild(explain);
+                  if (correct) { try { playCelebrate(action); } catch{} }
+                }
+                function onNext(){
+                  step++;
+                  if (step < 10){ idxLabel.textContent = `${step+1} / 10`; renderOne(); }
+                  else { const pct = correctCount / 10; results.innerHTML = `Score: ${Math.round(pct*100)}%`; if (pct > scoreBest){ scoreBest = pct; saveProgress(`ps-best-${course.id}-${subtopic.id}-${lesson.slug}`, scoreBest); renderSidebar(); } }
+                }
+                action.addEventListener('click', ()=>{ if (action.dataset.mode==='next') onNext(); else onCheck(); });
+                controls.appendChild(action); card.appendChild(explain);
                 return;
               }
               // if we already reached target length, finish
@@ -1695,12 +1713,21 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
               opts.appendChild(btn);
             });
             try { if (window.katex && window.renderMathInElement) { renderMathInElement(opts, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
-            const submit = document.createElement('button'); submit.className='btn btn-primary'; submit.textContent='Submit';
-            const next = document.createElement('button'); next.className='btn btn-secondary'; next.textContent='Next'; next.disabled = true; next.style.marginLeft='8px';
+            const controls = document.createElement('div'); controls.className='ps-controls'; controls.style.display='flex'; controls.style.justifyContent='flex-end'; controls.style.marginTop='10px'; card.appendChild(controls);
+            const action = document.createElement('button'); action.className='btn btn-primary'; action.textContent='Check'; action.dataset.mode='check';
             const explain = document.createElement('div'); explain.className='ps-explain';
-            submit.addEventListener('click', async ()=>{
+            action.addEventListener('click', async ()=>{
+              if (action.dataset.mode==='next'){
+                step++;
+                if (step < 10){ idxLabel.textContent = `${step+1} / 10`; renderOne(); }
+                else {
+                  const pct = correctCount / 10; results.innerHTML = `Score: ${Math.round(pct*100)}%`;
+                  if (pct > scoreBest){ scoreBest = pct; saveProgress(`ps-best-${course.id}-${subtopic.id}-${lesson.slug}`, scoreBest); renderSidebar(); }
+                }
+                return;
+              }
               const chosenBtn = [...opts.children].find(ch=> ch.classList.contains('sel'));
-              if (!chosenBtn){ results.textContent='Please select an answer before submitting.'; results.style.color='#8B4513'; return; }
+              if (!chosenBtn){ results.textContent='Please select an answer before checking.'; results.style.color='#8B4513'; return; }
               const chosen = Number(chosenBtn.dataset.chosen);
               // robust correctness: compare plain/number and also accept unit spacing
               const chosenText = chosenBtn.textContent || '';
@@ -1716,7 +1743,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   }
               if (correct) { correctCount++; }
               [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
-              submit.disabled = true; next.disabled = false;
+              action.dataset.mode='next'; action.textContent='Next question'; if (correct){ try{ playCelebrate(action); }catch{} }
               explain.innerHTML = correct ? `<span style="color:#155e2b"><i class='bi bi-check-circle'></i> Correct.</span> ${q.explanation||''}` : `<span style=\"color:#991b1b\"><i class='bi bi-x-circle'></i> Incorrect.</span> ${q.explanation||''}`;
               try { if (window.katex && window.renderMathInElement) { renderMathInElement(explain, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
               // adapt difficulty
@@ -1727,17 +1754,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
               }
               await bumpSessionCount(correct, q);
             });
-            next.addEventListener('click', ()=>{
-              if (!next.disabled){
-                step++;
-                if (step < 10){ idxLabel.textContent = `${step+1} / 10`; renderOne(); }
-                else {
-                  const pct = correctCount / 10; results.innerHTML = `Score: ${Math.round(pct*100)}%`;
-                  if (pct > scoreBest){ scoreBest = pct; saveProgress(`ps-best-${course.id}-${subtopic.id}-${lesson.slug}`, scoreBest); renderSidebar(); }
-                }
-              }
-            });
-            card.appendChild(submit); card.appendChild(next); card.appendChild(explain);
+            controls.appendChild(action); card.appendChild(explain);
           }
           idxLabel.textContent = `1 / 10`;
           renderOne();
