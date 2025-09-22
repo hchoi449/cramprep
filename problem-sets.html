@@ -934,6 +934,32 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           const f = Math.pow(10, pow10);
           return Math.round(n / f) * f;
         }
+
+        // Determine correct index for "place value of the digit d in the number N" items
+        function findPlaceValueCorrectIndex(stemText, options){
+          try {
+            const s = String(stemText||'').toLowerCase();
+            const m = s.match(/place\s+value\s+of\s+the\s+digit\s+(\d)\s+in\s+the\s+number\s+([\d,]+)/i);
+            if (!m) return -1;
+            const digit = m[1];
+            const num = (m[2]||'').replace(/,/g,'');
+            if (!/^\d+$/.test(num)) return -1;
+            const idxFromRight = num.split('').reverse().findIndex(ch => ch === digit);
+            if (idxFromRight < 0) return -1;
+            const placeIdx = idxFromRight; // 0 ones, 1 tens, 2 hundreds, 3 thousands, ...
+            const names = ['ones','tens','hundreds','thousands','ten thousands','hundred thousands','millions','ten millions','hundred millions','billions'];
+            const expectedName = names[Math.min(placeIdx, names.length-1)];
+            // Try to match an option to expectedName (case-insensitive, allow singular/plural)
+            const norm = (t)=> String(t||'').toLowerCase().replace(/\s+/g,' ').trim();
+            const target1 = expectedName;
+            const target2 = expectedName.replace(/s\b/,'');
+            for (let i=0;i<options.length;i++){
+              const o = norm(stripLatexToPlain(options[i]));
+              if (o === target1 || o === target2) return i;
+            }
+            return -1;
+          } catch { return -1; }
+        }
         function findRoundingCorrectIndex(stemText, options){
           try {
             const t = String(stemText||'').toLowerCase();
@@ -1014,6 +1040,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             const stemPlain = stripLatexToPlain(problem.stem);
             const roundingIdx = findRoundingCorrectIndex(stemPlain, opts);
             if (roundingIdx >= 0) correctIdx = roundingIdx;
+            const placeIdx = findPlaceValueCorrectIndex(stemPlain, opts);
+            if (placeIdx >= 0) correctIdx = placeIdx;
             const periIdx = findPerimeterRectangleCorrectIndex(stemPlain, opts);
             if (periIdx >= 0) correctIdx = periIdx;
             let correctText = opts[correctIdx] || '';

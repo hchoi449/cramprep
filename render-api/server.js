@@ -663,6 +663,7 @@ async function bootstrap() {
           lessonSlug,
           lessonTitle,
             stem, options, correct, solution: explanation,
+            answer: options[correct] || '',
             answerPlain: stripLatexToPlain(options[correct] || ''),
             graph, table, numberLine,
           citations: [],
@@ -772,6 +773,10 @@ async function bootstrap() {
           }
         } catch{}
         if (Object.keys(update).length){
+          if (typeof d.correct === 'number' && Array.isArray(d.options)){
+            update.answer = d.options[d.correct] || '';
+            update.answerPlain = stripLatexToPlain(update.answer);
+          }
           update.enrichedAt = new Date().toISOString();
           await col.updateOne({ _id: d._id }, { $set: update });
           updated++;
