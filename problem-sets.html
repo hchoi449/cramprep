@@ -1235,6 +1235,14 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                 return { q: choice.p, id: choice.id, g };
               }
             }
+            // Fallback: if we ran out of fresh items, allow reuse to ensure we always reach 10
+            for (const g of ['easy','medium','hard']){
+              const any = groups[g];
+              if (any && any.length){
+                const choice = any[Math.floor(Math.random()*any.length)];
+                return { q: choice.p, id: choice.id, g };
+              }
+            }
             return null;
           }
 
@@ -1388,10 +1396,11 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   if (!chosenBtn){ results.textContent='Please select an answer before submitting.'; results.style.color='#8B4513'; return; }
                   const chosen = Number(chosenBtn.dataset.chosen);
                   // robust correctness: compare plain/number and also accept unit spacing
-                  const chosenText = opts.children[chosen] ? opts.children[chosen].textContent : '';
-                  // Prefer comparing against the rendered option text too (may differ from q.options after latexification)
+                  const chosenText = chosenBtn.textContent || '';
+                  // Map correct index to the actual rendered button (because options are shuffled)
                   const correctIdxNow = Math.max(0, Math.min(3, q.correct||0));
-                  const correctRendered = opts.children[correctIdxNow] ? opts.children[correctIdxNow].textContent : '';
+                  const correctBtn = [...opts.children].find(ch=> String(ch.dataset.idx) === String(correctIdxNow));
+                  const correctRendered = correctBtn ? correctBtn.textContent : '';
                   const correctSource = (q && Array.isArray(q.options)) ? q.options[correctIdxNow] : '';
                   let correct = false;
                   if (requiresExactOptionMatch(q.stem)){
@@ -1573,9 +1582,10 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   if (!chosenBtn){ results.textContent='Please select an answer before submitting.'; results.style.color='#8B4513'; return; }
                   const chosen = Number(chosenBtn.dataset.chosen);
                   // robust correctness: compare plain/number and also accept unit spacing
-                  const chosenText = opts.children[chosen] ? opts.children[chosen].textContent : '';
+                  const chosenText = chosenBtn.textContent || '';
                   const correctIdxNow = Math.max(0, Math.min(3, q.correct||0));
-                  const correctRendered = opts.children[correctIdxNow] ? opts.children[correctIdxNow].textContent : '';
+                  const correctBtn = [...opts.children].find(ch=> String(ch.dataset.idx) === String(correctIdxNow));
+                  const correctRendered = correctBtn ? correctBtn.textContent : '';
                   const correctSource = (q && Array.isArray(q.options)) ? q.options[correctIdxNow] : '';
                   let correct = false;
                   if (requiresExactOptionMatch(q.stem)){
@@ -1660,9 +1670,10 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
               if (!chosenBtn){ results.textContent='Please select an answer before submitting.'; results.style.color='#8B4513'; return; }
               const chosen = Number(chosenBtn.dataset.chosen);
               // robust correctness: compare plain/number and also accept unit spacing
-              const chosenText = opts.children[chosen] ? opts.children[chosen].textContent : '';
+              const chosenText = chosenBtn.textContent || '';
               const correctIdxNow = Math.max(0, Math.min(3, q.correct||0));
-              const correctRendered = opts.children[correctIdxNow] ? opts.children[correctIdxNow].textContent : '';
+              const correctBtn = [...opts.children].find(ch=> String(ch.dataset.idx) === String(correctIdxNow));
+              const correctRendered = correctBtn ? correctBtn.textContent : '';
               const correctSource = (q && Array.isArray(q.options)) ? q.options[correctIdxNow] : '';
                   let correct = false;
                   if (requiresExactOptionMatch(q.stem)){
@@ -2420,7 +2431,50 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             }
           } return arr; },
 
-          'lcm': (k)=>{ const arr=[]; for(let i=0;i<k;i++){ const a=rand(2,15), b=rand(2,15); const ans=lcm(a,b); const opts = shuffle([ans, ans+rand(1,5), Math.max(ans-rand(1,5),1), ans*2]).map(v=>`$${v}$`); arr.push({ stem:`Find $\\operatorname{LCM}(${a},${b})$.`, options:opts, correct: opts.indexOf(`$${ans}$`), explanation:`$\\mathrm{lcm}(a,b)=\\dfrac{ab}{\\gcd(a,b)}=${ans}$.`, difficulty: i<k/3?'easy': i<2*k/3?'medium':'hard' }); } return arr; },
+          'lcm': (k)=>{
+            const arr=[];
+            function choicesOf(correct){
+              const c = correct;
+              const near = Math.max(1, c - rand(1, Math.max(2, Math.floor(c*0.25))));
+              const up = c + rand(1, Math.max(2, Math.floor(c*0.25)));
+              const half = Math.max(1, Math.floor(c/2));
+              const doubled = c*2;
+              return shuffle([c, up, near, doubled, half]).slice(0,4).map(v=>`$${v}$`);
+            }
+            function lcm3(a,b,c){ return lcm(lcm(a,b), c); }
+            for(let i=0;i<k;i++){
+              const mode = (i < Math.floor(k/3)) ? 'easy' : (i < Math.floor(2*k/3) ? 'medium' : 'hard');
+              if (mode === 'easy'){
+                // Small numbers with shared factors
+                const base = rand(2,8); const a = base * rand(1,3); const b = base * rand(1,3);
+                const ans = lcm(a,b);
+                const opts = choicesOf(ans);
+                arr.push({ stem:`Find $\\operatorname{LCM}(${a},${b})$.`, options:opts, correct: opts.indexOf(`$${ans}$`), explanation:`Use prime powers or multiples; $\\mathrm{lcm}(a,b)=\\dfrac{ab}{\\gcd(a,b)}=${ans}$.`, difficulty:'easy' });
+              } else if (mode === 'medium'){
+                // Larger numbers that require prime powers
+                const a = rand(9,20); const b = rand(12,30);
+                const ans = lcm(a,b);
+                const opts = choicesOf(ans);
+                arr.push({ stem:`Compute $\\operatorname{LCM}(${a},${b})$.`, options:opts, correct: opts.indexOf(`$${ans}$`), explanation:`Factor to primes; take highest powers.`, difficulty:'medium' });
+              } else {
+                if (i % 2 === 0){
+                  // Three-number LCM
+                  const a = rand(4,15), b = rand(6,20), c = rand(5,18);
+                  const ans = lcm3(a,b,c);
+                  const opts = choicesOf(ans);
+                  arr.push({ stem:`Find $\\operatorname{LCM}(${a},${b},${c})$.`, options:opts, correct: opts.indexOf(`$${ans}$`), explanation:`$\\mathrm{lcm}(a,b,c)=\\mathrm{lcm}(\\mathrm{lcm}(a,b),c)=${ans}$.`, difficulty:'hard' });
+                } else {
+                  // Word problem (meeting cycles)
+                  const a = [6,8,9,10,12,14,15,18,20][rand(0,8)];
+                  const b = [7,9,10,12,16,18,21,24,30][rand(0,8)];
+                  const ans = lcm(a,b);
+                  const opts = choicesOf(ans);
+                  arr.push({ stem:`Train A arrives every ${a} minutes and Train B every ${b} minutes. In how many minutes will they arrive together again?`, options:opts, correct: opts.indexOf(`$${ans}$`), explanation:`Synchronizing cycles occurs at $\\mathrm{LCM}(${a},${b})=${ans}$ minutes.`, difficulty:'hard' });
+                }
+              }
+            }
+            return arr;
+          },
 
           'equivalent-simplifying': (k)=>{ const arr=[]; for(let i=0;i<k;i++){ const a=rand(2,12), b=a*rand(2,10); const g=gcd(b,a); const num=b/g, den=a/g; const opts=shuffle([`$\\dfrac{${num}}{${den}}$`,`$\\dfrac{${num+1}}{${den}}$`,`$\\dfrac{${num}}{${den+1}}$`,`$\\dfrac{${num-1}}{${den-1}}$`]); arr.push({ stem:`Simplify $\\dfrac{${b}}{${a}}$.`, options:opts, correct: opts.indexOf(`$\\dfrac{${num}}{${den}}$`), explanation:`Divide numerator and denominator by GCF.`, difficulty: i<k/3?'easy': i<2*k/3?'medium':'hard' }); } return arr; },
 
@@ -2523,10 +2577,32 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         if (gen[slug]) return gen[slug](count);
         for (let i=0;i<count;i++){
           if (slug.includes('lcm')){
-            const a = rand(2,15), b = rand(2,15);
-            const ans = lcm(a,b);
-            const opts = _.shuffle([ans, ans+rand(1,5), Math.max(ans-rand(1,5),1), ans*2]).map(v=> `$${v}$`);
-            out.push({ stem:`Find $\\operatorname{LCM}(${a},${b})$.`, options: opts, correct: opts.indexOf(`$${ans}$`), explanation:`Prime powers or $\\mathrm{lcm}(a,b)=\\dfrac{ab}{\\gcd(a,b)}=\\dfrac{${a}\\cdot${b}}{${gcd(a,b)}}=${ans}$.`, difficulty: i< count/3?'easy': i< 2*count/3?'medium':'hard' });
+            const mode = (i < Math.floor(count/3)) ? 'easy' : (i < Math.floor(2*count/3) ? 'medium' : 'hard');
+            function choicesOf(correct){
+              const c = correct;
+              const near = Math.max(1, c - rand(1, Math.max(2, Math.floor(c*0.25))));
+              const up = c + rand(1, Math.max(2, Math.floor(c*0.25)));
+              const half = Math.max(1, Math.floor(c/2));
+              const doubled = c*2;
+              return _.shuffle([c, up, near, doubled, half]).slice(0,4).map(v=> `$${v}$`);
+            }
+            if (mode === 'easy'){
+              const base = rand(2,8); const a = base * rand(1,3); const b = base * rand(1,3);
+              const ans = lcm(a,b); const opts = choicesOf(ans);
+              out.push({ stem:`Find $\\operatorname{LCM}(${a},${b})$.`, options: opts, correct: opts.indexOf(`$${ans}$`), explanation:`Use prime powers or $\\mathrm{lcm}(a,b)=\\dfrac{ab}{\\gcd(a,b)}=${ans}$.`, difficulty:'easy' });
+            } else if (mode === 'medium'){
+              const a = rand(9,20), b = rand(12,30); const ans = lcm(a,b); const opts = choicesOf(ans);
+              out.push({ stem:`Compute $\\operatorname{LCM}(${a},${b})$.`, options: opts, correct: opts.indexOf(`$${ans}$`), explanation:`Factor and take highest prime powers.`, difficulty:'medium' });
+            } else {
+              if (i % 2 === 0){
+                const a = rand(4,15), b = rand(6,20), c = rand(5,18); const ans = lcm(lcm(a,b), c); const opts = choicesOf(ans);
+                out.push({ stem:`Find $\\operatorname{LCM}(${a},${b},${c})$.`, options: opts, correct: opts.indexOf(`$${ans}$`), explanation:`$\\mathrm{lcm}(a,b,c)=\\mathrm{lcm}(\\mathrm{lcm}(a,b),c)=${ans}$.`, difficulty:'hard' });
+              } else {
+                const a = [6,8,9,10,12,14,15,18,20][rand(0,8)]; const b = [7,9,10,12,16,18,21,24,30][rand(0,8)];
+                const ans = lcm(a,b); const opts = choicesOf(ans);
+                out.push({ stem:`Bus A arrives every ${a} minutes and Bus B every ${b} minutes. In how many minutes will both arrive together?`, options: opts, correct: opts.indexOf(`$${ans}$`), explanation:`Synchronize cycles using LCM = ${ans} minutes.`, difficulty:'hard' });
+              }
+            }
             continue;
           }
           if (slug.includes('gcf')){

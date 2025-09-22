@@ -405,6 +405,22 @@ async function bootstrap() {
     } catch { return []; }
   }
 
+  // Convert LaTeX-ish option text to a simple plain string for canonical comparisons
+  function stripLatexToPlain(text){
+    try {
+      let t = String(text||'');
+      t = t.replace(/\$(.*?)\$/g, '$1');
+      t = t.replace(/\\dfrac\{([^}]*)\}\{([^}]*)\}/g, '($1)/($2)');
+      t = t.replace(/\\frac\{([^}]*)\}\{([^}]*)\}/g, '($1)/($2)');
+      t = t.replace(/\\times/g, '×').replace(/\\cdot/g, '·').replace(/\\div/g, '÷');
+      t = t.replace(/\\left|\\right/g, '');
+      t = t.replace(/\\[a-zA-Z]+/g, '');
+      t = t.replace(/[{}]/g, '');
+      t = t.replace(/\s+/g, ' ');
+      return t.trim();
+    } catch { return String(text||''); }
+  }
+
   async function callGeminiGenerate(model, prompt){
     const key = process.env.GEMINI_API_KEY || process.env.gemini_api_key || process.env.GOOGLE_GEMINI_API_KEY;
     const useModel = model || 'gemini-1.5-flash-8b';
@@ -602,6 +618,7 @@ async function bootstrap() {
           lessonSlug,
           lessonTitle,
             stem, options, correct, solution: explanation,
+            answerPlain: stripLatexToPlain(options[correct] || ''),
             graph, table, numberLine,
           citations: [],
           difficulty,
@@ -786,9 +803,54 @@ async function bootstrap() {
     } catch (e) { console.error(e); return res.status(500).json({ error: 'stats_failed' }); }
   });
 
-  // Nightly (3AM EST) refresh loop
-  (function scheduleNightlyRefresh(){
+  // Daily refresh runner (Agent 1 regenerate → Agent 2 enrich → Agent 4 verify)
+  async function runDailyRefresh(limit){
+    const startedAt = new Date();
+    const startStrNY = startedAt.toLocaleString('en-US', { timeZone: 'America/New_York', hour12:false });
+    console.log(`[refresh] start ${startStrNY}`);
+    let total = 0, ok = 0, fail = 0;
+    try {
+      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+      await client.connect();
+      const col = await getQuestionCollection(client);
+      const slugs = await col.distinct('lessonSlug');
+      await client.close();
+      const baseUrl = (process.env.PUBLIC_BASE_URL && process.env.PUBLIC_BASE_URL.trim()) || `http://127.0.0.1:${process.env.PORT||8080}`;
+      const slice = slugs.slice(0, Math.max(1, Number(limit||0) || 200));
+      total = slice.length;
+      for (const slug of slice){
+        try {
+          const r1 = await fetch(`${baseUrl}/ai/agent1/generate?lesson=${encodeURIComponent(slug)}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title: slug }) });
+          if (!r1.ok) throw new Error(`agent1 ${r1.status}`);
+          try { await fetch(`${baseUrl}/ai/agent2/enrich?lesson=${encodeURIComponent(slug)}`, { method:'POST' }); } catch {}
+          try { await fetch(`${baseUrl}/ai/agent4/verify-lesson?lesson=${encodeURIComponent(slug)}`, { method:'POST' }); } catch {}
+          ok++;
+        } catch (e){ fail++; console.error(`[refresh] ${slug} failed: ${String(e).slice(0,200)}`); }
+      }
+    } catch (e){
+      console.error('[refresh] fatal', e);
+    }
+    const endedAt = new Date();
+    console.log(`[refresh] end ok=${ok} fail=${fail} total=${total} durationMs=${endedAt - startedAt}`);
+    return { ok, fail, total, startedAt: startedAt.toISOString(), endedAt: endedAt.toISOString() };
+  }
+
+  // Expose manual trigger endpoint
+  app.post('/ai/refresh-daily', async (req, res) => {
+    try {
+      const limit = Number(req.query.limit || 0) || undefined;
+      const result = await runDailyRefresh(limit);
+      return res.json({ ok: true, ...result });
+    } catch (e){
+      console.error(e);
+      return res.status(500).json({ error: 'refresh_failed' });
+    }
+  });
+
+  // Scheduled loop: runs once per NY date at configured hour (default 15 → 3PM)
+  (function scheduleDailyRefresh(){
     let lastRunDateNY = null;
+    const refreshHour = Math.max(0, Math.min(23, Number(process.env.REFRESH_HOUR_NY || 15)));
     async function maybeRun(){
       try {
         const now = new Date();
@@ -796,23 +858,12 @@ async function bootstrap() {
         const [mdy, hms] = nyStr.split(',');
         const hour = parseInt((hms||'').trim().split(':')[0]||'0',10);
         const dateOnly = (mdy||'').trim();
-        if (hour === 3 && lastRunDateNY !== dateOnly){
+        if (hour === refreshHour && lastRunDateNY !== dateOnly){
           lastRunDateNY = dateOnly;
-          const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
-          await client.connect();
-          const col = await getQuestionCollection(client);
-          const slugs = await col.distinct('lessonSlug');
-          await client.close();
-          const baseUrl = (process.env.PUBLIC_BASE_URL && process.env.PUBLIC_BASE_URL.trim()) || `http://127.0.0.1:${process.env.PORT||8080}`;
-          for (const slug of slugs.slice(0,200)){
-            try {
-              await fetch(`${baseUrl}/ai/agent1/generate?lesson=${encodeURIComponent(slug)}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title: slug }) });
-              await fetch(`${baseUrl}/ai/agent2/enrich?lesson=${encodeURIComponent(slug)}`, { method:'POST' });
-              await fetch(`${baseUrl}/ai/agent4/verify-lesson?lesson=${encodeURIComponent(slug)}`, { method:'POST' });
-            } catch {}
-          }
+          console.log(`[refresh] trigger ${dateOnly} @ ${hour}:00 NY`);
+          await runDailyRefresh();
         }
-      } catch {}
+      } catch (e){ console.error('[refresh] maybeRun error', e); }
     }
     setInterval(maybeRun, 10 * 60 * 1000); // every 10 minutes
   })();
