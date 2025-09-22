@@ -86,10 +86,7 @@
       <section class="ps-content">
         <div class="ps-breadcrumb" id="psBreadcrumb">Algebra 1 / Lesson 1</div>
         <h2 class="ps-title" id="psTitle">Linear Equations — Basics</h2>
-        <div class="ps-actions">
-          <button class="btn btn-primary" id="psPracticeBtn">Practice</button>
-          <button class="btn btn-secondary" id="psLiveBtn">Live Session</button>
-        </div>
+        <div class="ps-actions" style="display:none"></div>
         <div class="ps-body" id="psBody"></div>
       </section>
     </main>
@@ -1432,11 +1429,11 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   opts.appendChild(btn);
                 });
                 try { if (window.katex && window.renderMathInElement) { renderMathInElement(opts, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
-                const controls = document.createElement('div'); controls.className='ps-controls'; controls.style.display='flex'; controls.style.justifyContent='flex-end'; controls.style.marginTop='22px'; card.appendChild(controls);
+                const controls = document.createElement('div'); controls.className='ps-controls'; controls.style.display='flex'; controls.style.alignItems='center'; controls.style.justifyContent='space-between'; controls.style.gap='12px'; controls.style.marginTop='22px'; card.appendChild(controls);
                 const action = document.createElement('button'); action.className='btn btn-primary'; action.style.minWidth='180px'; action.textContent='Check'; action.dataset.mode='check';
                 // If a choice is selected later, revert any 'Try Again' back to 'Check'
                 opts.addEventListener('click', ()=> { if (action.textContent !== 'Check') { action.textContent = 'Check'; action.dataset.mode = 'check'; } });
-                const explain = document.createElement('div'); explain.className='ps-explain';
+                const explain = document.createElement('div'); explain.className='ps-explain'; explain.style.flex='1'; explain.style.marginLeft='8px';
                 async function onCheck(){
                   const chosenBtn = [...opts.children].find(ch=> ch.classList.contains('sel'));
                   if (!chosenBtn){ action.textContent='Try Again'; action.dataset.mode='check';
@@ -1477,7 +1474,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   else { const pct = correctCount / 10; results.innerHTML = `Score: ${Math.round(pct*100)}%`; if (pct > scoreBest){ scoreBest = pct; saveProgress(`ps-best-${course.id}-${subtopic.id}-${lesson.slug}`, scoreBest); renderSidebar(); } }
                 }
                 action.addEventListener('click', ()=>{ if (action.dataset.mode==='next') onNext(); else onCheck(); });
-                controls.appendChild(action); card.appendChild(explain);
+                controls.appendChild(explain); controls.appendChild(action);
                 return;
               }
 
