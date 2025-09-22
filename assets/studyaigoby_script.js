@@ -7,9 +7,9 @@ const fileCancelButton = fileUploadWrapper.querySelector("#file-cancel");
 const chatbotToggler = document.querySelector("#chatbot-toggler");
 const closeChatbot = document.querySelector("#close-chatbot");
 
-// API setup (reads browser global TBP_GEMINI_API_KEY)
-const API_KEY = window.TBP_GEMINI_API_KEY || "";
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+// API setup (use server proxy; no client key exposed)
+const AUTH_BASE = (window && window.TBP_AUTH_BASE) ? window.TBP_AUTH_BASE.replace(/\/$/,'') : '';
+const API_URL = `${AUTH_BASE}/ai/generate`;
 
 // Initialize user message and file data
 const userData = {
@@ -45,12 +45,14 @@ const generateBotResponse = async (incomingMessageDiv) => {
     parts: [{ text: userData.message }, ...(userData.file.data ? [{ inline_data: userData.file }] : [])],
   });
 
-  // API request options
+  // API request options (server proxy expects: { model, contents, generationConfig })
   const requestOptions = {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
+      model: "gemini-1.5-flash-8b",
       contents: chatHistory,
+      generationConfig: { temperature: 0.3, topP: 0.8, candidateCount: 1 },
     }),
   };
 
