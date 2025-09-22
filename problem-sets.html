@@ -1224,6 +1224,21 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           let step = 0; let correctCount = 0;
           // groups and used already prepared above
           let currentDifficulty = 'easy';
+          // Start a backend session to track count to 10 and display server count
+          const AUTH_BASE = (window && window.TBP_AUTH_BASE) ? window.TBP_AUTH_BASE.replace(/\/$/,'') : '';
+          let sessionId = null;
+          try {
+            const r = await fetch(`${AUTH_BASE}/ai/session/start?lesson=${encodeURIComponent(lesson.slug)}`, { method:'POST' });
+            if (r.ok){ const j = await r.json(); if (j && j.ok){ sessionId = j.sessionId; if (typeof j.count === 'number'){ idxLabel.textContent = `${j.count+1} / ${j.target||10}`; } } }
+          } catch {}
+          async function bumpSessionCount(correct, q){
+            try {
+              if (!sessionId) return;
+              const body = { correct: !!correct, sourceHash: (q && q.sourceHash) ? String(q.sourceHash) : undefined };
+              const r = await fetch(`${AUTH_BASE}/ai/session/answer?session=${encodeURIComponent(sessionId)}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+              if (r.ok){ const j = await r.json(); if (j && typeof j.count === 'number'){ idxLabel.textContent = `${Math.min(10, j.count+1)} / 10`; } }
+            } catch {}
+          }
 
           function pickNextProblem(){
             const order = currentDifficulty==='easy' ? ['easy','medium','hard'] : (currentDifficulty==='medium' ? ['medium','easy','hard'] : ['hard','medium','easy']);
@@ -1391,7 +1406,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                 const submit = document.createElement('button'); submit.className='btn btn-primary'; submit.textContent='Submit';
                 const next = document.createElement('button'); next.className='btn btn-secondary'; next.textContent='Next'; next.disabled = true; next.style.marginLeft='8px';
                 const explain = document.createElement('div'); explain.className='ps-explain';
-                submit.addEventListener('click', ()=>{
+                submit.addEventListener('click', async ()=>{
                   const chosenBtn = [...opts.children].find(ch=> ch.classList.contains('sel'));
                   if (!chosenBtn){ results.textContent='Please select an answer before submitting.'; results.style.color='#8B4513'; return; }
                   const chosen = Number(chosenBtn.dataset.chosen);
@@ -1413,6 +1428,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   submit.disabled = true; next.disabled = false;
                   explain.innerHTML = correct ? `<span style="color:#155e2b"><i class='bi bi-check-circle'></i> Correct.</span> ${q.explanation||''}` : `<span style=\"color:#991b1b\"><i class='bi bi-x-circle'></i> Incorrect.</span> ${q.explanation||''}`;
                   try { if (window.katex && window.renderMathInElement) { renderMathInElement(explain, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
+                  await bumpSessionCount(correct, q);
                 });
                 next.addEventListener('click', ()=>{
                   if (!next.disabled){
@@ -1577,7 +1593,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                 const submit = document.createElement('button'); submit.className='btn btn-primary'; submit.textContent='Submit';
                 const next = document.createElement('button'); next.className='btn btn-secondary'; next.textContent='Next'; next.disabled = true; next.style.marginLeft='8px';
                 const explain = document.createElement('div'); explain.className='ps-explain';
-                submit.addEventListener('click', ()=>{
+                submit.addEventListener('click', async ()=>{
                   const chosenBtn = [...opts.children].find(ch=> ch.classList.contains('sel'));
                   if (!chosenBtn){ results.textContent='Please select an answer before submitting.'; results.style.color='#8B4513'; return; }
                   const chosen = Number(chosenBtn.dataset.chosen);
@@ -1600,6 +1616,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   try { if (window.katex && window.renderMathInElement) { renderMathInElement(explain, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
                   if (correct){ currentDifficulty = currentDifficulty==='easy' ? 'medium' : (currentDifficulty==='medium' ? 'hard' : 'hard'); }
                   else { currentDifficulty = currentDifficulty==='hard' ? 'medium' : (currentDifficulty==='medium' ? 'easy' : 'easy'); }
+                  await bumpSessionCount(correct, q);
                 });
                 next.addEventListener('click', ()=>{
                   if (!next.disabled){
@@ -1665,7 +1682,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             const submit = document.createElement('button'); submit.className='btn btn-primary'; submit.textContent='Submit';
             const next = document.createElement('button'); next.className='btn btn-secondary'; next.textContent='Next'; next.disabled = true; next.style.marginLeft='8px';
             const explain = document.createElement('div'); explain.className='ps-explain';
-            submit.addEventListener('click', ()=>{
+            submit.addEventListener('click', async ()=>{
               const chosenBtn = [...opts.children].find(ch=> ch.classList.contains('sel'));
               if (!chosenBtn){ results.textContent='Please select an answer before submitting.'; results.style.color='#8B4513'; return; }
               const chosen = Number(chosenBtn.dataset.chosen);
@@ -1692,6 +1709,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
               } else {
                 currentDifficulty = currentDifficulty==='hard' ? 'medium' : (currentDifficulty==='medium' ? 'easy' : 'easy');
               }
+              await bumpSessionCount(correct, q);
             });
             next.addEventListener('click', ()=>{
               if (!next.disabled){
