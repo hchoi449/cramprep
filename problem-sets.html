@@ -19,7 +19,7 @@
       .tools-fab:hover{ transform:translateY(-1px); box-shadow:0 16px 36px rgba(0,0,0,.28); }
       .tools-fab.fab-open{ transform:translateY(-6px); }
       .tools-fab .bi{ font-size:1.25rem; }
-      .tool-menu{ position:fixed; right:18px; bottom:76px; background:#ffffff; border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 12px 30px rgba(0,0,0,.18); z-index:1100; overflow:hidden; opacity:0; transform:translateY(6px) scale(.98); pointer-events:none; transition:opacity .18s ease, transform .18s ease; }
+      .tool-menu{ position:fixed; right:18px; bottom:18px; background:#ffffff; border:1px solid #e5e7eb; border-radius:9999px; box-shadow:0 14px 34px rgba(0,0,0,.18); z-index:1100; overflow:hidden; opacity:0; transform:translateY(6px) scale(.96); pointer-events:none; transition:opacity .18s ease, transform .18s ease; }
       .tool-menu.menu-open{ opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
       .tool-title{ font-weight:600; color:#8B4513; padding:10px 12px 6px; transition:transform .18s ease; }
       .tool-menu.menu-open .tool-title{ transform:translateY(-4px); }
@@ -1853,8 +1853,9 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
       const menu = document.getElementById('tool-menu');
       function setMenu(open){ if (!menu) return; if (open) menu.classList.add('menu-open'); else menu.classList.remove('menu-open'); }
       function toggleMenu(){ if (!menu) return; menu.classList.toggle('menu-open'); }
+      function closeMenu(){ setMenu(false); if (fab) fab.classList.remove('fab-open'); }
       if (fab){ fab.addEventListener('click', ()=> { toggleMenu(); fab.classList.toggle('fab-open'); }); }
-      document.addEventListener('click', (e)=>{ const t=e.target; if (!t) return; if (t.closest && (t.closest('#tools-fab') || t.closest('#tool-menu'))) return; setMenu(false); });
+      document.addEventListener('click', (e)=>{ const t=e.target; if (!t) return; if (t.closest && (t.closest('#tools-fab') || t.closest('#tool-menu'))) return; closeMenu(); });
 
       function makeWindow(title){
         const win = document.createElement('div'); win.className='tool-window';
@@ -1874,7 +1875,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
       // Desmos
       const openDesmos = document.getElementById('open-desmos');
       if (openDesmos){ openDesmos.addEventListener('click', ()=>{
-        toggleMenu(false);
+        closeMenu();
         const win = makeWindow('Desmos');
         const body = win.querySelector('.tool-body'); if (!body) return;
         const api = document.createElement('script'); api.src = 'https://www.desmos.com/api/v1.11/calculator.js?apiKey=demo'; document.head.appendChild(api);
@@ -1884,7 +1885,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
       // TI-84
       const openTi84 = document.getElementById('open-ti84');
       if (openTi84){ openTi84.addEventListener('click', ()=>{
-        toggleMenu(false);
+        closeMenu();
         const win = makeWindow('TI-84');
         const body = win.querySelector('.tool-body'); if (!body) return;
         const iframe = document.createElement('iframe'); iframe.src='https://ti84hub.com?embed=true'; iframe.width='400'; iframe.height='900'; iframe.title='TI-84 Calculator'; iframe.style.width='100%'; iframe.style.height='100%'; iframe.frameBorder='0'; body.appendChild(iframe);
@@ -1893,7 +1894,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
       // NumWorks (linking to project page as reference)
       const openNumworks = document.getElementById('open-numworks');
       if (openNumworks){ openNumworks.addEventListener('click', ()=>{
-        toggleMenu(false);
+        closeMenu();
         const win = makeWindow('NumWorks');
         const body = win.querySelector('.tool-body'); if (!body) return;
         const link = document.createElement('a'); link.href='https://github.com/numworks/epsilon'; link.target='_blank'; link.rel='noopener'; link.textContent='Open NumWorks Epsilon';
@@ -1902,15 +1903,15 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
 
       // Study AI opens existing Study AI popup
       const openStudy = document.getElementById('open-study-ai');
-      if (openStudy){ openStudy.addEventListener('click', ()=>{ setMenu(false); try { const ev = new MouseEvent('click', { bubbles:true, cancelable:true }); const target = document.querySelector('[data-open="study-ai"]'); if (target) target.dispatchEvent(ev); } catch {} }); }
+      if (openStudy){ openStudy.addEventListener('click', ()=>{ closeMenu(); try { const ev = new MouseEvent('click', { bubbles:true, cancelable:true }); const target = document.querySelector('[data-open="study-ai"]'); if (target) target.dispatchEvent(ev); } catch {} }); }
 
       // Formula sheet simple window
       const openFormula = document.getElementById('open-formula');
-      if (openFormula){ openFormula.addEventListener('click', ()=>{ setMenu(false); const win = makeWindow('Formula sheet'); const body = win.querySelector('.tool-body'); if (!body) return; const frame = document.createElement('iframe'); frame.src='https://cdn.kastatic.org/KA-shareable-data/Math%20Formula%20Sheet.pdf'; frame.style.width='100%'; frame.style.height='100%'; frame.frameBorder='0'; body.appendChild(frame); }); }
+      if (openFormula){ openFormula.addEventListener('click', ()=>{ closeMenu(); const win = makeWindow('Formula sheet'); const body = win.querySelector('.tool-body'); if (!body) return; const frame = document.createElement('iframe'); frame.src='https://cdn.kastatic.org/KA-shareable-data/Math%20Formula%20Sheet.pdf'; frame.style.width='100%'; frame.style.height='100%'; frame.frameBorder='0'; body.appendChild(frame); }); }
 
       // Notes window (simple editable)
       const openNotes = document.getElementById('open-notes');
-      if (openNotes){ openNotes.addEventListener('click', ()=>{ setMenu(false); const win = makeWindow('Notes'); const body = win.querySelector('.tool-body'); if (!body) return; const ta = document.createElement('textarea'); ta.placeholder='Type your notes...'; ta.style.width='100%'; ta.style.height='100%'; ta.style.border='none'; ta.style.outline='none'; ta.style.padding='12px'; ta.value = localStorage.getItem('tbp_notes') || ''; ta.addEventListener('input', ()=> localStorage.setItem('tbp_notes', ta.value)); body.appendChild(ta); }); }
+      if (openNotes){ openNotes.addEventListener('click', ()=>{ closeMenu(); const win = makeWindow('Notes'); const body = win.querySelector('.tool-body'); if (!body) return; const ta = document.createElement('textarea'); ta.placeholder='Type your notes...'; ta.style.width='100%'; ta.style.height='100%'; ta.style.border='none'; ta.style.outline='none'; ta.style.padding='12px'; ta.value = localStorage.getItem('tbp_notes') || ''; ta.addEventListener('input', ()=> localStorage.setItem('tbp_notes', ta.value)); body.appendChild(ta); }); }
     })();
 
       // Generate problems: prefer Agent 2 retrieval; fallback to Gemini proxy if empty
