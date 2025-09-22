@@ -8,7 +8,7 @@
   root.className = 'study-chatbot-root';
   root.style.display = 'none';
   // Minimal styles so the popup is visible without external CSS (skip if schedule CSS is present)
-  const hasScheduleCss = !!document.querySelector('link[href*="/assets/ai-chatbot/style.css"]');
+  const hasScheduleCss = !!document.querySelector('link[href*="/assets/ai-chatbot/style.css"]'); /* ensures full parity when present */
   if (!hasScheduleCss && !document.getElementById('study-ai-styles')){
     const css = `
       .study-chatbot-root .chatbot-popup{position:fixed;right:20px;bottom:90px;width:min(680px,96vw);max-height:70vh;background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.1);display:block;overflow:hidden;z-index:9999}
@@ -30,7 +30,7 @@
     <div class="chat-header">
       <div class="header-info">
         <svg class="chatbot-logo" xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 1024 1024"><path d="M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9zM351.7 448.2c0-29.5 23.9-53.5 53.5-53.5s53.5 23.9 53.5 53.5-23.9 53.5-53.5 53.5-53.5-23.9-53.5-53.5zm157.9 267.1c-67.8 0-123.8-47.5-132.3-109h264.6c-8.6 61.5-64.5 109-132.3 109zm110-213.7c-29.5 0-53.5-23.9-53.5-53.5s23.9-53.5 53.5-53.5 53.5 23.9 53.5 53.5-23.9 53.5-53.5 53.5z"/></svg>
-        <h2 class="logo-text">Study AI</h2>
+        <h2 class="logo-text">Chatbot</h2>
       </div>
       <button id="study-close-chatbot" class="material-symbols-rounded">close</button>
     </div>
