@@ -7,8 +7,9 @@
   const root = document.createElement('div');
   root.className = 'study-chatbot-root';
   root.style.display = 'none';
-  // Minimal styles so the popup is visible without external CSS
-  if (!document.getElementById('study-ai-styles')){
+  // Minimal styles so the popup is visible without external CSS (skip if schedule CSS is present)
+  const hasScheduleCss = !!document.querySelector('link[href*="/assets/ai-chatbot/style.css"]');
+  if (!hasScheduleCss && !document.getElementById('study-ai-styles')){
     const css = `
       .study-chatbot-root .chatbot-popup{position:fixed;right:20px;bottom:90px;width:min(680px,96vw);max-height:70vh;background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.1);display:block;overflow:hidden;z-index:9999}
       .study-chatbot-root .chat-header{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid #eee;background:#faf7f2}
