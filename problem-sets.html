@@ -1682,7 +1682,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             const opts = document.createElement('div'); opts.className='ps-opts'; card.appendChild(opts);
             const order = _.shuffle(q.options.map((opt, idx)=> ({opt, idx})));
             order.forEach(pair=>{
-              const btn = document.createElement('button'); btn.type='button'; btn.className='ps-opt'; btn.textContent = pair.opt; btn.setAttribute('aria-pressed','false');
+              const btn = document.createElement('button'); btn.type='button'; btn.className='ps-opt'; btn.innerHTML = latexifyInline(pair.opt); btn.setAttribute('aria-pressed','false');
               btn.dataset.idx = String(pair.idx);
               btn.addEventListener('click', ()=>{
                 if (btn.dataset.locked==='1') return;
