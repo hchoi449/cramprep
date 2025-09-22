@@ -519,6 +519,19 @@ async function bootstrap() {
       out[i] = candidate;
       seen.add(norm);
     }
+    // Special case: if stem asks for prime in a range, force distractors to be composite or out-of-range
+    try {
+      const composite = (n)=>{ n = Number(n); if (!Number.isFinite(n)) return true; if (n<2) return true; if (n%2===0) return n!==2; for(let d=3; d*d<=n; d+=2){ if(n%d===0) return true; } return false; };
+      // When we can detect numeric distractors, shift them to nearest composite
+      for (let i=0;i<out.length;i++){
+        if (i===correctIdx) continue;
+        let t = out[i];
+        const m = String(stripLatexToPlain(t)||'').match(/-?\d+(?:\.\d+)?/);
+        if (!m) continue; let val = parseInt(m[0],10); if (!Number.isFinite(val)) continue;
+        let adjust = 0; while (!composite(val+adjust) && adjust < 5) adjust++;
+        if (adjust>0) out[i] = String(val+adjust);
+      }
+    } catch {}
     return { options: out, correctIdx };
   }
 
