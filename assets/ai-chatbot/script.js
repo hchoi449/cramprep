@@ -168,8 +168,16 @@
 
     function renderLoginPromptOnce(){
       if (loginPromptShown) return;
-      const div = createMessageElement(`<div class="message-text">Please log in or sign up to continue scheduling.<br><button class=\"btn btn-secondary btn-chat open-login-btn\" aria-label=\"Open login\">Open login</button></div>`, 'bot-message');
+      const div = createMessageElement(`<div class=\"message-text\">Please log in or sign up to continue scheduling.<br><button class=\"btn btn-secondary btn-chat open-login-btn\" aria-label=\"Open login\">Open login</button></div>`, 'bot-message');
       chatBody.appendChild(div);
+      const btnOpen = div.querySelector('.open-login-btn');
+      if (btnOpen) btnOpen.addEventListener('click', function(e){ e.preventDefault();
+        try { document.body.classList.remove('show-chatbot'); } catch {}
+        try {
+          const a = document.querySelector('.student-login-link');
+          if (a) a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+        } catch {}
+      });
       chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
       loginPromptShown = true;
     }
@@ -435,7 +443,7 @@
     }
     // On login, update cached profile and mark to refresh on next open
     window.addEventListener('tbp:auth:login', async function(){
-      try { const profile = await getProfile(); cachedProfile = profile; setAuthUI(); } catch {}
+      try { const profile = await getProfile(); cachedProfile = profile; setAuthUI(!!profile); } catch {}
       try { window.__tbp_clearOnNextOpen = true; } catch {}
     });
     async function initializeOnOpen(){
@@ -445,13 +453,17 @@
         chatBody.innerHTML = '';
         const msg = document.createElement('div');
         msg.className = 'message bot-message';
-        const nm = (profile && profile.fullName ? String(profile.fullName).trim() : '') || '';
-        const first = (nm.split(' ')[0] || nm || 'there');
-        if (!window.__tbp_hasGreeted) {
-          msg.innerHTML = `<svg class="bot-avatar" xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 1024 1024"><path d="M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z"/></svg><div class="message-text">Hey ${first} 👋 What problem are you working on?</div>`;
-          window.__tbp_hasGreeted = true;
+        if (!profile) {
+          msg.innerHTML = `<div class=\"message-text\">Please log in or sign up to continue scheduling.<br><button class=\"btn btn-secondary btn-chat open-login-btn\" aria-label=\"Open login\">Open login</button></div>`;
         } else {
-          msg.innerHTML = `<svg class="bot-avatar" xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 1024 1024"><path d="M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z"/></svg><div class="message-text">What problem can I help with?</div>`;
+          const nm = (profile && profile.fullName ? String(profile.fullName).trim() : '') || '';
+          const first = (nm.split(' ')[0] || nm || 'there');
+          if (!window.__tbp_hasGreeted) {
+            msg.innerHTML = `<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">Hey ${first} 👋 How can I help you schedule?</div>`;
+            window.__tbp_hasGreeted = true;
+          } else {
+            msg.innerHTML = `<svg class=\"bot-avatar\" xmlns=\"http://www.w3.org/2000/svg\" width=\"50\" height=\"50\" viewBox=\"0 0 1024 1024\"><path d=\"M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z\"/></svg><div class=\"message-text\">How can I help you schedule?</div>`;
+          }
         }
         chatBody.appendChild(msg);
         // Wire open-login link to trigger login modal
@@ -483,7 +495,7 @@
       document.body.classList.add('show-chatbot');
       if (willOpen) {
         (async ()=>{
-          try { const profile = await getProfile(); cachedProfile = profile; setAuthUI(); } catch { cachedProfile = null; setAuthUI(); }
+          try { const profile = await getProfile(); cachedProfile = profile; setAuthUI(!!profile); } catch { cachedProfile = null; setAuthUI(false); }
           try {
             const hasHistory = !!(chatBody && chatBody.children && chatBody.children.length > 0);
             const hasLoginPrompt = hasHistory && /Please log in or sign up/i.test(chatBody.textContent||'');
@@ -505,7 +517,7 @@
       if (willOpen) { 
         // Initialize without clearing existing transcript unless it was a login prompt
         (async ()=>{
-          try { const profile = await getProfile(); cachedProfile = profile; setAuthUI(); } catch { cachedProfile = null; setAuthUI(); }
+          try { const profile = await getProfile(); cachedProfile = profile; setAuthUI(!!profile); } catch { cachedProfile = null; setAuthUI(false); }
           try {
             const hasHistory = !!(chatBody && chatBody.children && chatBody.children.length > 0);
             const hasLoginPrompt = hasHistory && /Please log in or sign up/i.test(chatBody.textContent||'');
