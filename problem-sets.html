@@ -1377,7 +1377,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                 const opts = document.createElement('div'); opts.className='ps-opts'; card.appendChild(opts);
                 const order = _.shuffle(q.options.map((opt, idx)=> ({opt, idx})));
                 order.forEach(pair=>{
-                  const btn = document.createElement('button'); btn.type='button'; btn.className='ps-opt'; btn.textContent = pair.opt; btn.setAttribute('aria-pressed','false');
+                  const btn = document.createElement('button'); btn.type='button'; btn.className='ps-opt'; btn.innerHTML = pair.opt; btn.setAttribute('aria-pressed','false');
                   btn.dataset.idx = String(pair.idx);
                   btn.addEventListener('click', ()=>{
                     if (btn.dataset.locked==='1') return;
@@ -1396,11 +1396,11 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   if (!chosenBtn){ results.textContent='Please select an answer before submitting.'; results.style.color='#8B4513'; return; }
                   const chosen = Number(chosenBtn.dataset.chosen);
                   // robust correctness: compare plain/number and also accept unit spacing
-                  const chosenText = chosenBtn.textContent || '';
+                  const chosenText = chosenBtn.textContent || chosenBtn.innerText || '';
                   // Map correct index to the actual rendered button (because options are shuffled)
                   const correctIdxNow = Math.max(0, Math.min(3, q.correct||0));
                   const correctBtn = [...opts.children].find(ch=> String(ch.dataset.idx) === String(correctIdxNow));
-                  const correctRendered = correctBtn ? correctBtn.textContent : '';
+                  const correctRendered = correctBtn ? (correctBtn.textContent || correctBtn.innerText || '') : '';
                   const correctSource = (q && Array.isArray(q.options)) ? q.options[correctIdxNow] : '';
                   let correct = false;
                   if (requiresExactOptionMatch(q.stem)){
@@ -1563,7 +1563,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                 const opts = document.createElement('div'); opts.className='ps-opts'; card.appendChild(opts);
                 const order = _.shuffle(q.options.map((opt, idx)=> ({opt, idx})));
                 order.forEach(pair=>{
-                  const btn = document.createElement('button'); btn.type='button'; btn.className='ps-opt'; btn.textContent = pair.opt; btn.setAttribute('aria-pressed','false');
+                  const btn = document.createElement('button'); btn.type='button'; btn.className='ps-opt'; btn.innerHTML = pair.opt; btn.setAttribute('aria-pressed','false');
                   btn.dataset.idx = String(pair.idx);
                   btn.addEventListener('click', ()=>{
                     if (btn.dataset.locked==='1') return;
@@ -1582,10 +1582,10 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   if (!chosenBtn){ results.textContent='Please select an answer before submitting.'; results.style.color='#8B4513'; return; }
                   const chosen = Number(chosenBtn.dataset.chosen);
                   // robust correctness: compare plain/number and also accept unit spacing
-                  const chosenText = chosenBtn.textContent || '';
+                  const chosenText = chosenBtn.textContent || chosenBtn.innerText || '';
                   const correctIdxNow = Math.max(0, Math.min(3, q.correct||0));
                   const correctBtn = [...opts.children].find(ch=> String(ch.dataset.idx) === String(correctIdxNow));
-                  const correctRendered = correctBtn ? correctBtn.textContent : '';
+                  const correctRendered = correctBtn ? (correctBtn.textContent || correctBtn.innerText || '') : '';
                   const correctSource = (q && Array.isArray(q.options)) ? q.options[correctIdxNow] : '';
                   let correct = false;
                   if (requiresExactOptionMatch(q.stem)){

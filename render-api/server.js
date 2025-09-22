@@ -349,11 +349,48 @@ async function bootstrap() {
     }
   });
 
+  // ===== Practice session tracking (ensures count reaches 10 server-side) =====
+  app.post('/ai/session/start', async (req, res) => {
+    try {
+      const lessonSlug = String(req.query.lesson || '').trim();
+      if (!lessonSlug) return res.status(400).json({ error: 'lesson (slug) is required' });
+      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+      await client.connect();
+      const sess = await getSessionCollection(client);
+      const now = new Date().toISOString();
+      const doc = { lessonSlug, count: 0, used: [], createdAt: now, updatedAt: now };
+      const r = await sess.insertOne(doc);
+      await client.close();
+      return res.status(201).json({ ok: true, sessionId: String(r.insertedId), count: 0, target: 10 });
+    } catch (e){ console.error(e); return res.status(500).json({ error: 'session_start_failed' }); }
+  });
+
+  app.post('/ai/session/answer', async (req, res) => {
+    try {
+      const sessionId = String(req.query.session || '').trim();
+      if (!sessionId) return res.status(400).json({ error: 'session id is required' });
+      const { correct, sourceHash } = req.body || {};
+      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+      await client.connect();
+      const sess = await getSessionCollection(client);
+      const _id = new ObjectId(sessionId);
+      const doc = await sess.findOne({ _id });
+      if (!doc){ await client.close(); return res.status(404).json({ error: 'session_not_found' }); }
+      const nextCount = Math.min(10, Number(doc.count||0) + 1);
+      const used = Array.isArray(doc.used) ? doc.used.slice(0, 200) : [];
+      if (sourceHash && typeof sourceHash === 'string' && !used.includes(sourceHash)) used.push(sourceHash);
+      await sess.updateOne({ _id }, { $set: { count: nextCount, used, updatedAt: new Date().toISOString() } });
+      await client.close();
+      return res.json({ ok: true, count: nextCount, finished: nextCount >= 10 });
+    } catch (e){ console.error(e); return res.status(500).json({ error: 'session_answer_failed' }); }
+  });
+
   // ===== Agent pipeline: Question Generation (Agent 1) and Serving (Agent 2) =====
   const MONGO_URI = process.env.MONGODB_URI || process.env.MONGODB_URL || process.env.MONGO_URI;
   const QUESTIONS_DB = 'thinkpod';
   const QUESTIONS_COL = 'questionbank';
   const INGEST_COL = 'textbook_chunks';
+  const SESSIONS_COL = 'practice_sessions';
 
   async function getQuestionCollection(client){
     const col = client.db(QUESTIONS_DB).collection(QUESTIONS_COL);
@@ -369,6 +406,14 @@ async function bootstrap() {
     try {
       await col.createIndex({ lessonSlug: 1 });
       await col.createIndex({ sourceId: 1 });
+    } catch(err){}
+    return col;
+  }
+
+  async function getSessionCollection(client){
+    const col = client.db(QUESTIONS_DB).collection(SESSIONS_COL);
+    try {
+      await col.createIndex({ lessonSlug: 1, createdAt: -1 });
     } catch(err){}
     return col;
   }
