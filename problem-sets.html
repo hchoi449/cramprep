@@ -47,7 +47,7 @@
       .ps-lock{color:#6b3410;opacity:.8;margin-right:6px}
       .ps-progress{height:6px;background:#f3f4f6;border-radius:9999px;overflow:hidden;margin:8px 0}
       .ps-progress>div{height:100%;background:#8B4513}
-      .ps-content{border:1px solid #e5e7eb;border-radius:12px;padding:18px;background:#fff}
+      .ps-content{border:0;border-radius:12px;padding:18px;background:#fff}
       .ps-breadcrumb{color:#6b7280;font-size:.9rem;margin-bottom:6px}
       .ps-title{font-size:1.6rem;font-weight:800;color:#1a1a1a;margin:6px 0 10px}
       .ps-actions{display:flex;gap:8px;margin-bottom:12px}
@@ -1453,11 +1453,11 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   opts.appendChild(btn);
                 });
                 try { if (window.katex && window.renderMathInElement) { renderMathInElement(opts, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
-                const controls = document.createElement('div'); controls.className='ps-controls'; controls.style.display='flex'; controls.style.alignItems='center'; controls.style.justifyContent='space-between'; controls.style.gap='12px'; controls.style.marginTop='22px'; card.appendChild(controls);
-                const action = document.createElement('button'); action.className='btn btn-primary'; action.style.minWidth='180px'; action.textContent='Check'; action.dataset.mode='check';
+                const controls = document.createElement('div'); controls.className='ps-controls'; controls.style.display='flex'; controls.style.alignItems='center'; controls.style.justifyContent='space-between'; controls.style.gap='12px'; controls.style.marginTop='8px'; card.appendChild(controls);
+                const explain = document.createElement('div'); explain.className='ps-explain'; explain.style.flex='1'; explain.style.marginRight='12px';
+                const action = document.createElement('button'); action.className='btn btn-primary'; action.style.minWidth='180px'; action.style.marginTop='12px'; action.textContent='Check'; action.dataset.mode='check';
                 // If a choice is selected later, revert any 'Try Again' back to 'Check'
                 opts.addEventListener('click', ()=> { if (action.textContent !== 'Check') { action.textContent = 'Check'; action.dataset.mode = 'check'; } });
-                const explain = document.createElement('div'); explain.className='ps-explain'; explain.style.flex='1'; explain.style.marginLeft='8px';
                 async function onCheck(){
                   const chosenBtn = [...opts.children].find(ch=> ch.classList.contains('sel'));
                   if (!chosenBtn){ action.textContent='Try Again'; action.dataset.mode='check';
