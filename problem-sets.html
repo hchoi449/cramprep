@@ -542,11 +542,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         const lessonKey = `${course.id}-${subtopic.id}-${lesson.slug}`;
         try { window.__PS_ACTIVE_LESSON_KEY = lessonKey; } catch {}
         body.innerHTML = '';
-        // Overview block for the lesson (short intro)
-        const notes = document.createElement('div');
-        const intro = (lesson.notes && lesson.notes.trim()) ? lesson.notes.trim() : 'Quick overview will be generated for this lesson.';
-        notes.innerHTML = mdToHtml(intro);
-        body.appendChild(notes);
+        // Lesson outline removed per request
         try {
           if (window.katex && window.renderMathInElement){
             window.renderMathInElement(notes, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false });
@@ -1232,10 +1228,9 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           const quiz = document.createElement('div'); quiz.style.marginTop='16px';
           quiz.className = 'ps-quiz-root';
           quiz.id = `ps-quiz-${course.id}-${subtopic.id}-${lesson.slug}`;
-          const h = document.createElement('h4'); h.textContent = 'Adaptive Problem Set (10)'; quiz.appendChild(h);
-          const nav = document.createElement('div'); nav.style.display='flex'; nav.style.gap='8px'; nav.style.margin='8px 0';
-          const idxLabel = document.createElement('div'); idxLabel.textContent = '1 / 10'; nav.appendChild(idxLabel);
-          quiz.appendChild(nav);
+          // Remove title and count UI per request
+          const nav = document.createElement('div'); nav.style.display='none';
+          const idxLabel = document.createElement('div'); idxLabel.style.display='none';
 
           const stage = document.createElement('div'); stage.className='ps-q-stage'; stage.innerHTML=''; quiz.appendChild(stage);
           const results = document.createElement('div'); results.style.margin='8px 0'; quiz.appendChild(results);
@@ -1339,7 +1334,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   card.appendChild(tbl);
                 }
                 // Render number line if provided (avoid revealing answer via labels)
-                if (q.numberLine){
+                // Hide number line for Place value; rounding & estimation
+                if (q.numberLine && !/place value; rounding & estimation/i.test(String(lesson.title||''))){
                   const nl = q.numberLine;
                   const wrap = document.createElement('div');
                   wrap.style.margin = '10px 0';
@@ -1436,12 +1432,12 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   opts.appendChild(btn);
                 });
                 try { if (window.katex && window.renderMathInElement) { renderMathInElement(opts, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
-                const controls = document.createElement('div'); controls.className='ps-controls'; controls.style.display='flex'; controls.style.justifyContent='flex-end'; controls.style.marginTop='10px'; card.appendChild(controls);
-                const action = document.createElement('button'); action.className='btn btn-primary'; action.textContent='Check'; action.dataset.mode='check';
+                const controls = document.createElement('div'); controls.className='ps-controls'; controls.style.display='flex'; controls.style.justifyContent='flex-end'; controls.style.marginTop='14px'; card.appendChild(controls);
+                const action = document.createElement('button'); action.className='btn btn-primary'; action.style.minWidth='180px'; action.textContent='Check'; action.dataset.mode='check';
                 const explain = document.createElement('div'); explain.className='ps-explain';
                 async function onCheck(){
                   const chosenBtn = [...opts.children].find(ch=> ch.classList.contains('sel'));
-                  if (!chosenBtn){ results.textContent='Please select an answer before checking.'; results.style.color='#8B4513'; return; }
+                  if (!chosenBtn){ action.textContent='Try Again'; action.dataset.mode='check'; return; }
                   const chosen = Number(chosenBtn.dataset.chosen);
                   // robust correctness: compare plain/number and also accept unit spacing
                   const chosenText = chosenBtn.textContent || chosenBtn.innerText || '';
@@ -1458,11 +1454,18 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   }
                   if (correct) { correctCount++; }
                   [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
-                  action.dataset.mode = 'next'; action.textContent = 'Next question';
+                  action.dataset.mode = 'next'; action.textContent = 'Next';
                   explain.innerHTML = correct ? `<span style="color:#155e2b"><i class='bi bi-check-circle'></i> Correct.</span> ${q.explanation||''}` : `<span style=\"color:#991b1b\"><i class='bi bi-x-circle'></i> Incorrect.</span> ${q.explanation||''}`;
                   try { if (window.katex && window.renderMathInElement) { renderMathInElement(explain, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
                   await bumpSessionCount(correct, q);
-                  if (correct) { try { playCelebrate(action); } catch{} }
+                  // Show celebratory toast top-right instead of animation
+                  try {
+                    const toast = document.createElement('div');
+                    toast.textContent = 'Nice work!';
+                    toast.style.position='fixed'; toast.style.top='14px'; toast.style.right='16px'; toast.style.padding='8px 12px'; toast.style.borderRadius='9999px'; toast.style.background='#10b981'; toast.style.color='#fff'; toast.style.boxShadow='0 6px 20px rgba(0,0,0,0.12)'; toast.style.zIndex='1000'; toast.style.opacity='0'; toast.style.transform='translateY(-6px)'; toast.style.transition='all .2s ease';
+                    document.body.appendChild(toast); requestAnimationFrame(()=>{ toast.style.opacity='1'; toast.style.transform='translateY(0)'; });
+                    setTimeout(()=>{ toast.style.opacity='0'; toast.style.transform='translateY(-6px)'; setTimeout(()=>{ try{ toast.remove(); }catch{} }, 250); }, 1000);
+                  } catch{}
                 }
                 function onNext(){
                   step++;
@@ -1528,7 +1531,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   card.appendChild(tbl);
                 }
                 // Render number line if provided
-                if (q.numberLine){
+                if (q.numberLine && !/place value; rounding & estimation/i.test(String(lesson.title||''))){
                   const nl = q.numberLine;
                   const wrap = document.createElement('div');
                   wrap.style.margin = '10px 0';
@@ -1623,12 +1626,12 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   opts.appendChild(btn);
                 });
                 try { if (window.katex && window.renderMathInElement) { renderMathInElement(opts, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
-                const controls = document.createElement('div'); controls.className='ps-controls'; controls.style.display='flex'; controls.style.justifyContent='flex-end'; controls.style.marginTop='10px'; card.appendChild(controls);
-                const action = document.createElement('button'); action.className='btn btn-primary'; action.textContent='Check'; action.dataset.mode='check';
+                const controls = document.createElement('div'); controls.className='ps-controls'; controls.style.display='flex'; controls.style.justifyContent='flex-end'; controls.style.marginTop='14px'; card.appendChild(controls);
+                const action = document.createElement('button'); action.className='btn btn-primary'; action.style.minWidth='180px'; action.textContent='Check'; action.dataset.mode='check';
                 const explain = document.createElement('div'); explain.className='ps-explain';
                 async function onCheck(){
                   const chosenBtn = [...opts.children].find(ch=> ch.classList.contains('sel'));
-                  if (!chosenBtn){ results.textContent='Please select an answer before checking.'; results.style.color='#8B4513'; return; }
+                  if (!chosenBtn){ action.textContent='Try Again'; action.dataset.mode='check'; return; }
                   const chosen = Number(chosenBtn.dataset.chosen);
                   // robust correctness: compare plain/number and also accept unit spacing
                   const chosenText = chosenBtn.textContent || chosenBtn.innerText || '';
@@ -1644,13 +1647,20 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   }
                   if (correct) { correctCount++; }
                   [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
-                  action.dataset.mode = 'next'; action.textContent = 'Next question';
+                  action.dataset.mode = 'next'; action.textContent = 'Next';
                   explain.innerHTML = correct ? `<span style="color:#155e2b"><i class='bi bi-check-circle'></i> Correct.</span> ${q.explanation||''}` : `<span style=\"color:#991b1b\"><i class='bi bi-x-circle'></i> Incorrect.</span> ${q.explanation||''}`;
                   try { if (window.katex && window.renderMathInElement) { renderMathInElement(explain, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
                   if (correct){ currentDifficulty = currentDifficulty==='easy' ? 'medium' : (currentDifficulty==='medium' ? 'hard' : 'hard'); }
                   else { currentDifficulty = currentDifficulty==='hard' ? 'medium' : (currentDifficulty==='medium' ? 'easy' : 'easy'); }
                   await bumpSessionCount(correct, q);
-                  if (correct) { try { playCelebrate(action); } catch{} }
+                  // Show celebratory toast top-right instead of animation
+                  try {
+                    const toast = document.createElement('div');
+                    toast.textContent = 'Nice work!';
+                    toast.style.position='fixed'; toast.style.top='14px'; toast.style.right='16px'; toast.style.padding='8px 12px'; toast.style.borderRadius='9999px'; toast.style.background='#10b981'; toast.style.color='#fff'; toast.style.boxShadow='0 6px 20px rgba(0,0,0,0.12)'; toast.style.zIndex='1000'; toast.style.opacity='0'; toast.style.transform='translateY(-6px)'; toast.style.transition='all .2s ease';
+                    document.body.appendChild(toast); requestAnimationFrame(()=>{ toast.style.opacity='1'; toast.style.transform='translateY(0)'; });
+                    setTimeout(()=>{ toast.style.opacity='0'; toast.style.transform='translateY(-6px)'; setTimeout(()=>{ try{ toast.remove(); }catch{} }, 250); }, 1000);
+                  } catch{}
                 }
                 function onNext(){
                   step++;
