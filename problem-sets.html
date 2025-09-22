@@ -1459,14 +1459,15 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   explain.innerHTML = correct ? `<span style="color:#155e2b"><i class='bi bi-check-circle'></i> Correct.</span> ${q.explanation||''}` : `<span style=\"color:#991b1b\"><i class='bi bi-x-circle'></i> Incorrect.</span> ${q.explanation||''}`;
                   try { if (window.katex && window.renderMathInElement) { renderMathInElement(explain, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
                   await bumpSessionCount(correct, q);
-                  // Show celebratory toast top-right instead of animation
-                  try {
-                    const toast = document.createElement('div');
-                    toast.textContent = 'Nice work!';
-                    toast.style.position='fixed'; toast.style.top='14px'; toast.style.right='16px'; toast.style.padding='8px 12px'; toast.style.borderRadius='9999px'; toast.style.background='#10b981'; toast.style.color='#fff'; toast.style.boxShadow='0 6px 20px rgba(0,0,0,0.12)'; toast.style.zIndex='1000'; toast.style.opacity='0'; toast.style.transform='translateY(-6px)'; toast.style.transition='all .2s ease';
-                    document.body.appendChild(toast); requestAnimationFrame(()=>{ toast.style.opacity='1'; toast.style.transform='translateY(0)'; });
-                    setTimeout(()=>{ toast.style.opacity='0'; toast.style.transform='translateY(-6px)'; setTimeout(()=>{ try{ toast.remove(); }catch{} }, 250); }, 1000);
-                  } catch{}
+                  if (correct){
+                    try {
+                      const toast = document.createElement('div');
+                      toast.textContent = 'Nice work!';
+                      toast.style.position='fixed'; toast.style.top='14px'; toast.style.right='16px'; toast.style.padding='8px 12px'; toast.style.borderRadius='9999px'; toast.style.background='#10b981'; toast.style.color='#fff'; toast.style.boxShadow='0 6px 20px rgba(0,0,0,0.12)'; toast.style.zIndex='1000'; toast.style.opacity='0'; toast.style.transform='translateY(-6px)'; toast.style.transition='all .2s ease';
+                      document.body.appendChild(toast); requestAnimationFrame(()=>{ toast.style.opacity='1'; toast.style.transform='translateY(0)'; });
+                      setTimeout(()=>{ toast.style.opacity='0'; toast.style.transform='translateY(-6px)'; setTimeout(()=>{ try{ toast.remove(); }catch{} }, 250); }, 1000);
+                    } catch{}
+                  }
                 }
                 function onNext(){
                   step++;
@@ -1658,14 +1659,15 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   if (correct){ currentDifficulty = currentDifficulty==='easy' ? 'medium' : (currentDifficulty==='medium' ? 'hard' : 'hard'); }
                   else { currentDifficulty = currentDifficulty==='hard' ? 'medium' : (currentDifficulty==='medium' ? 'easy' : 'easy'); }
                   await bumpSessionCount(correct, q);
-                  // Show celebratory toast top-right instead of animation
-                  try {
-                    const toast = document.createElement('div');
-                    toast.textContent = 'Nice work!';
-                    toast.style.position='fixed'; toast.style.top='14px'; toast.style.right='16px'; toast.style.padding='8px 12px'; toast.style.borderRadius='9999px'; toast.style.background='#10b981'; toast.style.color='#fff'; toast.style.boxShadow='0 6px 20px rgba(0,0,0,0.12)'; toast.style.zIndex='1000'; toast.style.opacity='0'; toast.style.transform='translateY(-6px)'; toast.style.transition='all .2s ease';
-                    document.body.appendChild(toast); requestAnimationFrame(()=>{ toast.style.opacity='1'; toast.style.transform='translateY(0)'; });
-                    setTimeout(()=>{ toast.style.opacity='0'; toast.style.transform='translateY(-6px)'; setTimeout(()=>{ try{ toast.remove(); }catch{} }, 250); }, 1000);
-                  } catch{}
+                  if (correct){
+                    try {
+                      const toast = document.createElement('div');
+                      toast.textContent = 'Nice work!';
+                      toast.style.position='fixed'; toast.style.top='14px'; toast.style.right='16px'; toast.style.padding='8px 12px'; toast.style.borderRadius='9999px'; toast.style.background='#10b981'; toast.style.color='#fff'; toast.style.boxShadow='0 6px 20px rgba(0,0,0,0.12)'; toast.style.zIndex='1000'; toast.style.opacity='0'; toast.style.transform='translateY(-6px)'; toast.style.transition='all .2s ease';
+                      document.body.appendChild(toast); requestAnimationFrame(()=>{ toast.style.opacity='1'; toast.style.transform='translateY(0)'; });
+                      setTimeout(()=>{ toast.style.opacity='0'; toast.style.transform='translateY(-6px)'; setTimeout(()=>{ try{ toast.remove(); }catch{} }, 250); }, 1000);
+                    } catch{}
+                  }
                 }
                 function onNext(){
                   step++;
