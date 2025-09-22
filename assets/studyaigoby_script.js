@@ -3,28 +3,16 @@
  * Open with any element having [data-open="study-ai"].
  */
 (function(){
+  // Load Material Symbols (same as Schedule AI)
+  const iconHref = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@48,400,0,0&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@48,400,1,0';
+  if (!document.querySelector(`link[href^="${iconHref}"]`)) {
+    const lf = document.createElement('link'); lf.rel='stylesheet'; lf.href=iconHref; document.head.appendChild(lf);
+  }
   // Build root UI (reuses existing CSS class names for styling, but scoped to this root)
   const root = document.createElement('div');
   root.className = 'study-chatbot-root';
   root.style.display = 'none';
-  // Minimal styles so the popup is visible without external CSS (skip if schedule CSS is present)
-  const hasScheduleCss = !!document.querySelector('link[href*="/assets/ai-chatbot/style.css"]'); /* ensures full parity when present */
-  if (!hasScheduleCss && !document.getElementById('study-ai-styles')){
-    const css = `
-      .study-chatbot-root .chatbot-popup{position:fixed;right:20px;bottom:90px;width:min(680px,96vw);max-height:70vh;background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.1);display:block;overflow:hidden;z-index:9999}
-      .study-chatbot-root .chat-header{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid #eee;background:#faf7f2}
-      .study-chatbot-root .chat-body{padding:12px;overflow:auto;max-height:52vh;background:#fff8ee}
-      .study-chatbot-root .chat-footer{padding:8px;border-top:1px solid #eee;background:#fff}
-      .study-chatbot-root .chat-form{display:flex;gap:8px;align-items:flex-end}
-      .study-chatbot-root .message-input{flex:1;min-height:40px;resize:none;border:1px solid #e5e7eb;border-radius:12px;padding:10px}
-      .study-chatbot-root .message{display:flex;gap:10px;margin:8px 0}
-      .study-chatbot-root .bot-message .message-text{background:#f6eee4;border:1px solid #efe7dc;border-radius:12px;padding:10px}
-      .study-chatbot-root .user-message{justify-content:flex-end}
-      .study-chatbot-root .user-message .message-text{background:#8B4513;color:#fff;border-radius:12px;padding:10px}
-      .tbp-study-chat-overlay{position:fixed;inset:0;background:rgba(0,0,0,.2);z-index:9998}
-    `;
-    const style = document.createElement('style'); style.id='study-ai-styles'; style.textContent = css; document.head.appendChild(style);
-  }
+  // Do not inject fallback CSS; page should load /assets/ai-chatbot/style.css for parity
   root.innerHTML = `
   <div class="chatbot-popup">
     <div class="chat-header">
@@ -52,12 +40,11 @@
   </div>`;
   document.body.appendChild(root);
 
-  // Overlay to close on outside click
-  let overlay = document.querySelector('.tbp-study-chat-overlay');
+  // Overlay to close on outside click (reuse schedule overlay class for identical style)
+  let overlay = document.querySelector('.tbp-chat-overlay');
   if (!overlay) {
     overlay = document.createElement('div');
-    overlay.className = 'tbp-study-chat-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;display:none;background:rgba(0,0,0,0.2);z-index:9998;';
+    overlay.className = 'tbp-chat-overlay';
     document.body.appendChild(overlay);
   }
 
