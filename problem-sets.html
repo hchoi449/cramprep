@@ -1912,7 +1912,26 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
 
       // Formula sheet simple window
       const openFormula = document.getElementById('open-formula');
-      if (openFormula){ openFormula.addEventListener('click', ()=>{ closeMenu(); const win = makeWindow('Formula sheet'); const body = win.querySelector('.tool-body'); if (!body) return; const frame = document.createElement('iframe'); frame.src='https://cdn.kastatic.org/KA-shareable-data/Math%20Formula%20Sheet.pdf'; frame.style.width='100%'; frame.style.height='100%'; frame.frameBorder='0'; body.appendChild(frame); }); }
+      if (openFormula){ openFormula.addEventListener('click', ()=>{ 
+        closeMenu(); 
+        const win = makeWindow('Formula sheet'); 
+        const body = win.querySelector('.tool-body'); if (!body) return; 
+        body.style.display='flex'; body.style.flexDirection='column';
+        const toolbar = document.createElement('div'); toolbar.style.padding='6px 8px'; toolbar.style.borderBottom='1px solid #eee'; toolbar.style.display='flex'; toolbar.style.gap='8px'; toolbar.style.alignItems='center';
+        const changeBtn = document.createElement('button'); changeBtn.textContent='Change link'; changeBtn.className='btn btn-secondary';
+        const fileBtn = document.createElement('button'); fileBtn.textContent='Choose PDF'; fileBtn.className='btn btn-secondary';
+        const input = document.createElement('input'); input.type='file'; input.accept='application/pdf'; input.style.display='none';
+        toolbar.appendChild(changeBtn); toolbar.appendChild(fileBtn); toolbar.appendChild(input); body.appendChild(toolbar);
+        const frame = document.createElement('iframe'); frame.style.width='100%'; frame.style.height='100%'; frame.frameBorder='0'; body.appendChild(frame);
+        function setSrc(src){ if (!src) return; frame.src = src; try { localStorage.setItem('tbp_formula_url', src); } catch {} }
+        const saved = (function(){ try { return localStorage.getItem('tbp_formula_url') || ''; } catch { return ''; } })();
+        // Use user-specified file URL if present; otherwise leave blank or fallback
+        setSrc(saved || '');
+        // If the user provided a local file path (file:///Users/...) you can paste it here when prompted
+        changeBtn.addEventListener('click', ()=>{ const url = prompt('Enter PDF URL (you may paste a file:/// path on your machine, or an https link):', (function(){ try {return localStorage.getItem('tbp_formula_url')||'';} catch {return '';} })()); if (url) setSrc(url.trim()); });
+        fileBtn.addEventListener('click', ()=> input.click());
+        input.addEventListener('change', ()=>{ const f = input.files && input.files[0]; if (!f) return; const blobUrl = URL.createObjectURL(f); setSrc(blobUrl); });
+      }); }
 
       // Notes window (simple editable)
       const openNotes = document.getElementById('open-notes');
