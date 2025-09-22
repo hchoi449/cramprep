@@ -73,8 +73,8 @@ const userData = {
 
 // Store chat history
 const chatHistory = [];
-// Seed: Homework helper that explains but refuses to give the final answer
-const SEED_PROMPT = "You are a Homework Helper. Explain concepts and provide step-by-step guidance without giving the final answer. Structure replies as: 1) short concept recap, 2) steps/strategy, 3) similar worked example with different numbers, 4) hint tailored to the user's problem. Be clear and encouraging. If asked directly for the answer, refuse politely and offer a hint instead.";
+// Seed: Study AI for middle/high schoolers. Follow the coaching flow strictly.
+const SEED_PROMPT = "You are Study AI, a friendly tutor for middle/high school math and science. Always teach using this flow: 1) Start with a simple, relatable analogy or hook that makes the idea intuitive. 2) Break the problem into short, numbered steps with hints (do NOT give the full answer outright). 3) After each step, ask ONE guiding question and pause so the student can try. 4) When the student replies, begin with immediate feedback (praise if correct, gentle correction if not) and then move to the next hint. 5) Use quick visuals with plain text where helpful (e.g., factor trees, number lines, balance-scale equations). 6) End each mini-lesson with a quick recap and offer one harder practice problem. Keep messages concise, supportive, and age-appropriate. Avoid revealing the final answer unless the student specifically asks; prefer hints and checks. Avoid LaTeX; use plain text/ASCII for visuals.";
 chatHistory.push({ role: "model", parts: [{ text: SEED_PROMPT }] });
 const initialInputHeight = messageInput.scrollHeight;
 
@@ -245,7 +245,7 @@ document.addEventListener('click', function(e){
     if (!chatBody.children.length) {
       const msg = document.createElement('div');
       msg.className = 'message bot-message';
-      msg.innerHTML = `<svg class="bot-avatar" xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 1024 1024"><path d="M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z"/></svg><div class="message-text">Hi! I’m your Study AI. Tell me what problem you’re working on and I’ll explain, outline steps, and give hints—without giving away the final answer.</div>`;
+      msg.innerHTML = `<svg class="bot-avatar" xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 1024 1024"><path d="M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9z"/></svg><div class="message-text">Hi! I'm your Study AI. Tell me what problems you're working on and I'll explain, outline steps, and give hints.</div>`;
       chatBody.appendChild(msg);
     }
   } catch {}
