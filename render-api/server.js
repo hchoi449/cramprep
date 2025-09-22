@@ -466,6 +466,62 @@ async function bootstrap() {
     } catch { return String(text||''); }
   }
 
+  function normalizePlainServer(s){
+    try { return String(stripLatexToPlain(s)||'').toLowerCase().replace(/\s+/g,' ').trim(); } catch { return String(s||''); }
+  }
+
+  function parseNumberLooseServer(s){
+    try {
+      const t = String(stripLatexToPlain(s)||'').replace(/,/g,'');
+      const mFrac = t.match(/(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)/);
+      if (mFrac){ const a=parseFloat(mFrac[1]); const b=parseFloat(mFrac[2]); if (!Number.isNaN(a)&&!Number.isNaN(b)&&b!==0) return a/b; }
+      const m = t.match(/-?\d+(?:\.\d+)?/);
+      return m ? parseFloat(m[0]) : NaN;
+    } catch { return NaN; }
+  }
+
+  function mutateDistractorForUniqueness(text, bump){
+    try {
+      const plain = stripLatexToPlain(text);
+      const n = parseNumberLooseServer(plain);
+      if (!Number.isNaN(n)){
+        const decimals = (String(plain).split('.')[1]||'').length;
+        const next = (n + Math.max(1,bump)).toFixed(decimals);
+        return next;
+      }
+      // fraction a/b -> (a+bump)/b
+      const mFrac = String(plain).match(/^(\d+)\s*\/\s*(\d+)$/);
+      if (mFrac){ const a=parseInt(mFrac[1],10); const b=parseInt(mFrac[2],10); return `${a+Math.max(1,bump)}/${b}`; }
+      // coordinate (x,y) -> (x+bump,y)
+      const mPt = String(plain).match(/^\(\s*([-\d\.]+)\s*,\s*([-\d\.]+)\s*\)$/);
+      if (mPt){ const x=parseFloat(mPt[1]); const y=parseFloat(mPt[2]); if (!Number.isNaN(x)&&!Number.isNaN(y)) return `(${x+Math.max(1,bump)},${y})`; }
+      // fallback: append a narrow no-break space + letter to make distinct
+      return `${plain}\u202f`; // visually identical but distinct
+    } catch { return String(text||''); }
+  }
+
+  function dedupeOptions(options, correctIdx){
+    const out = options.slice(0,4).map(String);
+    const seen = new Set();
+    // ensure correct option reserved
+    const normCorrect = normalizePlainServer(out[correctIdx]||'');
+    seen.add(normCorrect);
+    for (let i=0;i<out.length;i++){
+      if (i === correctIdx) continue;
+      let candidate = out[i];
+      let norm = normalizePlainServer(candidate);
+      let tries = 0;
+      while (seen.has(norm) && tries < 5){
+        candidate = mutateDistractorForUniqueness(candidate, i+1+tries);
+        norm = normalizePlainServer(candidate);
+        tries++;
+      }
+      out[i] = candidate;
+      seen.add(norm);
+    }
+    return { options: out, correctIdx };
+  }
+
   async function callGeminiGenerate(model, prompt){
     const key = process.env.GEMINI_API_KEY || process.env.gemini_api_key || process.env.GOOGLE_GEMINI_API_KEY;
     const useModel = model || 'gemini-1.5-flash-8b';

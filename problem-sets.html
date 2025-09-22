@@ -14,13 +14,15 @@
     <style>
       .ps-lottie-wrap{ position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 2000; pointer-events: none; }
       /* Tools FAB and windows */
-      .tools-fab{ position:fixed; right:18px; bottom:18px; z-index:1100; display:inline-flex; align-items:center; gap:8px; padding:12px 16px; border-radius:9999px; background:#8B4513; color:#fff; border:none; box-shadow:0 10px 30px rgba(0,0,0,.25); cursor:pointer; }
+      .tools-fab{ position:fixed; right:18px; bottom:18px; z-index:1100; display:inline-flex; align-items:center; gap:8px; padding:12px 16px; border-radius:9999px; background:linear-gradient(135deg,#0ea5e9 0%, #14b8a6 100%); color:#fff; border:none; box-shadow:0 12px 28px rgba(2,132,199,.35); cursor:pointer; transition:transform .15s ease, box-shadow .2s ease; }
+      .tools-fab:hover{ transform:translateY(-1px); box-shadow:0 16px 36px rgba(2,132,199,.40); }
       .tools-fab .bi{ font-size:1.25rem; }
-      .tool-menu{ position:fixed; right:18px; bottom:76px; background:#fff; border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.15); z-index:1100; overflow:hidden; display:none; }
-      .tool-menu ul{ list-style:none; margin:0; padding:6px; }
+      .tool-menu{ position:fixed; right:18px; bottom:76px; background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; box-shadow:0 12px 30px rgba(2,132,199,.15); z-index:1100; overflow:hidden; opacity:0; transform:translateY(6px) scale(.98); pointer-events:none; transition:opacity .18s ease, transform .18s ease; }
+      .tool-menu.menu-open{ opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+      .tool-menu ul{ list-style:none; margin:0; padding:6px; display:flex; flex-direction:column; gap:6px; }
       .tool-menu li{ margin:0; }
-      .tool-menu button{ width:100%; padding:10px 12px; background:#fff; border:none; text-align:left; border-radius:8px; cursor:pointer; }
-      .tool-menu button:hover{ background:#faf7f2; }
+      .tool-menu button{ width:100%; padding:10px 12px; background:#ffffff; color:#0f172a; border:none; text-align:left; border-radius:10px; cursor:pointer; transition:background .12s ease, transform .08s ease; }
+      .tool-menu button:hover{ background:#e6f9f6; }
       .tool-window{ position:fixed; right:24px; bottom:110px; width:480px; height:560px; background:#fff; border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 18px 50px rgba(0,0,0,.25); z-index:1200; overflow:hidden; }
       .tool-window .tool-header{ height:44px; display:flex; align-items:center; justify-content:space-between; padding:0 10px; background:#8B4513; color:#fff; cursor:move; }
       .tool-window .tool-body{ width:100%; height:calc(100% - 44px); background:#fff; }
@@ -135,6 +137,8 @@
         <li><button type="button" id="open-numworks"><i class="bi bi-calculator"></i> NumWorks</button></li>
         <li><button type="button" id="open-ti84"><i class="bi bi-calculator-fill"></i> TI-84</button></li>
         <li><button type="button" id="open-study-ai"><i class="bi bi-chat-dots"></i> Study AI</button></li>
+        <li><button type="button" id="open-formula"><i class="bi bi-journal-text"></i> Formula sheet</button></li>
+        <li><button type="button" id="open-notes"><i class="bi bi-sticky"></i> Notes</button></li>
       </ul>
     </div>
 
@@ -1834,9 +1838,10 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
     (function(){
       const fab = document.getElementById('tools-fab');
       const menu = document.getElementById('tool-menu');
-      function toggleMenu(show){ menu.style.display = show === true ? 'block' : (show === false ? 'none' : (menu.style.display==='block'?'none':'block')); }
+      function setMenu(open){ if (!menu) return; if (open) menu.classList.add('menu-open'); else menu.classList.remove('menu-open'); }
+      function toggleMenu(){ if (!menu) return; menu.classList.toggle('menu-open'); }
       if (fab){ fab.addEventListener('click', ()=> toggleMenu()); }
-      document.addEventListener('click', (e)=>{ const t=e.target; if (!t) return; if (t.closest && (t.closest('#tools-fab') || t.closest('#tool-menu'))) return; menu.style.display='none'; });
+      document.addEventListener('click', (e)=>{ const t=e.target; if (!t) return; if (t.closest && (t.closest('#tools-fab') || t.closest('#tool-menu'))) return; setMenu(false); });
 
       function makeWindow(title){
         const win = document.createElement('div'); win.className='tool-window';
@@ -1884,7 +1889,15 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
 
       // Study AI opens existing Study AI popup
       const openStudy = document.getElementById('open-study-ai');
-      if (openStudy){ openStudy.addEventListener('click', ()=>{ toggleMenu(false); try { const ev = new MouseEvent('click', { bubbles:true, cancelable:true }); const target = document.querySelector('[data-open="study-ai"]'); if (target) target.dispatchEvent(ev); } catch {} }); }
+      if (openStudy){ openStudy.addEventListener('click', ()=>{ setMenu(false); try { const ev = new MouseEvent('click', { bubbles:true, cancelable:true }); const target = document.querySelector('[data-open="study-ai"]'); if (target) target.dispatchEvent(ev); } catch {} }); }
+
+      // Formula sheet simple window
+      const openFormula = document.getElementById('open-formula');
+      if (openFormula){ openFormula.addEventListener('click', ()=>{ setMenu(false); const win = makeWindow('Formula sheet'); const body = win.querySelector('.tool-body'); if (!body) return; const frame = document.createElement('iframe'); frame.src='https://cdn.kastatic.org/KA-shareable-data/Math%20Formula%20Sheet.pdf'; frame.style.width='100%'; frame.style.height='100%'; frame.frameBorder='0'; body.appendChild(frame); }); }
+
+      // Notes window (simple editable)
+      const openNotes = document.getElementById('open-notes');
+      if (openNotes){ openNotes.addEventListener('click', ()=>{ setMenu(false); const win = makeWindow('Notes'); const body = win.querySelector('.tool-body'); if (!body) return; const ta = document.createElement('textarea'); ta.placeholder='Type your notes...'; ta.style.width='100%'; ta.style.height='100%'; ta.style.border='none'; ta.style.outline='none'; ta.style.padding='12px'; ta.value = localStorage.getItem('tbp_notes') || ''; ta.addEventListener('input', ()=> localStorage.setItem('tbp_notes', ta.value)); body.appendChild(ta); }); }
     })();
 
       // Generate problems: prefer Agent 2 retrieval; fallback to Gemini proxy if empty
