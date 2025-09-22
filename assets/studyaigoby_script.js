@@ -20,7 +20,7 @@
         <svg class="chatbot-logo" xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 1024 1024"><path d="M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9zM351.7 448.2c0-29.5 23.9-53.5 53.5-53.5s53.5 23.9 53.5 53.5-23.9 53.5-53.5 53.5-53.5-23.9-53.5-53.5zm157.9 267.1c-67.8 0-123.8-47.5-132.3-109h264.6c-8.6 61.5-64.5 109-132.3 109zm110-213.7c-29.5 0-53.5-23.9-53.5-53.5s23.9-53.5 53.5-53.5 53.5 23.9 53.5 53.5-23.9 53.5-53.5 53.5z"/></svg>
         <h2 class="logo-text">Chatbot</h2>
       </div>
-      <button id="study-close-chatbot" class="material-symbols-rounded">close</button>
+      <button id="close-chatbot" class="material-symbols-rounded">close</button>
     </div>
     <div class="chat-body"></div>
     <div class="chat-footer">
@@ -33,12 +33,19 @@
         <input id="study-file-input" type="file" accept="image/*,application/pdf" style="display:none" />
         <div class="chat-controls">
           <button type="button" id="study-file-upload" class="material-symbols-rounded" style="display:none">attach_file</button>
-          <button type="submit" id="study-send-message" class="material-symbols-rounded">arrow_upward</button>
         </div>
       </form>
     </div>
   </div>`;
   document.body.appendChild(root);
+
+  // Override watermark to Study AI teacher avatar (scoped)
+  if (!document.getElementById('study-ai-theme')){
+    const style = document.createElement('style');
+    style.id = 'study-ai-theme';
+    style.textContent = `.study-chatbot-root .chat-body::before{content:"";background:url('/assets/images/people/man2.jpg') center center / 280px 280px no-repeat !important;}`;
+    document.head.appendChild(style);
+  }
 
   // Overlay to close on outside click (reuse schedule overlay class for identical style)
   let overlay = document.querySelector('.tbp-chat-overlay');
@@ -50,11 +57,11 @@
 
   const chatBody = root.querySelector('.chat-body');
   const messageInput = root.querySelector('.message-input');
-  const sendMessage = root.querySelector('#study-send-message');
+  const sendMessage = null; // No arrow button; Enter-to-send only
   const fileInput = root.querySelector('#study-file-input');
   const fileUploadWrapper = root.querySelector('.file-upload-wrapper');
   const fileCancelButton = root.querySelector('#study-file-cancel');
-  const closeChatbot = root.querySelector('#study-close-chatbot');
+  const closeChatbot = root.querySelector('#close-chatbot');
 
   // API setup (server proxy, no client key)
   const AUTH_BASE = (window && window.TBP_AUTH_BASE) ? window.TBP_AUTH_BASE.replace(/\/$/, '') : '';
@@ -223,7 +230,7 @@ if (fileCancelButton) fileCancelButton.addEventListener("click", () => {
 
 // EmojiMart no longer used; keeping minimal spacing adjustment only
 
-sendMessage.addEventListener("click", (e) => handleOutgoingMessage(e));
+// No explicit send button; users press Enter to send
 const fileUploadBtn = root.querySelector("#study-file-upload");
 if (fileUploadBtn) fileUploadBtn.addEventListener("click", () => fileInput.click());
   closeChatbot.addEventListener("click", () => { root.style.display='none'; overlay.style.display='none'; try{ document.body.classList.remove('show-chatbot'); }catch{} });
