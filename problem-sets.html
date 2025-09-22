@@ -1432,12 +1432,16 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   opts.appendChild(btn);
                 });
                 try { if (window.katex && window.renderMathInElement) { renderMathInElement(opts, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
-                const controls = document.createElement('div'); controls.className='ps-controls'; controls.style.display='flex'; controls.style.justifyContent='flex-end'; controls.style.marginTop='14px'; card.appendChild(controls);
+                const controls = document.createElement('div'); controls.className='ps-controls'; controls.style.display='flex'; controls.style.justifyContent='flex-end'; controls.style.marginTop='22px'; card.appendChild(controls);
                 const action = document.createElement('button'); action.className='btn btn-primary'; action.style.minWidth='180px'; action.textContent='Check'; action.dataset.mode='check';
+                // If a choice is selected later, revert any 'Try Again' back to 'Check'
+                opts.addEventListener('click', ()=> { if (action.textContent !== 'Check') { action.textContent = 'Check'; action.dataset.mode = 'check'; } });
                 const explain = document.createElement('div'); explain.className='ps-explain';
                 async function onCheck(){
                   const chosenBtn = [...opts.children].find(ch=> ch.classList.contains('sel'));
-                  if (!chosenBtn){ action.textContent='Try Again'; action.dataset.mode='check'; return; }
+                  if (!chosenBtn){ action.textContent='Try Again'; action.dataset.mode='check';
+                    try { const toast=document.createElement('div'); toast.textContent='Please select an answer first.'; toast.setAttribute('role','status'); toast.style.position='fixed'; toast.style.top='14px'; toast.style.right='16px'; toast.style.padding='8px 12px'; toast.style.borderRadius='9999px'; toast.style.background='#b45309'; toast.style.color='#fff'; toast.style.boxShadow='0 6px 20px rgba(0,0,0,0.12)'; toast.style.zIndex='1000'; toast.style.opacity='0'; toast.style.transform='translateY(-6px)'; toast.style.transition='all .2s ease'; document.body.appendChild(toast); requestAnimationFrame(()=>{ toast.style.opacity='1'; toast.style.transform='translateY(0)'; }); setTimeout(()=>{ toast.style.opacity='0'; toast.style.transform='translateY(-6px)'; setTimeout(()=>{ try{ toast.remove(); }catch{} }, 250); }, 1200); } catch{}
+                    return; }
                   const chosen = Number(chosenBtn.dataset.chosen);
                   // robust correctness: compare plain/number and also accept unit spacing
                   const chosenText = chosenBtn.textContent || chosenBtn.innerText || '';
@@ -1626,12 +1630,16 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   opts.appendChild(btn);
                 });
                 try { if (window.katex && window.renderMathInElement) { renderMathInElement(opts, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
-                const controls = document.createElement('div'); controls.className='ps-controls'; controls.style.display='flex'; controls.style.justifyContent='flex-end'; controls.style.marginTop='14px'; card.appendChild(controls);
+                const controls = document.createElement('div'); controls.className='ps-controls'; controls.style.display='flex'; controls.style.justifyContent='flex-end'; controls.style.marginTop='22px'; card.appendChild(controls);
                 const action = document.createElement('button'); action.className='btn btn-primary'; action.style.minWidth='180px'; action.textContent='Check'; action.dataset.mode='check';
+                // Revert Try Again to Check when any option is selected
+                opts.addEventListener('click', ()=> { if (action.textContent !== 'Check') { action.textContent = 'Check'; action.dataset.mode = 'check'; } });
                 const explain = document.createElement('div'); explain.className='ps-explain';
                 async function onCheck(){
                   const chosenBtn = [...opts.children].find(ch=> ch.classList.contains('sel'));
-                  if (!chosenBtn){ action.textContent='Try Again'; action.dataset.mode='check'; return; }
+                  if (!chosenBtn){ action.textContent='Try Again'; action.dataset.mode='check';
+                    try { const toast=document.createElement('div'); toast.textContent='Please select an answer first.'; toast.setAttribute('role','status'); toast.style.position='fixed'; toast.style.top='14px'; toast.style.right='16px'; toast.style.padding='8px 12px'; toast.style.borderRadius='9999px'; toast.style.background='#b45309'; toast.style.color='#fff'; toast.style.boxShadow='0 6px 20px rgba(0,0,0,0.12)'; toast.style.zIndex='1000'; toast.style.opacity='0'; toast.style.transform='translateY(-6px)'; toast.style.transition='all .2s ease'; document.body.appendChild(toast); requestAnimationFrame(()=>{ toast.style.opacity='1'; toast.style.transform='translateY(0)'; }); setTimeout(()=>{ toast.style.opacity='0'; toast.style.transform='translateY(-6px)'; setTimeout(()=>{ try{ toast.remove(); }catch{} }, 250); }, 1200); } catch{}
+                    return; }
                   const chosen = Number(chosenBtn.dataset.chosen);
                   // robust correctness: compare plain/number and also accept unit spacing
                   const chosenText = chosenBtn.textContent || chosenBtn.innerText || '';
@@ -1722,7 +1730,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
               opts.appendChild(btn);
             });
             try { if (window.katex && window.renderMathInElement) { renderMathInElement(opts, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
-            const controls = document.createElement('div'); controls.className='ps-controls'; controls.style.display='flex'; controls.style.justifyContent='flex-end'; controls.style.marginTop='10px'; card.appendChild(controls);
+            const controls = document.createElement('div'); controls.className='ps-controls'; controls.style.display='flex'; controls.style.justifyContent='flex-end'; controls.style.marginTop='22px'; card.appendChild(controls);
             const action = document.createElement('button'); action.className='btn btn-primary'; action.textContent='Check'; action.dataset.mode='check';
             const explain = document.createElement('div'); explain.className='ps-explain';
             action.addEventListener('click', async ()=>{
