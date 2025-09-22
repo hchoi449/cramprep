@@ -10,11 +10,9 @@
     <link rel="stylesheet" href="css/timetable.css?v=1.0" />
     <link rel="stylesheet" href="css/login.css?v=1.0" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" />
+    <script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.8.1/dist/dotlottie-wc.js" type="module"></script>
     <style>
-      .ps-controls .celebrate { position: relative; box-shadow: 0 0 0 0 rgba(16,185,129,0.6); animation: pulseRing 1s ease; }
-      .ps-controls .confetti-burst{ position:absolute; inset:-6px; pointer-events:none; background: radial-gradient(circle at 10% 10%, #facc15 0 6px, transparent 7px), radial-gradient(circle at 90% 20%, #f472b6 0 6px, transparent 7px), radial-gradient(circle at 20% 80%, #34d399 0 6px, transparent 7px), radial-gradient(circle at 80% 85%, #60a5fa 0 6px, transparent 7px); animation: fadeOut 1s ease forwards; border-radius:12px; }
-      @keyframes pulseRing{ 0%{ box-shadow: 0 0 0 0 rgba(16,185,129,0.6);} 100%{ box-shadow: 0 0 0 12px rgba(16,185,129,0); } }
-      @keyframes fadeOut{ from{ opacity:1 } to{ opacity:0 } }
+      .ps-lottie-wrap{ position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 2000; pointer-events: none; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.13.6/underscore-min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
@@ -1284,16 +1282,17 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           }
 
           function renderOne(){
-            // helper for celebration
-            function playCelebrate(target){
+            // helper for celebration using Lottie overlay
+            function playCelebrate(){
               try {
-                const snd = new Audio('data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCAAZAAAACcQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
-                snd.volume = 0.4; snd.play().catch(()=>{});
-              } catch {}
-              try {
-                target.classList.add('celebrate');
-                const el = document.createElement('span'); el.className='confetti-burst'; target.appendChild(el);
-                setTimeout(()=>{ try{ target.classList.remove('celebrate'); if (el && el.parentNode) el.parentNode.removeChild(el); }catch{} }, 1000);
+                const wrap = document.createElement('div'); wrap.className='ps-lottie-wrap';
+                const anim = document.createElement('dotlottie-wc');
+                anim.setAttribute('src','https://lottie.host/d767b9fb-f462-4c1e-87e3-4dcb4747abcc/xwDsl6eHBH.lottie');
+                anim.setAttribute('style','width:280px;height:280px');
+                anim.setAttribute('autoplay','');
+                wrap.appendChild(anim);
+                document.body.appendChild(wrap);
+                setTimeout(()=>{ try{ wrap.remove(); }catch{} }, 1500);
               } catch {}
             }
             // ensure single-question rendering
