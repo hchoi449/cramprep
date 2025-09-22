@@ -15,12 +15,12 @@
       .ps-lottie-wrap{ position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 2000; pointer-events: none; }
       /* Tools FAB and windows */
       /* Brand-styled Tools button (match site browns) */
-      .tools-fab{ position:fixed; right:18px; bottom:18px; z-index:1100; display:inline-flex; align-items:center; gap:8px; padding:12px 16px; border-radius:9999px; background:#8B4513; color:#fff; border:none; box-shadow:0 12px 28px rgba(0,0,0,.25); cursor:pointer; transition:transform .15s ease, box-shadow .2s ease; }
+      .tools-fab{ position:fixed; right:18px; bottom:18px; z-index:1100; display:inline-flex; align-items:center; gap:8px; padding:12px 16px; border-radius:9999px; background:#8B4513; color:#fff; border:none; box-shadow:0 12px 28px rgba(0,0,0,.25); cursor:pointer; transition:transform .15s ease, box-shadow .2s ease, padding .22s ease, min-width .22s ease, border-radius .22s ease; }
       .tools-fab:hover{ transform:translateY(-1px); box-shadow:0 16px 36px rgba(0,0,0,.28); }
-      .tools-fab.fab-open{ transform:translateY(-6px); }
+      .tools-fab.fab-open{ transform:translateY(-6px); min-width:160px; padding-right:22px; border-radius:9999px; }
       .tools-fab .bi{ font-size:1.25rem; }
-      .tool-menu{ position:fixed; right:18px; bottom:18px; background:#ffffff; border:1px solid #e5e7eb; border-radius:9999px; box-shadow:0 14px 34px rgba(0,0,0,.18); z-index:1100; overflow:hidden; opacity:0; transform:translateY(6px) scale(.96); pointer-events:none; transition:opacity .18s ease, transform .18s ease; }
-      .tool-menu.menu-open{ opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+      .tool-menu{ position:fixed; right:18px; bottom:18px; background:#ffffff; border:1px solid #e5e7eb; border-radius:9999px; box-shadow:0 14px 34px rgba(0,0,0,.18); z-index:1100; overflow:hidden; opacity:0; transform:translateY(6px) scale(.96); pointer-events:none; clip-path: inset(0 50% 0 50% round 9999px); transition:opacity .18s ease, transform .18s ease, clip-path .26s ease; }
+      .tool-menu.menu-open{ opacity:1; transform:translateY(0) scale(1); pointer-events:auto; clip-path: inset(0 0 0 0 round 9999px); }
       .tool-title{ font-weight:600; color:#8B4513; padding:10px 12px 6px; transition:transform .18s ease; }
       .tool-menu.menu-open .tool-title{ transform:translateY(-4px); }
       .tool-menu ul{ list-style:none; margin:0; padding:2px 8px 10px; display:flex; flex-direction:column; gap:10px; max-height:0; overflow:hidden; transition:max-height .26s ease; }
