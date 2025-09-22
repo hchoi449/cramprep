@@ -65,13 +65,13 @@
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
 
     const userData = { message: null, file: { data:null, mime_type:null } };
-    const SEED_PROMPT = "You are a Homework Helper for ThinkBigPrep. Goal: help students understand and solve problems without giving the final answer. Provide: 1) brief concept recap, 2) step-by-step strategy, 3) one worked example of a similar problem (not the same numbers), 4) a hint specific to their problem. Keep replies concise, clear, and encouraging. Avoid scheduling/marketing unless explicitly asked. Use inline math like 2/3, x^2.";
+    const SEED_PROMPT = "You are ThinkBigPrep's scheduling assistant. Help students book sessions. Keep every reply within 300 characters. If the student's profile is available, do not ask for their name, school, or grade; use the provided profile data. Ask only what is necessary (subject, help type, preferred day/time). Be friendly and professional.";
     const chatHistory = [];
     // Seed assistant role and constraints
     chatHistory.push({ role: 'model', parts: [{ text: SEED_PROMPT }] });
     const initialInputHeight = messageInput.scrollHeight;
 
-    let userIsAuthed = true; // homework help available to all
+    let userIsAuthed = false;
     let cachedProfile = null;
     let hasAskedHelp = false;
     let helpTopic = null;
@@ -153,11 +153,22 @@
       return null;
     }
 
-    function setAuthUI(){ messageInput.disabled = false; sendMessage.disabled = false; messageInput.placeholder = 'Ask about your homework...'; }
+    function setAuthUI(authed){
+      userIsAuthed = !!authed;
+      if (!userIsAuthed) {
+        messageInput.disabled = true;
+        sendMessage.disabled = true;
+        messageInput.placeholder = 'Please log in or sign up to continue scheduling.';
+      } else {
+        messageInput.disabled = false;
+        sendMessage.disabled = false;
+        messageInput.placeholder = 'Message...';
+      }
+    }
 
     function renderLoginPromptOnce(){
       if (loginPromptShown) return;
-      const div = createMessageElement(`<div class="message-text">How can I help with your homework?</div>`, 'bot-message');
+      const div = createMessageElement(`<div class="message-text">Please log in or sign up to continue scheduling.<br><button class=\"btn btn-secondary btn-chat open-login-btn\" aria-label=\"Open login\">Open login</button></div>`, 'bot-message');
       chatBody.appendChild(div);
       chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: 'smooth' });
       loginPromptShown = true;
@@ -165,9 +176,7 @@
 
     async function generateBotResponse(incomingMessageDiv){
       chatHistory.push({ role:'user', parts:[{ text: userData.message }, ...(userData.file.data ? [{ inline_data: userData.file }] : [])] });
-      try {
-        // Homework mode: direct call to Gemini for explanations
-      } catch {}
+      try { /* scheduling mode uses custom flows below; still call Gemini for free-form */ } catch {}
       const requestOptions = { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ contents: chatHistory }) };
       try {
         const response = await fetch(API_URL, requestOptions);
@@ -175,6 +184,7 @@
         if (!response.ok) throw new Error((data && data.error && data.error.message) || 'API error');
         const apiResponseText = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text || '').replace(/\*\*(.*?)\*\*/g,'$1').trim();
         const constrained = apiResponseText ? apiResponseText.slice(0, 300) : '';
+        const messageElement = incomingMessageDiv.querySelector('.message-text');
         messageElement.innerText = constrained || '...';
         chatHistory.push({ role:'model', parts:[{ text: constrained }] });
         // If model signals fallback, trigger notify
