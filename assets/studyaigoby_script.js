@@ -16,6 +16,23 @@ const closeChatbot = document.querySelector("#close-chatbot");
   const root = document.createElement('div');
   root.className = 'study-chatbot-root';
   root.style.display = 'none';
+  // Minimal styles so the popup is visible without external CSS
+  if (!document.getElementById('study-ai-styles')){
+    const css = `
+      .study-chatbot-root .chatbot-popup{position:fixed;right:20px;bottom:90px;width:min(680px,96vw);max-height:70vh;background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.1);display:block;overflow:hidden;z-index:9999}
+      .study-chatbot-root .chat-header{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid #eee;background:#faf7f2}
+      .study-chatbot-root .chat-body{padding:12px;overflow:auto;max-height:52vh;background:#fff8ee}
+      .study-chatbot-root .chat-footer{padding:8px;border-top:1px solid #eee;background:#fff}
+      .study-chatbot-root .chat-form{display:flex;gap:8px;align-items:flex-end}
+      .study-chatbot-root .message-input{flex:1;min-height:40px;resize:none;border:1px solid #e5e7eb;border-radius:12px;padding:10px}
+      .study-chatbot-root .message{display:flex;gap:10px;margin:8px 0}
+      .study-chatbot-root .bot-message .message-text{background:#f6eee4;border:1px solid #efe7dc;border-radius:12px;padding:10px}
+      .study-chatbot-root .user-message{justify-content:flex-end}
+      .study-chatbot-root .user-message .message-text{background:#8B4513;color:#fff;border-radius:12px;padding:10px}
+      .tbp-study-chat-overlay{position:fixed;inset:0;background:rgba(0,0,0,.2);z-index:9998}
+    `;
+    const style = document.createElement('style'); style.id='study-ai-styles'; style.textContent = css; document.head.appendChild(style);
+  }
   root.innerHTML = `
   <div class="chatbot-popup">
     <div class="chat-header">
