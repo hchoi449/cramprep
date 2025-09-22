@@ -1922,21 +1922,38 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         closeMenu(); 
         const win = makeWindow('Formula sheet'); 
         const body = win.querySelector('.tool-body'); if (!body) return; 
-        body.style.display='flex'; body.style.flexDirection='column';
-        const toolbar = document.createElement('div'); toolbar.style.padding='6px 8px'; toolbar.style.borderBottom='1px solid #eee'; toolbar.style.display='flex'; toolbar.style.gap='8px'; toolbar.style.alignItems='center';
-        const changeBtn = document.createElement('button'); changeBtn.textContent='Change link'; changeBtn.className='btn btn-secondary';
-        const fileBtn = document.createElement('button'); fileBtn.textContent='Choose PDF'; fileBtn.className='btn btn-secondary';
-        const input = document.createElement('input'); input.type='file'; input.accept='application/pdf'; input.style.display='none';
-        toolbar.appendChild(changeBtn); toolbar.appendChild(fileBtn); toolbar.appendChild(input); body.appendChild(toolbar);
-        const frame = document.createElement('iframe'); frame.style.width='100%'; frame.style.height='100%'; frame.frameBorder='0'; body.appendChild(frame);
-        function setSrc(src){ if (!src) return; frame.src = src; try { localStorage.setItem('tbp_formula_url', src); } catch {} }
-        const saved = (function(){ try { return localStorage.getItem('tbp_formula_url') || ''; } catch { return ''; } })();
-        // Use user-specified file URL if present; otherwise leave blank or fallback
-        setSrc(saved || '');
-        // If the user provided a local file path (file:///Users/...) you can paste it here when prompted
-        changeBtn.addEventListener('click', ()=>{ const url = prompt('Enter PDF URL (you may paste a file:/// path on your machine, or an https link):', (function(){ try {return localStorage.getItem('tbp_formula_url')||'';} catch {return '';} })()); if (url) setSrc(url.trim()); });
-        fileBtn.addEventListener('click', ()=> input.click());
-        input.addEventListener('change', ()=>{ const f = input.files && input.files[0]; if (!f) return; const blobUrl = URL.createObjectURL(f); setSrc(blobUrl); });
+        body.style.display='flex'; body.style.flexDirection='row';
+        body.style.gap='0';
+        // Left menu
+        const menu = document.createElement('div');
+        menu.style.width='280px'; menu.style.minWidth='240px'; menu.style.borderRight='1px solid #eee'; menu.style.overflow='auto';
+        // Right viewer
+        const viewerWrap = document.createElement('div'); viewerWrap.style.flex='1'; viewerWrap.style.display='flex'; viewerWrap.style.flexDirection='column';
+        const frame = document.createElement('iframe'); frame.style.width='100%'; frame.style.height='100%'; frame.frameBorder='0'; viewerWrap.appendChild(frame);
+        body.appendChild(menu); body.appendChild(viewerWrap);
+
+        const cheats = [
+          { name:'Algebra Cheat Sheet', full:'http://tutorial.math.lamar.edu/getfile.aspx?file=B_30,N', reduced:'http://tutorial.math.lamar.edu/getfile.aspx?file=B_31,N' },
+          { name:'Trig Cheat Sheet', full:'http://tutorial.math.lamar.edu/getfile.aspx?file=B_32,N', reduced:'http://tutorial.math.lamar.edu/getfile.aspx?file=B_33,N' },
+          { name:'Complete Calculus Cheat Sheet', full:'http://tutorial.math.lamar.edu/getfile.aspx?file=B_40,N', reduced:'http://tutorial.math.lamar.edu/getfile.aspx?file=B_41,N' },
+          { name:'Limits Calculus Cheat Sheet', full:'http://tutorial.math.lamar.edu/getfile.aspx?file=B_42,N', reduced:'http://tutorial.math.lamar.edu/getfile.aspx?file=B_43,N' },
+          { name:'Derivatives Calculus Cheat Sheet', full:'http://tutorial.math.lamar.edu/getfile.aspx?file=B_44,N', reduced:'http://tutorial.math.lamar.edu/getfile.aspx?file=B_45,N' },
+          { name:'Integrals Calculus Cheat Sheet', full:'http://tutorial.math.lamar.edu/getfile.aspx?file=B_46,N', reduced:'http://tutorial.math.lamar.edu/getfile.aspx?file=B_47,N' },
+          { name:'Common Derivatives and Integrals', full:'http://tutorial.math.lamar.edu/getfile.aspx?file=B_48,N', reduced:'http://tutorial.math.lamar.edu/getfile.aspx?file=B_49,N' },
+        ];
+        function setSrc(src){ if (!src) return; frame.src = src; }
+        const list = document.createElement('div'); list.style.padding='10px'; list.style.display='flex'; list.style.flexDirection='column'; list.style.gap='10px';
+        cheats.forEach((c, idx)=>{
+          const item = document.createElement('div'); item.style.background='#fff'; item.style.border='1px solid #e5e7eb'; item.style.borderRadius='10px'; item.style.padding='10px';
+          const title = document.createElement('div'); title.textContent = c.name; title.style.fontWeight='600'; title.style.marginBottom='8px'; title.style.color='#6b3410';
+          const row = document.createElement('div'); row.style.display='flex'; row.style.gap='8px';
+          const fullBtn = document.createElement('button'); fullBtn.textContent='Full version'; fullBtn.className='btn btn-primary'; fullBtn.addEventListener('click', ()=> setSrc(c.full));
+          const redBtn = document.createElement('button'); redBtn.textContent='Reduced version'; redBtn.className='btn btn-secondary'; redBtn.addEventListener('click', ()=> setSrc(c.reduced));
+          row.appendChild(fullBtn); row.appendChild(redBtn);
+          item.appendChild(title); item.appendChild(row); list.appendChild(item);
+          if (idx===0) setSrc(c.full);
+        });
+        menu.appendChild(list);
       }); }
 
       // Notes window (simple editable)
