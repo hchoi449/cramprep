@@ -871,10 +871,14 @@ async function bootstrap() {
       const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
       await client.connect();
       const col = await getQuestionCollection(client);
-      const slugs = await col.distinct('lessonSlug');
+      const existingSlugs = await col.distinct('lessonSlug');
       await client.close();
+      // Union with lessons discovered from repository so missing lessons are still refreshed/seeded
+      const lessonDefs = tryReadLessonsFromRepo();
+      const repoSlugs = Array.isArray(lessonDefs) ? lessonDefs.map(l => l.slug).filter(Boolean) : [];
+      const allSlugs = Array.from(new Set([...(repoSlugs||[]), ...(existingSlugs||[]) ]));
       const baseUrl = (process.env.PUBLIC_BASE_URL && process.env.PUBLIC_BASE_URL.trim()) || `http://127.0.0.1:${process.env.PORT||8080}`;
-      const slice = slugs.slice(0, Math.max(1, Number(limit||0) || 200));
+      const slice = allSlugs.slice(0, Math.max(1, Number(limit||0) || allSlugs.length || 200));
       total = slice.length;
       for (const slug of slice){
         try {
