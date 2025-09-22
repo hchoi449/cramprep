@@ -7,9 +7,62 @@ const fileCancelButton = fileUploadWrapper.querySelector("#file-cancel");
 const chatbotToggler = document.querySelector("#chatbot-toggler");
 const closeChatbot = document.querySelector("#close-chatbot");
 
-// API setup (use server proxy; no client key exposed)
-const AUTH_BASE = (window && window.TBP_AUTH_BASE) ? window.TBP_AUTH_BASE.replace(/\/$/,'') : '';
-const API_URL = `${AUTH_BASE}/ai/generate`;
+/* Study AI - isolated chatbot (separate from Schedule AI)
+ * Mounts its own UI and uses the server proxy /ai/generate.
+ * Open with any element having [data-open="study-ai"].
+ */
+(function(){
+  // Build root UI (reuses existing CSS class names for styling, but scoped to this root)
+  const root = document.createElement('div');
+  root.className = 'study-chatbot-root';
+  root.style.display = 'none';
+  root.innerHTML = `
+  <div class="chatbot-popup">
+    <div class="chat-header">
+      <div class="header-info">
+        <svg class="chatbot-logo" xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 1024 1024"><path d="M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9zM351.7 448.2c0-29.5 23.9-53.5 53.5-53.5s53.5 23.9 53.5 53.5-23.9 53.5-53.5 53.5-53.5-23.9-53.5-53.5zm157.9 267.1c-67.8 0-123.8-47.5-132.3-109h264.6c-8.6 61.5-64.5 109-132.3 109zm110-213.7c-29.5 0-53.5-23.9-53.5-53.5s23.9-53.5 53.5-53.5 53.5 23.9 53.5 53.5-23.9 53.5-53.5 53.5z"/></svg>
+        <h2 class="logo-text">Study AI</h2>
+      </div>
+      <button id="study-close-chatbot" class="material-symbols-rounded">close</button>
+    </div>
+    <div class="chat-body"></div>
+    <div class="chat-footer">
+      <form action="#" class="chat-form">
+        <textarea placeholder="Ask about your homework..." class="message-input" required></textarea>
+        <div class="file-upload-wrapper" style="display:none">
+          <img alt="preview" />
+          <button type="button" id="study-file-cancel">×</button>
+        </div>
+        <input id="study-file-input" type="file" accept="image/*,application/pdf" style="display:none" />
+        <div class="chat-controls">
+          <button type="button" id="study-file-upload" class="material-symbols-rounded" style="display:none">attach_file</button>
+          <button type="submit" id="study-send-message" class="material-symbols-rounded">arrow_upward</button>
+        </div>
+      </form>
+    </div>
+  </div>`;
+  document.body.appendChild(root);
+
+  // Overlay to close on outside click
+  let overlay = document.querySelector('.tbp-study-chat-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.className = 'tbp-study-chat-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;display:none;background:rgba(0,0,0,0.2);z-index:9998;';
+    document.body.appendChild(overlay);
+  }
+
+  const chatBody = root.querySelector('.chat-body');
+  const messageInput = root.querySelector('.message-input');
+  const sendMessage = root.querySelector('#study-send-message');
+  const fileInput = root.querySelector('#study-file-input');
+  const fileUploadWrapper = root.querySelector('.file-upload-wrapper');
+  const fileCancelButton = root.querySelector('#study-file-cancel');
+  const closeChatbot = root.querySelector('#study-close-chatbot');
+
+  // API setup (server proxy, no client key)
+  const AUTH_BASE = (window && window.TBP_AUTH_BASE) ? window.TBP_AUTH_BASE.replace(/\/$/, '') : '';
+  const API_URL = `${AUTH_BASE}/ai/generate`;
 
 // Initialize user message and file data
 const userData = {
@@ -133,7 +186,7 @@ const handleOutgoingMessage = (e) => {
 messageInput.addEventListener("input", () => {
   messageInput.style.height = `${initialInputHeight}px`;
   messageInput.style.height = `${messageInput.scrollHeight}px`;
-  document.querySelector(".chat-form").style.borderRadius = messageInput.scrollHeight > initialInputHeight ? "15px" : "32px";
+  root.querySelector(".chat-form").style.borderRadius = messageInput.scrollHeight > initialInputHeight ? "15px" : "32px";
 });
 
 // Handle Enter key press for sending messages
@@ -167,7 +220,7 @@ fileInput.addEventListener("change", () => {
 });
 
 // Cancel file upload
-fileCancelButton.addEventListener("click", () => {
+if (fileCancelButton) fileCancelButton.addEventListener("click", () => {
   userData.file = {};
   fileUploadWrapper.classList.remove("file-uploaded");
 });
@@ -191,9 +244,21 @@ const picker = new EmojiMart.Picker({
   },
 });
 
-document.querySelector(".chat-form").appendChild(picker);
+root.querySelector(".chat-form").appendChild(picker);
 
 sendMessage.addEventListener("click", (e) => handleOutgoingMessage(e));
-document.querySelector("#file-upload").addEventListener("click", () => fileInput.click());
-closeChatbot.addEventListener("click", () => document.body.classList.remove("show-chatbot"));
-chatbotToggler.addEventListener("click", () => document.body.classList.toggle("show-chatbot"));
+const fileUploadBtn = root.querySelector("#study-file-upload");
+if (fileUploadBtn) fileUploadBtn.addEventListener("click", () => fileInput.click());
+closeChatbot.addEventListener("click", () => { root.style.display='none'; overlay.style.display='none'; });
+
+// Open Study AI via data-open="study-ai"
+document.addEventListener('click', function(e){
+  const target = e.target.closest('[data-open="study-ai"]');
+  if (!target) return;
+  e.preventDefault();
+  root.style.display = 'block';
+  overlay.style.display = 'block';
+});
+
+overlay.addEventListener('click', ()=> { root.style.display='none'; overlay.style.display='none'; });
+})();
