@@ -799,10 +799,10 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             if (!t) return '$\\text{}$';
             const fixed = wrapLatexFragments(fixCommonLatexTypos(t));
             if (isProbablyLatex(fixed)) return fixed;
-            // If there is any LaTeX command (including operators like \times) or a backslash, wrap whole string in math
+            // If there is any LaTeX command (including operators like \\times) or a backslash, wrap whole string in math
             if (containsLatexCommand(fixed) || /\\[a-zA-Z]+/.test(fixed)) return `$${fixed}$`;
             // If plain number, render as math number instead of \\text{}
-            if (/^-?\d+(?:\.\d+)?$/.test(fixed)) return `$${fixed}$`;
+            if (/^-?\\d+(?:\\.\\d+)?$/.test(fixed)) return `$${fixed}$`;
             return `$\\text{${latexEscapeText(fixed)}}$`;
           } catch { return '$\\text{}$'; }
         }
@@ -952,8 +952,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           try {
             if (!problem || !Array.isArray(problem.options)) return problem;
             problem = fixQuadrantOrigin(problem);
-            // Enforce LaTeX for stem/options/explanation if not present
-            if (problem.stem) problem.stem = latexifyInline(problem.stem);
+            // Stems: only wrap inline fragments to avoid double $$
+            if (problem.stem) problem.stem = latexifyStem(problem.stem);
             // Ensure any remaining bare LaTeX in stem/options gets wrapped
             const rawOpts = problem.options.map(o=> String(o||'').trim());
             // Pre-normalize operator words before latexifying
