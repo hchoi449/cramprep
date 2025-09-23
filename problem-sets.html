@@ -1887,9 +1887,10 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
       if (fab){ fab.addEventListener('click', ()=> { toggleMenu(); fab.classList.toggle('fab-open'); }); }
       document.addEventListener('click', (e)=>{ const t=e.target; if (!t) return; if (t.closest && (t.closest('#tools-fab') || t.closest('#tool-menu'))) return; closeMenu(); });
 
-      function makeWindow(title){
+      function makeWindow(title, iconClass){
         const win = document.createElement('div'); win.className='tool-window';
-        win.innerHTML = `<div class="tool-header"><div class="tool-header-info"><div class="tool-logo"><i class="bi bi-list"></i></div><span class="tool-title">${title}</span></div><div><button class="tool-close" aria-label="Close">✕</button></div></div><div class="tool-body"></div>`;
+        const icon = iconClass ? iconClass : 'bi-list';
+        win.innerHTML = `<div class=\"tool-header\"><div class=\"tool-header-info\"><div class=\"tool-logo\"><i class=\"bi ${icon}\"></i></div><span class=\"tool-title\">${title}</span></div><div><button class=\"tool-close\" aria-label=\"Close\">✕</button></div></div><div class=\"tool-body\"></div>`;
         document.body.appendChild(win);
         const header = win.querySelector('.tool-header'); const closeBtn = win.querySelector('.tool-close');
         if (closeBtn) closeBtn.addEventListener('click', ()=> win.remove());
@@ -1920,7 +1921,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
       const openDesmos = document.getElementById('open-desmos');
       if (openDesmos){ openDesmos.addEventListener('click', ()=>{
         closeMenu();
-        const win = makeWindow('Desmos');
+        const win = makeWindow('Desmos','bi-graph-up');
         const body = win.querySelector('.tool-body'); if (!body) return;
         function mountCalc(){
           const el = document.createElement('div'); el.id = 'calculator'; el.style.width='100%'; el.style.height='100%'; body.appendChild(el);
@@ -1938,7 +1939,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
       const openTi84 = document.getElementById('open-ti84');
       if (openTi84){ openTi84.addEventListener('click', ()=>{
         closeMenu();
-        const win = makeWindow('TI-84');
+        const win = makeWindow('TI-84','bi-calculator');
         const body = win.querySelector('.tool-body'); if (!body) return;
         // Create a cropping wrapper so we only show the calculator itself
         const wrap = document.createElement('div');
@@ -1963,7 +1964,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
       const openNumworks = document.getElementById('open-numworks');
       if (openNumworks){ openNumworks.addEventListener('click', ()=>{
         closeMenu();
-        const win = makeWindow('NumWorks');
+        const win = makeWindow('NumWorks','bi-calculator');
         const body = win.querySelector('.tool-body'); if (!body) return;
         const link = document.createElement('a'); link.href='https://github.com/numworks/epsilon'; link.target='_blank'; link.rel='noopener'; link.textContent='Open NumWorks Epsilon';
         link.style.display='inline-block'; link.style.margin='12px'; body.appendChild(link);
@@ -1977,7 +1978,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
       const openFormula = document.getElementById('open-formula');
       if (openFormula){ openFormula.addEventListener('click', ()=>{ 
         closeMenu(); 
-        const win = makeWindow('Formula sheet'); 
+        const win = makeWindow('Formula sheet','bi-journal-text'); 
         const body = win.querySelector('.tool-body'); if (!body) return; 
         body.style.display='flex'; body.style.flexDirection='row';
         body.style.gap='0';
