@@ -915,12 +915,29 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             // Fix $ext{...} -> $\text{...} and bare ext{...} -> \text{...}
             s = s.replace(/\$\s*ext\s*\{/g, '$\\text{');
             s = s.replace(/(^|\s)ext\s*\{/g, '$1\\text{');
+            // Add missing backslashes for common commands like frac, dfrac, sqrt when omitted
+            s = s.replace(/(^|[^\\])(frac|dfrac|tfrac|cfrac|sqrt)\s*\{/g, (m, pre, cmd)=> `${pre}\\${cmd}{`);
+            // Repair 'rac{...}{...}' -> '\\frac{...}{...}' when the leading 'f' is missing
+            s = s.replace(/(^|[^\\])rac\s*\{/g, (m, pre)=> `${pre}\\frac{`);
             // Unescape escaped braces (common leak)
             s = s.replace(/\\\{/g, '{').replace(/\\\}/g, '}');
             // Strip \text{...} wrapper if it only contains math
             s = s.replace(/\\text\{\s*([^}]*)\s*\}/g, '$1');
             return s;
           } catch { return String(t||''); }
+        }
+
+        // Convert a lesson/problem stem to safe inline LaTeX while preserving plain text
+        function latexifyStem(text){
+          try {
+            let s = String(text||'');
+            if (!s) return '';
+            // Fix common typos and missing backslashes
+            s = fixCommonLatexTypos(s);
+            // Wrap any LaTeX fragments with $...$ so auto-render can find them
+            s = wrapLatexFragments(s);
+            return s;
+          } catch { return String(text||''); }
         }
 
         // Heuristic to detect that a problem is a true word-phrase → expression translation (no algebra in stem)
