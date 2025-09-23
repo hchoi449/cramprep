@@ -45,21 +45,12 @@
     </div>
   </div>`;
   document.body.appendChild(root);
-  // Enable drag-to-resize (like tool windows); remove explicit expand control
+  // Revert: prevent resizing (no expand/minimize)
   try {
     const popup = root.querySelector('.chatbot-popup');
-    if (popup){
-      popup.style.resize = 'both';
-      popup.style.overflow = 'auto';
-      popup.style.minWidth = '320px';
-      popup.style.minHeight = '240px';
-      popup.style.position = 'relative';
-    }
-    if (!document.getElementById('study-resize-style')){
-      const st = document.createElement('style'); st.id='study-resize-style';
-      st.textContent = `.study-chatbot-root .chatbot-popup::after{content:"";position:absolute;right:6px;bottom:6px;width:22px;height:22px;border-right:3px solid #cbd5e1;border-bottom:3px solid #cbd5e1;border-radius:2px;pointer-events:none}`;
-      document.head.appendChild(st);
-    }
+    if (popup){ popup.style.resize = 'none'; popup.style.overflow = 'hidden'; }
+    const st = document.getElementById('study-resize-style');
+    if (st) st.remove();
   } catch{}
 
   // Remove any custom Study AI watermark override; fall back to default icon from shared CSS
