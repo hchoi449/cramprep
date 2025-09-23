@@ -1941,29 +1941,29 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         closeMenu();
         const win = makeWindow('TI-84','bi-calculator');
         const body = win.querySelector('.tool-body'); if (!body) return;
-        // Create a cropping wrapper so we only show the calculator itself
+        // Create a cropping wrapper so we only show the calculator body (no headers/footers)
         const wrap = document.createElement('div');
         wrap.style.position = 'relative';
         wrap.style.overflow = 'hidden';
-        // Constrain to calculator viewport
+        // Constrain to calculator viewport (tuned to exclude site chrome and "Powered by")
         wrap.style.margin = '0 auto';
-        wrap.style.width = '420px';
-        wrap.style.height = '860px';
+        wrap.style.width = '390px';
+        wrap.style.height = '800px';
         body.appendChild(wrap);
         const iframe = document.createElement('iframe');
         iframe.src='https://ti84hub.com?embed=true';
         iframe.title='TI-84 Calculator';
         iframe.style.position='absolute';
-        iframe.style.top='-150px'; // shift page up to hide header
-        iframe.style.left='-140px'; // shift left to hide side paddings
-        iframe.style.width='900px';
-        iframe.style.height='1200px'; // ensure calculator area fills
+        iframe.style.top='-210px'; // shift page up to hide header/banner
+        iframe.style.left='-125px'; // center the device, hide side gutters
+        iframe.style.width='860px';
+        iframe.style.height='1200px'; // ensure calculator area fills the crop
         iframe.style.border='0';
-        iframe.style.transform='scale(1.05)';
+        iframe.style.transform='scale(1.12)';
         iframe.style.transformOrigin='top left';
         wrap.appendChild(iframe);
-        // Resize window tighter around calculator
-        try { win.style.width='460px'; win.style.height='960px'; } catch{}
+        // Resize window to hug the calculator
+        try { win.style.width='430px'; win.style.height='900px'; } catch{}
       }); }
 
       // NumWorks (linking to project page as reference)
