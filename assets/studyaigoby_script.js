@@ -12,6 +12,11 @@
   const root = document.createElement('div');
   root.className = 'study-chatbot-root';
   root.style.display = 'none';
+  root.style.position = 'fixed';
+  root.style.left = '50%';
+  root.style.top = '50%';
+  root.style.transform = 'translate(-50%, -50%)';
+  root.style.zIndex = '1300';
   // Do not inject fallback CSS; page should load /assets/ai-chatbot/style.css for parity
   root.innerHTML = `
   <div class="chatbot-popup">
@@ -229,6 +234,15 @@ if (fileCancelButton) fileCancelButton.addEventListener("click", () => {
 const fileUploadBtn = root.querySelector("#study-file-upload");
 if (fileUploadBtn) fileUploadBtn.addEventListener("click", () => fileInput.click());
   closeChatbot.addEventListener("click", () => { root.style.display='none'; overlay.style.display='none'; try{ document.body.classList.remove('show-chatbot'); }catch{} });
+  // Make Study AI draggable by header
+  try {
+    const header = root.querySelector('.chat-header');
+    let startX=0, startY=0, startLeft=0, startTop=0, dragging=false;
+    function onDown(e){ dragging=true; const r = root.getBoundingClientRect(); startX=e.clientX; startY=e.clientY; startLeft=r.left; startTop=r.top; root.style.transform='translate(0,0)'; document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp); }
+    function onMove(e){ if(!dragging) return; const dx=e.clientX-startX, dy=e.clientY-startY; const w=root.offsetWidth, h=root.offsetHeight; const nx=Math.max(8, Math.min(window.innerWidth-w-8, startLeft+dx)); const ny=Math.max(8, Math.min(window.innerHeight-h-8, startTop+dy)); root.style.left=nx+'px'; root.style.top=ny+'px'; }
+    function onUp(){ dragging=false; document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
+    if (header) header.addEventListener('mousedown', onDown);
+  } catch {}
 
 // Open Study AI via data-open="study-ai"
 document.addEventListener('click', function(e){
