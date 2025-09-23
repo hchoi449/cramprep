@@ -237,6 +237,7 @@ if (fileUploadBtn) fileUploadBtn.addEventListener("click", () => fileInput.click
   // Make Study AI draggable by header
   try {
     const header = root.querySelector('.chat-header');
+    if (header) header.style.cursor = 'move';
     let startX=0, startY=0, startLeft=0, startTop=0, dragging=false;
     function onDown(e){ dragging=true; const r = root.getBoundingClientRect(); startX=e.clientX; startY=e.clientY; startLeft=r.left; startTop=r.top; root.style.transform='translate(0,0)'; document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp); }
     function onMove(e){ if(!dragging) return; const dx=e.clientX-startX, dy=e.clientY-startY; const w=root.offsetWidth, h=root.offsetHeight; const nx=Math.max(8, Math.min(window.innerWidth-w-8, startLeft+dx)); const ny=Math.max(8, Math.min(window.innerHeight-h-8, startTop+dy)); root.style.left=nx+'px'; root.style.top=ny+'px'; }
