@@ -1032,7 +1032,9 @@ async function bootstrap() {
       total = slice.length;
       for (const slug of slice){
         try {
-          const r1 = await fetch(`${baseUrl}/ai/agent1/generate?lesson=${encodeURIComponent(slug)}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title: slug }) });
+        const book = resolveBookForLessonFromRepo(slug);
+        const url1 = `${baseUrl}/ai/agent1/generate?lesson=${encodeURIComponent(slug)}${book?`&book=${encodeURIComponent(book)}`:''}`;
+        const r1 = await fetch(url1, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title: slug, book }) });
           if (!r1.ok) throw new Error(`agent1 ${r1.status}`);
           try { await fetch(`${baseUrl}/ai/agent2/enrich?lesson=${encodeURIComponent(slug)}`, { method:'POST' }); } catch {}
           try { await fetch(`${baseUrl}/ai/agent4/verify-lesson?lesson=${encodeURIComponent(slug)}`, { method:'POST' }); } catch {}
@@ -1098,6 +1100,32 @@ async function bootstrap() {
       } catch {}
     }
     return [];
+  }
+
+  // Infer parent course id (book) for a lesson slug by scanning the repository lesson definitions
+  function resolveBookForLessonFromRepo(lessonSlug){
+    try {
+      const candidates = [
+        path.resolve(__dirname, '../problem-sets.html'),
+        path.resolve(__dirname, '../../problem-sets.html'),
+        path.resolve(process.cwd(), 'problem-sets.html')
+      ];
+      for (const p of candidates){
+        try {
+          const txt = fs.readFileSync(p, 'utf8');
+          const pos = txt.indexOf(`slug:'${lessonSlug}'`);
+          if (pos < 0) continue;
+          const pre = txt.slice(0, pos);
+          // Find the last course block header before this slug
+          // Pattern: { id:'<courseId>', title:'...', subtopics:[
+          const re = /\{\s*id:\s*'([^']+)'\s*,\s*title:\s*'[^']+'\s*,\s*subtopics\s*:\s*\[/g;
+          let m, last = null;
+          while ((m = re.exec(pre))) { last = m[1]; }
+          if (last) return last;
+        } catch {}
+      }
+    } catch {}
+    return null;
   }
 
   app.get('/ai/lessons', (req, res)=>{
