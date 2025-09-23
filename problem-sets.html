@@ -35,7 +35,7 @@
       .tool-menu.menu-open li:nth-child(6){ transition-delay:.12s }
       .tool-menu button{ width:100%; padding:14px 14px; font-size:1rem; background:#ffffff; color:#1f2937; border:none; text-align:left; border-radius:12px; cursor:pointer; transition:background .12s ease, transform .08s ease; }
       .tool-menu button:hover{ background:#F4E6D8; }
-      .tool-window{ position:fixed; left:50%; top:50%; transform:translate(-50%, -50%); width:600px; height:480px; background:#fff; border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 18px 50px rgba(0,0,0,.25); z-index:1200; overflow:hidden; resize: none; }
+      .tool-window{ position:fixed; left:50%; top:50%; transform:translate(-50%, -50%); width:600px; height:480px; min-width:360px; min-height:280px; background:#fff; border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 18px 50px rgba(0,0,0,.25); z-index:1200; overflow:auto; resize: both; }
       .tool-window .tool-header{ height:44px; display:flex; align-items:center; justify-content:space-between; padding:0 10px; background:#8B4513; color:#fff; cursor:move; }
       .tool-window .tool-body{ width:100%; height:calc(100% - 44px); background:#fff; }
       .tool-close{ background:transparent; border:none; color:#fff; font-size:1.18rem; cursor:pointer; }
