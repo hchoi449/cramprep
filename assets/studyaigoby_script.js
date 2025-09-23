@@ -26,7 +26,6 @@
               <h2 class="logo-text" style="color:#fff;font-weight:600;font-size:1.1rem;letter-spacing:.02rem">Chatbot</h2>
             </div>
             <div style="display:flex;align-items:center;gap:8px">
-              <button id="study-expand" class="material-symbols-rounded" title="Expand" style="color:#fff">▢</button>
               <button id="close-chatbot" class="material-symbols-rounded" style="color:#fff">✕</button>
             </div>
           </div>
@@ -46,6 +45,22 @@
     </div>
   </div>`;
   document.body.appendChild(root);
+  // Enable drag-to-resize (like tool windows); remove explicit expand control
+  try {
+    const popup = root.querySelector('.chatbot-popup');
+    if (popup){
+      popup.style.resize = 'both';
+      popup.style.overflow = 'auto';
+      popup.style.minWidth = '320px';
+      popup.style.minHeight = '240px';
+      popup.style.position = 'relative';
+    }
+    if (!document.getElementById('study-resize-style')){
+      const st = document.createElement('style'); st.id='study-resize-style';
+      st.textContent = `.study-chatbot-root .chatbot-popup::after{content:"";position:absolute;right:6px;bottom:6px;width:22px;height:22px;border-right:3px solid #cbd5e1;border-bottom:3px solid #cbd5e1;border-radius:2px;pointer-events:none}`;
+      document.head.appendChild(st);
+    }
+  } catch{}
 
   // Remove any custom Study AI watermark override; fall back to default icon from shared CSS
   try { const s = document.getElementById('study-ai-theme'); if (s) s.remove(); } catch {}
@@ -248,22 +263,7 @@ if (fileUploadBtn) fileUploadBtn.addEventListener("click", () => fileInput.click
     if (header) header.addEventListener('mousedown', onDown);
   } catch {}
 
-  // Expand/restore button for Study AI
-  try {
-    const expandBtn = root.querySelector('#study-expand');
-    function toggleExpand(){
-      if (root.classList.contains('study-max')){
-        root.classList.remove('study-max');
-        root.style.width = 'auto'; root.style.height = 'auto';
-      } else {
-        root.classList.add('study-max');
-        root.style.left='50%'; root.style.top='50%'; root.style.transform='translate(-50%,-50%)';
-        root.style.width = Math.min(window.innerWidth*0.9, 1200) + 'px';
-        root.style.height = Math.min(window.innerHeight*0.9, window.innerHeight*0.9) + 'px';
-      }
-    }
-    if (expandBtn) expandBtn.addEventListener('click', toggleExpand);
-  } catch {}
+  // Removed explicit expand button; resizing is available via edges/corner
 
 // Open Study AI via data-open="study-ai"
 document.addEventListener('click', function(e){
