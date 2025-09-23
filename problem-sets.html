@@ -348,14 +348,7 @@
             { slug:'functions-modeling', title:'Functions and Modeling', locked:false, notes:`Lesson outline.` },
             { slug:'intro-complex-numbers', title:'Introduction to Complex Numbers', locked:false, notes:`Lesson outline.` }
           ]},
-          { id:'quadratics', title:'Quadratics & Complex', lessons:[
-            { slug:'vertex-form', title:'Vertex Form Intro', locked:false,
-              notes:`# Vertex Form\n$y = a(x-h)^2 + k$`,
-              questions:[
-                { id:'q1', stem:'Vertex of $y = (x-3)^2+2$ is', options:['$(3,2)$','$(-3,2)$','$(2,3)$','$(3,-2)$'], correct:0, explanation:'$h=3,\\ k=2$', tags:['quadratics'] }
-              ]
-            }
-          ]}
+          
         ]},
         { id:'algebra-2', title:'Algebra II', subtopics:[
           /* -------------------- QUADRATIC EQUATIONS -------------------- */
@@ -1642,9 +1635,13 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   const correctSource = (q && Array.isArray(q.options)) ? q.options[correctIdxNow] : '';
                   let correct = false;
                   if (requiresExactOptionMatch(q.stem)){
-                    correct = (chosen === correctIdxNow) || plainsEqualStrict(chosenText, correctRendered) || plainsEqualStrict(chosenText, correctSource);
+                    // Trust canonical answerPlain if present
+                    const canon = (q && q.answerPlain) ? String(q.answerPlain) : null;
+                    const chosenPlain = stripLatexToPlain(chosenText||'');
+                    const canonMatch = canon ? plainsEqualStrict(chosenPlain, canon) || plainsEqualLoose(chosenPlain, canon) : false;
+                    correct = canonMatch || (chosen === correctIdxNow) || plainsEqualStrict(chosenText, correctRendered) || plainsEqualStrict(chosenText, correctSource);
                   } else {
-                    correct = (chosen === correctIdxNow) || plainsEqualLoose(chosenText, correctRendered) || plainsEqualLoose(chosenText, correctSource);
+                    correct = canonMatch || (chosen === correctIdxNow) || plainsEqualLoose(chosenText, correctRendered) || plainsEqualLoose(chosenText, correctSource);
                   }
                   if (correct) { correctCount++; }
                   [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
@@ -1840,9 +1837,12 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   const correctSource = (q && Array.isArray(q.options)) ? q.options[correctIdxNow] : '';
                   let correct = false;
                   if (requiresExactOptionMatch(q.stem)){
-                    correct = (chosen === correctIdxNow) || plainsEqualStrict(chosenText, correctRendered) || plainsEqualStrict(chosenText, correctSource);
+                    const canon2 = (q && q.answerPlain) ? String(q.answerPlain) : null;
+                    const chosenPlain2 = stripLatexToPlain(chosenText||'');
+                    const canonMatch2 = canon2 ? plainsEqualStrict(chosenPlain2, canon2) || plainsEqualLoose(chosenPlain2, canon2) : false;
+                    correct = canonMatch2 || (chosen === correctIdxNow) || plainsEqualStrict(chosenText, correctRendered) || plainsEqualStrict(chosenText, correctSource);
                   } else {
-                    correct = (chosen === correctIdxNow) || plainsEqualLoose(chosenText, correctRendered) || plainsEqualLoose(chosenText, correctSource);
+                    correct = canonMatch2 || (chosen === correctIdxNow) || plainsEqualLoose(chosenText, correctRendered) || plainsEqualLoose(chosenText, correctSource);
                   }
                   if (correct) { correctCount++; }
                   [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
@@ -1946,9 +1946,12 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
               const correctSource = (q && Array.isArray(q.options)) ? q.options[correctIdxNow] : '';
                   let correct = false;
                   if (requiresExactOptionMatch(q.stem)){
-                    correct = (chosen === correctIdxNow) || plainsEqualStrict(chosenText, correctRendered) || plainsEqualStrict(chosenText, correctSource);
+                    const canon3 = (q && q.answerPlain) ? String(q.answerPlain) : null;
+                    const chosenPlain3 = stripLatexToPlain(chosenText||'');
+                    const canonMatch3 = canon3 ? plainsEqualStrict(chosenPlain3, canon3) || plainsEqualLoose(chosenPlain3, canon3) : false;
+                    correct = canonMatch3 || (chosen === correctIdxNow) || plainsEqualStrict(chosenText, correctRendered) || plainsEqualStrict(chosenText, correctSource);
                   } else {
-                    correct = (chosen === correctIdxNow) || plainsEqualLoose(chosenText, correctRendered) || plainsEqualLoose(chosenText, correctSource);
+                    correct = canonMatch3 || (chosen === correctIdxNow) || plainsEqualLoose(chosenText, correctRendered) || plainsEqualLoose(chosenText, correctSource);
                   }
               if (correct) { correctCount++; }
               [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
