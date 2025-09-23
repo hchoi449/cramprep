@@ -1012,7 +1012,7 @@ async function bootstrap() {
   });
 
   // Daily refresh runner (Agent 1 regenerate → Agent 2 enrich → Agent 4 verify)
-  async function runDailyRefresh(limit){
+  async function runDailyRefresh(limit, offset){
     const startedAt = new Date();
     const startStrNY = startedAt.toLocaleString('en-US', { timeZone: 'America/New_York', hour12:false });
     console.log(`[refresh] start ${startStrNY}`);
@@ -1028,8 +1028,11 @@ async function bootstrap() {
       const repoSlugs = Array.isArray(lessonDefs) ? lessonDefs.map(l => l.slug).filter(Boolean) : [];
       const allSlugs = Array.from(new Set([...(repoSlugs||[]), ...(existingSlugs||[]) ]));
       const baseUrl = (process.env.PUBLIC_BASE_URL && process.env.PUBLIC_BASE_URL.trim()) || `http://127.0.0.1:${process.env.PORT||8080}`;
-      const slice = allSlugs.slice(0, Math.max(1, Number(limit||0) || allSlugs.length || 200));
+      const off = Math.max(0, Number(offset||0) || 0);
+      const lim = Math.max(1, Number(limit||0) || (allSlugs.length - off) || 200);
+      const slice = allSlugs.slice(off, off + lim);
       total = slice.length;
+      console.log(`[refresh] planning ${total} lessons (offset=${off}, limit=${lim})`);
       for (const slug of slice){
         try {
         const book = resolveBookForLessonFromRepo(slug);
@@ -1053,7 +1056,8 @@ async function bootstrap() {
   app.post('/ai/refresh-daily', async (req, res) => {
     try {
       const limit = Number(req.query.limit || 0) || undefined;
-      const result = await runDailyRefresh(limit);
+      const offset = Number(req.query.offset || 0) || 0;
+      const result = await runDailyRefresh(limit, offset);
       return res.json({ ok: true, ...result });
     } catch (e){
       console.error(e);
