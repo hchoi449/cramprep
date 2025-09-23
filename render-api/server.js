@@ -422,6 +422,50 @@ async function bootstrap() {
     return crypto.createHash('sha256').update(input).digest('hex');
   }
 
+  // Ingest all local PDFs from /textbooks into textbook_chunks if not already present or if updated
+  async function ingestLocalTextbooks(ingCol){
+    try {
+      const dir = path.resolve(__dirname, '../textbooks');
+      if (!fs.existsSync(dir)) return;
+      const files = fs.readdirSync(dir).filter(f => /\.pdf$/i.test(f));
+      for (const name of files){
+        try {
+          const full = path.join(dir, name);
+          const stat = fs.statSync(full);
+          const sig = `file://${full}|${stat.mtimeMs}`;
+          const sourceId = sha256Hex(sig);
+          const existing = await ingCol.findOne({ sourceId });
+          if (existing) continue;
+          // Remove older versions of this file by path prefix
+          await ingCol.deleteMany({ url: `file://${full}` });
+          const buf = fs.readFileSync(full);
+          const pdf = await pdfParse(buf);
+          const text = String((pdf && pdf.text) || '');
+          const lines = text.split(/\n+/).map(s=> s.trim()).filter(Boolean);
+          const chunks = [];
+          let acc = []; let page = 1; let approxPage = 1; let countChars = 0;
+          for (const line of lines){
+            acc.push(line);
+            countChars += line.length + 1;
+            // crude page increment every ~1800 chars if no explicit markers
+            if (/^\s*Page\s+\d+\s*$/i.test(line)) {
+              const p = parseInt(line.replace(/\D+/g,''),10);
+              if (Number.isFinite(p)) approxPage = p;
+            }
+            if (acc.join(' ').length > 1200){
+              chunks.push({ page: approxPage, text: acc.join(' ') });
+              acc = [];
+              approxPage++;
+            }
+          }
+          if (acc.length) chunks.push({ page: approxPage, text: acc.join(' ') });
+          const docs = chunks.map((c)=> ({ sourceId, url: `file://${full}`, page: c.page, text: c.text, lessonSlug: null, lessonTitle: null, createdAt: new Date().toISOString() }));
+          if (docs.length) await ingCol.insertMany(docs, { ordered: false });
+        } catch {}
+      }
+    } catch {}
+  }
+
   function normalizeStem(s){
     return String(s||'').toLowerCase().replace(/\s+/g,' ').trim();
   }
@@ -639,6 +683,7 @@ async function bootstrap() {
         ? 'REQUIREMENT: Include a compact number line under "numberLine" (min, max, points or intervals) relevant to the item.'
         : '';
       // Prefer ingested chunks for the lesson, fall back to model-only
+      try { await ingestLocalTextbooks(ing); } catch {}
       const chunks = await ing.find({ $or:[ { lessonSlug }, { lessonSlug: null } ] }).limit(500).toArray();
       const contextText = chunks && chunks.length ? chunks.slice(0,40).map(c=> `p.${c.page}: ${c.text}`).join('\n\n') : '';
       while (docs.length < target && attempts < maxAttempts){
