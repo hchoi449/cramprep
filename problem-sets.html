@@ -37,6 +37,9 @@
       .tool-menu button:hover{ background:#F4E6D8; }
       .tool-window{ position:fixed; left:50%; top:50%; transform:translate(-50%, -50%); width:600px; height:480px; min-width:360px; min-height:280px; background:#fff; border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 18px 50px rgba(0,0,0,.25); z-index:1200; overflow:auto; resize: both; }
       .tool-window .tool-header{ height:44px; display:flex; align-items:center; justify-content:space-between; padding:0 10px; background:#8B4513; color:#fff; cursor:move; }
+      .tool-header .tool-header-info{ display:flex; align-items:center; gap:10px; }
+      .tool-header .tool-logo{ width:28px; height:28px; padding:6px; fill:#8B4513; background:#fff; border-radius:50%; flex-shrink:0; }
+      .tool-header .tool-title{ color:#fff; font-weight:600; font-size:1.1rem; letter-spacing:.02rem; }
       .tool-window .tool-body{ width:100%; height:calc(100% - 44px); background:#fff; }
       .tool-close{ background:transparent; border:none; color:#fff; font-size:1.18rem; cursor:pointer; }
       @media (max-width: 640px){ .tool-window{ width:95vw; height:70vh; right:2.5vw; bottom:100px; } }
@@ -1883,7 +1886,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
 
       function makeWindow(title){
         const win = document.createElement('div'); win.className='tool-window';
-        win.innerHTML = `<div class="tool-header"><span>${title}</span><div><button class="tool-close" aria-label="Close">×</button></div></div><div class="tool-body"></div>`;
+        win.innerHTML = `<div class="tool-header"><div class="tool-header-info"><svg class="tool-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><path d="M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9zM351.7 448.2c0-29.5 23.9-53.5 53.5-53.5s53.5 23.9 53.5 53.5-23.9 53.5-53.5 53.5-53.5-23.9-53.5-53.5zm157.9 267.1c-67.8 0-123.8-47.5-132.3-109h264.6c-8.6 61.5-64.5 109-132.3 109zm110-213.7c-29.5 0-53.5-23.9-53.5-53.5s23.9-53.5 53.5-53.5 53.5 23.9 53.5 53.5-23.9 53.5-53.5 53.5z"/></svg><span class="tool-title">${title}</span></div><div><button class="tool-close" aria-label="Close">✕</button></div></div><div class="tool-body"></div>`;
         document.body.appendChild(win);
         const header = win.querySelector('.tool-header'); const closeBtn = win.querySelector('.tool-close');
         if (closeBtn) closeBtn.addEventListener('click', ()=> win.remove());
