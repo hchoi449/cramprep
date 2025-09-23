@@ -1634,11 +1634,11 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   const correctRendered = correctBtn ? (correctBtn.textContent || correctBtn.innerText || '') : '';
                   const correctSource = (q && Array.isArray(q.options)) ? q.options[correctIdxNow] : '';
                   let correct = false;
+                  // Pre-compute canonical match so both branches can reference it safely
+                  const canon = (q && q.answerPlain) ? String(q.answerPlain) : null;
+                  const chosenPlain = stripLatexToPlain(chosenText||'');
+                  const canonMatch = canon ? (plainsEqualStrict(chosenPlain, canon) || plainsEqualLoose(chosenPlain, canon)) : false;
                   if (requiresExactOptionMatch(q.stem)){
-                    // Trust canonical answerPlain if present
-                    const canon = (q && q.answerPlain) ? String(q.answerPlain) : null;
-                    const chosenPlain = stripLatexToPlain(chosenText||'');
-                    const canonMatch = canon ? plainsEqualStrict(chosenPlain, canon) || plainsEqualLoose(chosenPlain, canon) : false;
                     correct = canonMatch || (chosen === correctIdxNow) || plainsEqualStrict(chosenText, correctRendered) || plainsEqualStrict(chosenText, correctSource);
                   } else {
                     correct = canonMatch || (chosen === correctIdxNow) || plainsEqualLoose(chosenText, correctRendered) || plainsEqualLoose(chosenText, correctSource);
@@ -1836,10 +1836,11 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   const correctRendered = correctBtn ? (correctBtn.textContent || correctBtn.innerText || '') : '';
                   const correctSource = (q && Array.isArray(q.options)) ? q.options[correctIdxNow] : '';
                   let correct = false;
+                  // Pre-compute canonical match so both branches can reference it safely
+                  const canon2 = (q && q.answerPlain) ? String(q.answerPlain) : null;
+                  const chosenPlain2 = stripLatexToPlain(chosenText||'');
+                  const canonMatch2 = canon2 ? (plainsEqualStrict(chosenPlain2, canon2) || plainsEqualLoose(chosenPlain2, canon2)) : false;
                   if (requiresExactOptionMatch(q.stem)){
-                    const canon2 = (q && q.answerPlain) ? String(q.answerPlain) : null;
-                    const chosenPlain2 = stripLatexToPlain(chosenText||'');
-                    const canonMatch2 = canon2 ? plainsEqualStrict(chosenPlain2, canon2) || plainsEqualLoose(chosenPlain2, canon2) : false;
                     correct = canonMatch2 || (chosen === correctIdxNow) || plainsEqualStrict(chosenText, correctRendered) || plainsEqualStrict(chosenText, correctSource);
                   } else {
                     correct = canonMatch2 || (chosen === correctIdxNow) || plainsEqualLoose(chosenText, correctRendered) || plainsEqualLoose(chosenText, correctSource);
@@ -1945,10 +1946,11 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
               const correctRendered = correctBtn ? correctBtn.textContent : '';
               const correctSource = (q && Array.isArray(q.options)) ? q.options[correctIdxNow] : '';
                   let correct = false;
+                  // Pre-compute canonical match so both branches can reference it safely
+                  const canon3 = (q && q.answerPlain) ? String(q.answerPlain) : null;
+                  const chosenPlain3 = stripLatexToPlain(chosenText||'');
+                  const canonMatch3 = canon3 ? (plainsEqualStrict(chosenPlain3, canon3) || plainsEqualLoose(chosenPlain3, canon3)) : false;
                   if (requiresExactOptionMatch(q.stem)){
-                    const canon3 = (q && q.answerPlain) ? String(q.answerPlain) : null;
-                    const chosenPlain3 = stripLatexToPlain(chosenText||'');
-                    const canonMatch3 = canon3 ? plainsEqualStrict(chosenPlain3, canon3) || plainsEqualLoose(chosenPlain3, canon3) : false;
                     correct = canonMatch3 || (chosen === correctIdxNow) || plainsEqualStrict(chosenText, correctRendered) || plainsEqualStrict(chosenText, correctSource);
                   } else {
                     correct = canonMatch3 || (chosen === correctIdxNow) || plainsEqualLoose(chosenText, correctRendered) || plainsEqualLoose(chosenText, correctSource);
