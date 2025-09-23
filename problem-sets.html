@@ -1895,7 +1895,18 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         setTimeout(()=> document.addEventListener('mousedown', outsideHandler, true), 0);
         // Drag (stable deltas)
         let startX=0, startY=0, startLeft=0, startTop=0, dragging=false;
-        function onDown(ev){ dragging=true; const r = win.getBoundingClientRect(); startX = ev.clientX; startY = ev.clientY; startLeft = r.left; startTop = r.top; win.style.transform='translate(0,0)'; document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp); }
+        function onDown(ev){
+          dragging = true;
+          const r = win.getBoundingClientRect();
+          // Convert from centered transform to absolute left/top once
+          win.style.left = r.left + 'px';
+          win.style.top = r.top + 'px';
+          win.style.transform = 'translate(0,0)';
+          startX = ev.clientX; startY = ev.clientY; startLeft = r.left; startTop = r.top;
+          document.addEventListener('mousemove', onMove);
+          document.addEventListener('mouseup', onUp);
+          ev.preventDefault();
+        }
         function onMove(ev){ if (!dragging) return; const dx = ev.clientX - startX; const dy = ev.clientY - startY; const w = win.offsetWidth; const h = win.offsetHeight; const nx = Math.max(8, Math.min(window.innerWidth - w - 8, startLeft + dx)); const ny = Math.max(8, Math.min(window.innerHeight - h - 8, startTop + dy)); win.style.left = nx + 'px'; win.style.top = ny + 'px'; win.style.right='auto'; win.style.bottom='auto'; }
         function onUp(){ dragging=false; document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
         if (header) header.addEventListener('mousedown', onDown);
