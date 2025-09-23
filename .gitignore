@@ -45,3 +45,4 @@ temp/
 # Ignore local textbooks PDFs
 textbooks/*.pdf
 
+textbooks/*.pdf
