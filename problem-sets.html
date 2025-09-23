@@ -1941,29 +1941,70 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         closeMenu();
         const win = makeWindow('TI-84','bi-calculator');
         const body = win.querySelector('.tool-body'); if (!body) return;
-        // Create a cropping wrapper so we only show the calculator body (no headers/footers)
-        const wrap = document.createElement('div');
-        wrap.style.position = 'relative';
-        wrap.style.overflow = 'hidden';
-        // Constrain to calculator viewport (tuned to exclude site chrome and "Powered by")
-        wrap.style.margin = '0 auto';
-        wrap.style.width = '390px';
-        wrap.style.height = '800px';
-        body.appendChild(wrap);
-        const iframe = document.createElement('iframe');
-        iframe.src='https://ti84hub.com?embed=true';
-        iframe.title='TI-84 Calculator';
-        iframe.style.position='absolute';
-        iframe.style.top='-210px'; // shift page up to hide header/banner
-        iframe.style.left='-125px'; // center the device, hide side gutters
-        iframe.style.width='860px';
-        iframe.style.height='1200px'; // ensure calculator area fills the crop
-        iframe.style.border='0';
-        iframe.style.transform='scale(1.12)';
-        iframe.style.transformOrigin='top left';
-        wrap.appendChild(iframe);
-        // Resize window to hug the calculator
-        try { win.style.width='430px'; win.style.height='900px'; } catch{}
+        // If a static image URL is provided, auto-detect calculator bounds and crop via canvas
+        if (window.TI84_IMAGE_URL){
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = ()=>{
+            try {
+              const srcW = img.naturalWidth || img.width; const srcH = img.naturalHeight || img.height;
+              const cv = document.createElement('canvas'); cv.width = srcW; cv.height = srcH; const cx = cv.getContext('2d');
+              cx.drawImage(img, 0, 0);
+              const data = cx.getImageData(0,0,srcW,srcH).data;
+              function getPixel(x,y){ const i=(y*srcW+x)*4; return [data[i],data[i+1],data[i+2]]; }
+              function dist(a,b){ const dr=a[0]-b[0], dg=a[1]-b[1], db=a[2]-b[2]; return Math.sqrt(dr*dr+dg*dg+db*db); }
+              // Estimate background from corners
+              const bg=[0,0,0];
+              const corners=[getPixel(2,2),getPixel(srcW-3,2),getPixel(2,srcH-3),getPixel(srcW-3,srcH-3)];
+              for (const c of corners){ bg[0]+=c[0]; bg[1]+=c[1]; bg[2]+=c[2]; }
+              bg[0]/=4; bg[1]/=4; bg[2]/=4;
+              const TH=28; // color distance threshold from background
+              let minX=srcW, minY=srcH, maxX=0, maxY=0;
+              for (let y=0;y<srcH;y+=2){ // step 2 for speed
+                for (let x=0;x<srcW;x+=2){
+                  const p=getPixel(x,y);
+                  // Treat very dark pixels as part of calculator OR far-from-bg
+                  const isDark = (p[0]+p[1]+p[2])<120;
+                  if (isDark || dist(p,bg)>TH){
+                    if (x<minX) minX=x; if (x>maxX) maxX=x; if (y<minY) minY=y; if (y>maxY) maxY=y;
+                  }
+                }
+              }
+              // Add small padding and clamp
+              const pad=6; minX=Math.max(0,minX-pad); minY=Math.max(0,minY-pad); maxX=Math.min(srcW,maxX+pad); maxY=Math.min(srcH,maxY+pad);
+              const w=maxX-minX, h=maxY-minY;
+              const out=document.createElement('canvas'); out.width=w; out.height=h; const ox=out.getContext('2d');
+              ox.drawImage(cv, minX, minY, w, h, 0, 0, w, h);
+              const cropped = new Image(); cropped.src = out.toDataURL('image/png');
+              cropped.style.maxWidth='100%'; cropped.style.height='100%';
+              body.appendChild(cropped);
+              try { win.style.width=Math.min(w+40, 520)+'px'; win.style.height=Math.min(h+80, 980)+'px'; } catch{}
+            } catch {}
+          };
+          img.src = window.TI84_IMAGE_URL;
+        } else {
+          // Fallback: live emulator via iframe with strict cropping
+          const wrap = document.createElement('div');
+          wrap.style.position = 'relative';
+          wrap.style.overflow = 'hidden';
+          wrap.style.margin = '0 auto';
+          wrap.style.width = '390px';
+          wrap.style.height = '800px';
+          body.appendChild(wrap);
+          const iframe = document.createElement('iframe');
+          iframe.src='https://ti84hub.com?embed=true';
+          iframe.title='TI-84 Calculator';
+          iframe.style.position='absolute';
+          iframe.style.top='-210px';
+          iframe.style.left='-125px';
+          iframe.style.width='860px';
+          iframe.style.height='1200px';
+          iframe.style.border='0';
+          iframe.style.transform='scale(1.12)';
+          iframe.style.transformOrigin='top left';
+          wrap.appendChild(iframe);
+          try { win.style.width='430px'; win.style.height='900px'; } catch{}
+        }
       }); }
 
       // NumWorks (linking to project page as reference)
