@@ -959,6 +959,39 @@ async function bootstrap() {
     } catch (e){ console.error(e); return res.status(500).json({ error: 'verify_lesson_failed' }); }
   });
 
+  // Apply Agent 4 decided corrections to mismatched items
+  app.post('/ai/agent4/apply-corrections', async (req, res) => {
+    const lessonSlug = req.query.lesson ? String(req.query.lesson).trim() : null;
+    try {
+      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+      await client.connect();
+      const col = await getQuestionCollection(client);
+      const filter = lessonSlug ? { lessonSlug, decidedCorrect: { $type: 'number' }, verified: { $in: [false, null] } } : { decidedCorrect: { $type: 'number' }, verified: { $in: [false, null] } };
+      const cur = col.find(filter).limit(5000);
+      let corrected = 0; let inspected = 0;
+      while (await cur.hasNext()){
+        const d = await cur.next(); inspected++;
+        try {
+          const idx = Number(d.decidedCorrect);
+          if (!Array.isArray(d.options) || idx < 0 || idx > 3) continue;
+          const newAnswer = String(d.options[idx] || '');
+          const newAnswerPlain = stripLatexToPlain(newAnswer);
+          await col.updateOne({ _id: d._id }, { $set: {
+            correct: idx,
+            answer: newAnswer,
+            answerPlain: newAnswerPlain,
+            verified: true,
+            verifiedBy: 'agent4-auto',
+            correctedAt: new Date().toISOString()
+          } });
+          corrected++;
+        } catch {}
+      }
+      await client.close();
+      return res.json({ ok: true, inspected, corrected, lesson: lessonSlug || null });
+    } catch (e){ console.error(e); return res.status(500).json({ error: 'apply_corrections_failed' }); }
+  });
+
   // Agent 1 stats: counts per lesson
   app.get('/ai/agent1/stats', async (req, res) => {
     try {
