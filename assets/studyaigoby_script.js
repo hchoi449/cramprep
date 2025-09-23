@@ -25,7 +25,10 @@
               <svg class="chatbot-logo" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 1024 1024" style="padding:6px;fill:#8B4513;background:#fff;border-radius:50%"><path d="M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9zM351.7 448.2c0-29.5 23.9-53.5 53.5-53.5s53.5 23.9 53.5 53.5-23.9 53.5-53.5 53.5-53.5-23.9-53.5-53.5zm157.9 267.1c-67.8 0-123.8-47.5-132.3-109h264.6c-8.6 61.5-64.5 109-132.3 109zm110-213.7c-29.5 0-53.5-23.9-53.5-53.5s23.9-53.5 53.5-53.5 53.5 23.9 53.5 53.5-23.9 53.5-53.5 53.5z"/></svg>
               <h2 class="logo-text" style="color:#fff;font-weight:600;font-size:1.1rem;letter-spacing:.02rem">Chatbot</h2>
             </div>
-            <button id="close-chatbot" class="material-symbols-rounded" style="color:#fff">✕</button>
+            <div style="display:flex;align-items:center;gap:8px">
+              <button id="study-expand" class="material-symbols-rounded" title="Expand" style="color:#fff">▢</button>
+              <button id="close-chatbot" class="material-symbols-rounded" style="color:#fff">✕</button>
+            </div>
           </div>
     <div class="chat-body"></div>
     <div class="chat-footer">
@@ -243,6 +246,23 @@ if (fileUploadBtn) fileUploadBtn.addEventListener("click", () => fileInput.click
     function onMove(e){ if(!dragging) return; const dx=e.clientX-startX, dy=e.clientY-startY; const w=root.offsetWidth, h=root.offsetHeight; const nx=Math.max(8, Math.min(window.innerWidth-w-8, startLeft+dx)); const ny=Math.max(8, Math.min(window.innerHeight-h-8, startTop+dy)); root.style.left=nx+'px'; root.style.top=ny+'px'; }
     function onUp(){ dragging=false; document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
     if (header) header.addEventListener('mousedown', onDown);
+  } catch {}
+
+  // Expand/restore button for Study AI
+  try {
+    const expandBtn = root.querySelector('#study-expand');
+    function toggleExpand(){
+      if (root.classList.contains('study-max')){
+        root.classList.remove('study-max');
+        root.style.width = 'auto'; root.style.height = 'auto';
+      } else {
+        root.classList.add('study-max');
+        root.style.left='50%'; root.style.top='50%'; root.style.transform='translate(-50%,-50%)';
+        root.style.width = Math.min(window.innerWidth*0.9, 1200) + 'px';
+        root.style.height = Math.min(window.innerHeight*0.9, window.innerHeight*0.9) + 'px';
+      }
+    }
+    if (expandBtn) expandBtn.addEventListener('click', toggleExpand);
   } catch {}
 
 // Open Study AI via data-open="study-ai"
