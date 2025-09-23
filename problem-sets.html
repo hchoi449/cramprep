@@ -1656,9 +1656,11 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   const chosenPlain = stripLatexToPlain(chosenText||'');
                   const canonMatch = canon ? (plainsEqualStrict(chosenPlain, canon) || plainsEqualLoose(chosenPlain, canon)) : false;
                   if (requiresExactOptionMatch(q.stem)){
-                    correct = canonMatch || (chosen === correctIdxNow) || plainsEqualStrict(chosenText, correctRendered) || plainsEqualStrict(chosenText, correctSource);
+                    // Strict tasks: only accept exact index match or canonical exact match
+                    correct = (chosen === correctIdxNow) || canonMatch || plainsEqualStrict(chosenText, correctRendered);
                   } else {
-                    correct = canonMatch || (chosen === correctIdxNow) || plainsEqualLoose(chosenText, correctRendered) || plainsEqualLoose(chosenText, correctSource);
+                    // General tasks: accept index match or canonical exact/strict text match (no loose numeric fallback)
+                    correct = (chosen === correctIdxNow) || canonMatch || plainsEqualStrict(chosenText, correctRendered);
                   }
                   if (correct) { correctCount++; }
                   [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
@@ -1858,9 +1860,9 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   const chosenPlain2 = stripLatexToPlain(chosenText||'');
                   const canonMatch2 = canon2 ? (plainsEqualStrict(chosenPlain2, canon2) || plainsEqualLoose(chosenPlain2, canon2)) : false;
                   if (requiresExactOptionMatch(q.stem)){
-                    correct = canonMatch2 || (chosen === correctIdxNow) || plainsEqualStrict(chosenText, correctRendered) || plainsEqualStrict(chosenText, correctSource);
+                    correct = (chosen === correctIdxNow) || canonMatch2 || plainsEqualStrict(chosenText, correctRendered);
                   } else {
-                    correct = canonMatch2 || (chosen === correctIdxNow) || plainsEqualLoose(chosenText, correctRendered) || plainsEqualLoose(chosenText, correctSource);
+                    correct = (chosen === correctIdxNow) || canonMatch2 || plainsEqualStrict(chosenText, correctRendered);
                   }
                   if (correct) { correctCount++; }
                   [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
@@ -1968,9 +1970,9 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   const chosenPlain3 = stripLatexToPlain(chosenText||'');
                   const canonMatch3 = canon3 ? (plainsEqualStrict(chosenPlain3, canon3) || plainsEqualLoose(chosenPlain3, canon3)) : false;
                   if (requiresExactOptionMatch(q.stem)){
-                    correct = canonMatch3 || (chosen === correctIdxNow) || plainsEqualStrict(chosenText, correctRendered) || plainsEqualStrict(chosenText, correctSource);
+                    correct = (chosen === correctIdxNow) || canonMatch3 || plainsEqualStrict(chosenText, correctRendered);
                   } else {
-                    correct = canonMatch3 || (chosen === correctIdxNow) || plainsEqualLoose(chosenText, correctRendered) || plainsEqualLoose(chosenText, correctSource);
+                    correct = (chosen === correctIdxNow) || canonMatch3 || plainsEqualStrict(chosenText, correctRendered);
                   }
               if (correct) { correctCount++; }
               [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
