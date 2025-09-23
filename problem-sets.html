@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>Think Lab - ThinkBigPrep</title>
     <link rel="shortcut icon" href="assets/logo/thinkbigprep-icon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="css/index.css?v=1.1" />
@@ -52,7 +55,7 @@
     <!-- Perseus dependencies (Khan Academy open-source) -->
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js?v=20250923"></script>
     <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
     <!-- Desmos Graphing Calculator API -->
@@ -160,7 +163,6 @@
         <li><button type="button" id="open-notes"><i class="bi bi-sticky"></i> Notes</button></li>
       </ul>
     </div>
-
     <script src="https://cdn.jsdelivr.net/npm/framer-motion@10.18.0/dist/framer-motion.umd.js"></script>
     <script>
       // Subject → Subtopics → Lessons; each lesson has notes and MC questions
@@ -543,7 +545,7 @@ $\\log_b a=x \\iff b^x=a$. Properties: $\\log_b(MN)=\\log_bM+\\log_bN$, $\\log_b
 Solve $\\begin{cases}a_1x+b_1y=c_1\\\\a_2x+b_2y=c_2\\end{cases}$ by substitution or elimination. Check for inconsistent or dependent systems.`,
               graphs:[ { type:'function', expr:'y=2x+1' }, { type:'function', expr:'y=-x+7' } ],
               questions:[
-                { id:'q1', stem:'Solve $\\{\\,y=2x+1,\\;x+y=7\\,\\}$.', options:['$(2,5)$','$(3,7)$','$(4,9)$','$(1,6)$'], correct:0, explanation:'Substitute: $x+2x+1=7\\Rightarrow x=2,y=5$.', tags:['systems','substitution'] },
+                { id:'q1', stem:'Solve $\\{\\,y=2x+1,\\;x+y=7\\,\}$.', options:['$(2,5)$','$(3,7)$','$(4,9)$','$(1,6)$'], correct:0, explanation:'Substitute: $x+2x+1=7\\Rightarrow x=2,y=5$.', tags:['systems','substitution'] },
                 { id:'q2', stem:'Type of system if lines have equal slopes but different intercepts?', options:['Dependent','Inconsistent','Unique solution','Nonlinear'], correct:1, explanation:'Parallel distinct lines → no solution.', tags:['systems'] }
               ]
             },
@@ -944,7 +946,6 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             return `$\\text{${latexEscapeText(fixed)}}$`;
           } catch { return '$\\text{}$'; }
         }
-
         function stripLatexToPlain(text){
           try {
             let s = String(text||'');
@@ -1458,7 +1459,6 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             }
             return null;
           }
-
           function renderOne(){
             // helper for celebration using Lottie overlay
             function playCelebrate(){
@@ -1973,7 +1973,6 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           body.appendChild(quiz);
         }
       }
-
     // Tools FAB behavior and draggable windows
     (function(){
       const fab = document.getElementById('tools-fab');
@@ -2371,7 +2370,6 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         const blob = `${problem.stem||''} ${(problem.explanation||'')} ${((problem.options||[]).join(' '))}`.toLowerCase();
         return kws.some(k=> blob.includes(k));
       }
-
       // Lightweight graph renderer (SVG -> data URL image)
       function renderGraphAsImage(expressions, width, height){
         try {
@@ -2440,7 +2438,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             if (e && typeof e.latex === 'string'){
               const L = parseLatexLine(e.latex);
               if (L && L.type==='y'){
-                const x1 = xmin, y1 = L.m * xmin + L.b;
+                const x1 = xmin, y1 = L.m * x1 + L.b;
                 const x2 = xmax, y2 = L.m * xmax + L.b;
                 svg += `<line x1="${mapX(x1)}" y1="${mapY(y1)}" x2="${mapX(x2)}" y2="${mapY(y2)}" stroke="#2563eb" stroke-width="2"/>`;
               } else if (L && L.type==='x'){
@@ -2507,7 +2505,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         }
         // Fractions examples
         if (title.includes('equivalent fractions') || title.includes('simplifying')){
-          return 'Q1–Q3: Identify equivalent fractions; Q4–Q6: Simplify to lowest terms; Q7–Q8: Compare unlike denominators; Q9–Q10: Multi-step simplification.';
+          return 'Q1–Q3: Identify equivalent fractions; Q4–Q6: Simplify to lowest terms; Q7–Q8: Compare/order unlike denominators; Q9–Q10: Multi-step simplification.';
         }
         if (title.includes('add/subtract fractions')){
           return 'Q1–Q3: Same denominators; Q4–Q6: Unlike denominators (LCM); Q7–Q8: Mixed numbers; Q9–Q10: Word problems.';
@@ -2521,7 +2519,6 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         }
         return '';
       }
-
       function fallbackProblems(lesson, count){
         const out = [];
         const slug = (lesson && lesson.slug || '').toLowerCase();
@@ -2532,7 +2529,6 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         function lcm(x,y){ return Math.abs(x*y)/gcd(x,y); }
         function isPrime(n){ if (n<2) return false; for (let p=2;p*p<=n;p++){ if(n%p===0) return false; } return true; }
         function primeFactors(n){ const f=[]; let d=2; let m=n; while(d*d<=m){ while(m%d===0){ f.push(d); m/=d; } d++; } if(m>1) f.push(m); return f; }
-
         // Registry of lesson-specific generators
         const gen = {
           // Absolute value & opposites — Q1–Q10 banding
@@ -2720,7 +2716,6 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             else if(t===1){ const n=[8,27,64,125][rand(0,3)]; const corr=`$${Math.cbrt(n)}$`; const opts=shuffle([corr,`$${Math.cbrt(n)+1}$`,`$${Math.cbrt(n)-1}$`,`$${n}$`]); arr.push({ stem:`Evaluate $\\sqrt[3]{${n}}$.`, options:opts, correct: opts.indexOf(corr), explanation:`Perfect cubes.`, difficulty:'medium' }); }
             else { const n=rand(2,20); const approx=(Math.sqrt(n)).toFixed(1); const opts=shuffle([`$${approx}$`,`$${(Math.sqrt(n)+0.5).toFixed(1)}$`,`$${(Math.sqrt(n)-0.5).toFixed(1)}$`,`$${n}$`]); arr.push({ stem:`Estimate $\\sqrt{${n}}$ to one decimal place.`, options:opts, correct: 0, explanation:`Between closest squares.`, difficulty:'hard' }); }
           } return arr; },
-
           // Geometry foundations
           'points-lines-angles': (k)=>{ const arr=[]; for(let i=0;i<k;i++){
             const a=rand(20,70); const t=i%3; if(t===0){ const corr=`$${90-a}$`; const opts=shuffle([corr,`$${a}$`,`$${180-a}$`,`$${a+10}$`]); arr.push({ stem:`If $\\angle A$ is complementary to $\\angle B$ and $m\\angle A=${a}^\\circ$, find $m\\angle B$.`, options:opts, correct: opts.indexOf(corr), explanation:`Complementary sum $90^\\circ$.`, difficulty:'easy' }); }
@@ -2894,11 +2889,9 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           'variables-evaluating': (k)=>{ const arr=[]; for(let i=0;i<k;i++){ const a=rand(1,6), b=rand(1,6), x=rand(1,6); const expr = i%2? `${a}x+${b}`:`${a}x-${b}`; const ans = i%2? a*x+b : a*x-b; const corr=`$${ans}$`; const opts=shuffle([corr,`$${ans+1}$`,`$${ans-1}$`,`$${ans+2}$`]); arr.push({ stem:`Evaluate $${expr}$ for $x=${x}$.`, options:opts, correct: opts.indexOf(corr), explanation:`Substitute $x$ then compute.`, difficulty: i<k/3?'easy': i<2*k/3?'medium':'hard' }); } return arr; },
           'combining-like-terms': (k)=>{ const arr=[]; for(let i=0;i<k;i++){ const a=rand(1,6), b=rand(1,6), c=rand(1,6), d=rand(1,6); const ans=(a+c)+'x+'+(b+d); const corr=`$${ans}$`; const opts=shuffle([corr,`$${a}x+${b}$`,`$${c}x+${d}$`,`$${a+c}x+${b+d+1}$`]); arr.push({ stem:`Simplify $${a}x+${b}+${c}x+${d}$.`, options:opts, correct: opts.indexOf(corr), explanation:`Combine $x$ terms and constants.`, difficulty: i<k/3?'easy': i<2*k/3?'medium':'hard' }); } return arr; },
           'distributive-property': (k)=> gen['properties'](k),
-
           'one-step-equations': (k)=>{ const arr=[]; for(let i=0;i<k;i++){ const a=rand(2,12), x=rand(-10,10), b=a*x; const forms=[`${a}x=${b}`,`x+${a}=${a+x}`,`x-${a}=${x-a}`]; const form=choice(forms); const corr=`$${x}$`; const opts=shuffle([corr,`$${x+1}$`,`$${x-1}$`,`$${x+2}$`]); arr.push({ stem:`Solve $${form}$.`, options:opts, correct: opts.indexOf(corr), explanation:`Inverse operations.`, difficulty: i<k/3?'easy': i<2*k/3?'medium':'hard' }); } return arr; },
           'two-step-equations': (k)=>{ const arr=[]; for(let i=0;i<k;i++){ const m=rand(2,6), x=rand(-10,10), b=rand(1,10); const y=m*x+b; const corr=`$${x}$`; const forms=[`${m}x+${b}=${y}`,`${m}x-${b}=${y-2*b}`]; const form=choice(forms); const opts=shuffle([corr,`$${x+1}$`,`$${x-1}$`,`$${x+2}$`]); arr.push({ stem:`Solve $${form}$.`, options:opts, correct: opts.indexOf(corr), explanation:`Undo add/sub then divide.`, difficulty: i<k/3?'easy': i<2*k/3?'medium':'hard' }); } return arr; },
           'one-step-inequalities': (k)=>{ const arr=[]; for(let i=0;i<k;i++){ const a=rand(2,12), x=rand(-8,8); const b=a*x; const form = i%2? `x+${a}\\le ${a+x}`:`${a}x> ${b}`; const corr=`$x${i%2? '\\le '+x:'> '+x}$`; const opts=shuffle([corr,`$x<${x}$`,`$x\\ge ${x+1}$`,`$x\\le ${x-1}$`]); arr.push({ stem:`Solve ${form}$.`, options:opts, correct: opts.indexOf(corr), explanation:`Treat like equations; flip when dividing by negative.`, difficulty: i<k/3?'easy': i<2*k/3?'medium':'hard' }); } return arr; },
-
           // Integers: add/subtract/multiply/divide with structured difficulty
           'integer-operations': (k)=>{ const arr=[]; for(let i=0;i<k;i++){
             let stem='', corrVal=0, difficulty='easy';
@@ -3174,5 +3167,3 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
     <script src="/assets/studyaigoby_script.js"></script>
   </body>
   </html>
-
-
