@@ -661,6 +661,7 @@ async function bootstrap() {
   app.post('/ai/agent1/generate', async (req, res) => {
     const lessonSlug = String(req.query.lesson || '').trim();
     const lessonTitle = String(req.body && req.body.title || req.query.title || lessonSlug).trim();
+    const book = String((req.query && req.query.book) || (req.body && req.body.book) || '').trim() || null;
     if (!lessonSlug) return res.status(400).json({ error: 'lesson (slug) is required' });
     try {
       const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
@@ -776,6 +777,7 @@ async function bootstrap() {
         docs.push({
           lessonSlug,
           lessonTitle,
+            book,
             stem, options, correct, solution: explanation,
             answer: options[correct] || '',
             answerPlain: stripLatexToPlain(options[correct] || ''),
@@ -803,6 +805,7 @@ async function bootstrap() {
   app.get('/ai/agent2/questions', async (req, res) => {
     const lessonSlug = String(req.query.lesson || '').trim();
     const n = Math.max(1, Math.min(20, Number(req.query.n || 15)));
+    const book = String(req.query.book || '').trim();
     if (!lessonSlug) return res.status(400).json({ error: 'lesson (slug) is required' });
     try {
       const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
@@ -822,7 +825,7 @@ async function bootstrap() {
       for (const [k, size] of Object.entries(target)){
         if (size <= 0) continue;
         const docsK = await col.aggregate([
-          { $match: { lessonSlug, difficulty: k } },
+          { $match: (book ? { lessonSlug, difficulty: k, book } : { lessonSlug, difficulty: k }) },
           { $sample: { size } }
         ]).toArray();
         buckets[k] = docsK;
@@ -831,7 +834,7 @@ async function bootstrap() {
       if (docs.length < n){
         const remaining = n - docs.length;
         const extra = await col.aggregate([
-          { $match: { lessonSlug, sourceHash: { $nin: docs.map(d=> d.sourceHash) } } },
+          { $match: (book ? { lessonSlug, sourceHash: { $nin: docs.map(d=> d.sourceHash) }, book } : { lessonSlug, sourceHash: { $nin: docs.map(d=> d.sourceHash) } }) },
           { $sample: { size: remaining } }
         ]).toArray();
         docs = docs.concat(extra);

@@ -2114,7 +2114,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
       async function generateProblemsForLesson(course, subtopic, lesson, count, opts){
         const AUTH_BASE = (window && window.TBP_AUTH_BASE) ? window.TBP_AUTH_BASE.replace(/\/$/,'') : '';
         const endpoint = `${AUTH_BASE}/ai/generate`;
-        const agent2 = `${AUTH_BASE}/ai/agent2/questions?lesson=${encodeURIComponent(lesson.slug)}&n=${Math.max(15, count||15)}`;
+        const book = String(course && course.id || '').trim();
+        const agent2 = `${AUTH_BASE}/ai/agent2/questions?lesson=${encodeURIComponent(lesson.slug)}&n=${Math.max(15, count||15)}${book?`&book=${encodeURIComponent(book)}`:''}`;
         const topic = `${course.title} → ${subtopic.title} → ${lesson.title}`;
         const isWritingExpr = /writing expressions/i.test(String((lesson && lesson.title) || ''));
         const sys = `You create math MC questions. Return STRICT JSON only.`;
@@ -2186,7 +2187,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
               generationConfig: { temperature: 0.3, topP: 0.8, candidateCount: 1 }
             };
             requests.push(
-              fetchWithTimeout(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) }, 8000)
+              fetchWithTimeout(`${endpoint}?book=${encodeURIComponent(book)}`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) }, 8000)
                 .then(r=> r.json()).catch(()=>null)
             );
           }
@@ -2214,7 +2215,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
               generationConfig: { temperature: 0.6, topP: 0.9, candidateCount: 1 }
             };
             try {
-              const res = await fetchWithTimeout(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) }, 12000);
+              const res = await fetchWithTimeout(`${endpoint}?book=${encodeURIComponent(book)}`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) }, 12000);
               const j = await res.json();
               let txt = (((j||{}).candidates||[])[0]||{}).content; txt = (txt && txt.parts && txt.parts[0] && txt.parts[0].text) || '';
               const parsed = parseJsonFromText(txt);
