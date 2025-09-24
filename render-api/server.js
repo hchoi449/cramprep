@@ -818,7 +818,7 @@ async function bootstrap() {
   "graph"?: { "expressions": Array< { "id"?: string, "latex"?: string } | { "type": "point", "x": number, "y": number } > },
   "table"?: { "headers"?: string[], "rows": string[][] },
   "numberLine"?: { "min": number, "max": number, "step"?: number, "points"?: Array<number | { "x": number, "label"?: string, "open"?: boolean }>, "intervals"?: Array<{ "from": number, "to": number, "openLeft"?: boolean, "openRight"?: boolean, "label"?: string }> }
-}\n${rules}\nNotes: If the source contains tables or describes data, include a concise table under "table". If a graph is implied or useful (lines, parabolas, plotted points), include a minimal set of Desmos-compatible expressions under "graph.expressions". For integer comparisons, ordering, absolute value, or inequalities on a 1D axis, include a compact number line structure under "numberLine".\nReturn STRICT JSON: { "problems": [ ... ] }`;
+}\n${rules}\nNotes: ONLY include visual aids when they are strictly required to solve the problem.\n- If the problem cannot be solved without a table, include a concise table under "table".\n- If a coordinate graph is essential, include a minimal set of expressions under "graph.expressions" (keep it clean).\n- If a 1D number line is essential (inequalities/intervals), include a compact "numberLine".\nBy default, omit visuals.\nReturn STRICT JSON: { "problems": [ ... ] }`;
   }
 
   // Ingest textbook PDF (upload by URL) and chunk text
@@ -931,7 +931,7 @@ async function bootstrap() {
         if (seen.has(key)) continue; seen.add(key);
         const sourceHash = sha256Hex(lessonSlug + '||' + stem + '||' + options.join('||'));
         const difficulty = computeDifficulty(stem, explanation);
-          // optional visuals
+          // optional visuals (omit unless provided and minimal)
           let graph = undefined;
           try {
             if (p && p.graph && Array.isArray(p.graph.expressions)){
@@ -949,15 +949,7 @@ async function bootstrap() {
               if (exprs.length) graph = { expressions: exprs };
             }
           } catch {}
-          // Synthesize graph from coordinates if missing
-          if (!graph || !Array.isArray(graph.expressions) || graph.expressions.length === 0){
-            const allText = [stem, ...options].join(' ');
-            const coords = extractCoordinatePairsFromText(allText).slice(0, 12);
-            if (coords.length){
-              const exprs = coords.map((pt, i) => ({ type: 'point', x: pt.x, y: pt.y, id: `pt${i}` }));
-              graph = { expressions: exprs };
-            }
-          }
+          // Do not auto-synthesize graphs; only keep if author provided
           let table = undefined;
           try {
             if (p && p.table && Array.isArray(p.table.rows)){

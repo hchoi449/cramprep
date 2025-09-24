@@ -1537,20 +1537,26 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                 const stem = document.createElement('div'); stem.className='ps-stem'; stem.innerHTML = `${step+1}. ${latexifyStem(q.stem)}`; card.appendChild(stem);
                 ensureMathRendered(stem);
                 if (q.graph){
-                  const img = renderGraphAsImage(q.graph.expressions||[], 600, 280);
+                  const img = renderGraphAsImage(q.graph.expressions||[], 640, 300);
+                  img.style.border='1px solid #eee'; img.style.borderRadius='10px'; img.style.margin='10px 0';
                   card.appendChild(img);
                 }
                 // Render table if provided
                 if (q.table && Array.isArray(q.table.rows)){
                   const tbl = document.createElement('table');
                   tbl.style.width = '100%';
-                  tbl.style.borderCollapse = 'collapse';
+                  tbl.style.borderCollapse = 'separate';
+                  tbl.style.borderSpacing = '0';
                   tbl.style.margin = '10px 0';
+                  tbl.style.border = '1px solid #eee';
+                  tbl.style.borderRadius = '10px';
+                  tbl.style.overflow = 'hidden';
                   const addCell = (tr, tag, text)=>{
                     const el = document.createElement(tag);
                     el.textContent = String(text||'');
-                    el.style.border = '1px solid #e5e7eb';
-                    el.style.padding = '6px 8px';
+                    el.style.borderBottom = '1px solid #f1f5f9';
+                    el.style.padding = '8px 10px';
+                    el.style.background = tag==='th' ? '#fafafa' : '#fff';
                     tr.appendChild(el);
                   };
                   if (Array.isArray(q.table.headers) && q.table.headers.length){
@@ -1575,7 +1581,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   const nl = q.numberLine;
                   const wrap = document.createElement('div');
                   wrap.style.margin = '10px 0';
-                  wrap.style.height = '80px';
+                  wrap.style.height = '84px';
                   wrap.style.position = 'relative';
                   wrap.style.border = '1px solid #eee';
                   wrap.style.borderRadius = '10px';
@@ -1583,11 +1589,11 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   const svgNS = 'http://www.w3.org/2000/svg';
                   const svg = document.createElementNS(svgNS, 'svg');
                   svg.setAttribute('width', '100%');
-                  svg.setAttribute('height', '80');
+                  svg.setAttribute('height', '84');
                   wrap.appendChild(svg);
-                  const pad = 24;
-                  const w = wrap.clientWidth || 600;
-                  const h = 80;
+                  const pad = 28;
+                  const w = wrap.clientWidth || 640;
+                  const h = 84;
                   const xmin = typeof nl.min === 'number' ? nl.min : 0;
                   const xmax = typeof nl.max === 'number' ? nl.max : 10;
                   const step = typeof nl.step === 'number' ? nl.step : (xmax - xmin >= 10 ? 1 : 0.5);
@@ -1603,9 +1609,9 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   const axis = document.createElementNS(svgNS, 'line');
                   axis.setAttribute('x1', String(pad));
                   axis.setAttribute('x2', String(w - pad));
-                  axis.setAttribute('y1', '40');
-                  axis.setAttribute('y2', '40');
-                  axis.setAttribute('stroke', '#111827');
+                  axis.setAttribute('y1', String(h/2));
+                  axis.setAttribute('y2', String(h/2));
+                  axis.setAttribute('stroke', '#64748b');
                   axis.setAttribute('stroke-width', '2');
                   svg.appendChild(axis);
                   // ticks
@@ -1613,26 +1619,26 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                     const X = xmap(x);
                     const t = document.createElementNS(svgNS, 'line');
                     t.setAttribute('x1', String(X)); t.setAttribute('x2', String(X));
-                    t.setAttribute('y1', '35'); t.setAttribute('y2', '45');
-                    t.setAttribute('stroke', '#6b7280'); svg.appendChild(t);
+                    t.setAttribute('y1', String(h/2 - 10)); t.setAttribute('y2', String(h/2 + 10));
+                    t.setAttribute('stroke', '#94a3b8'); svg.appendChild(t);
                     // omit numeric tick labels to reduce answer leakage
                   }
                   // axis label
-                  const xl = document.createElementNS(svgNS, 'text'); xl.setAttribute('x', String(w - pad - 8)); xl.setAttribute('y', '32'); xl.setAttribute('font-size','12'); xl.textContent='x'; svg.appendChild(xl);
+                  const xl = document.createElementNS(svgNS, 'text'); xl.setAttribute('x', String(w - pad - 8)); xl.setAttribute('y', String(h/2 - 12)); xl.setAttribute('font-size','12'); xl.textContent='x'; svg.appendChild(xl);
                   // intervals
                   (nl.intervals||[]).forEach(int=>{
                     const X1 = xmap(int.from), X2 = xmap(int.to);
                     const bar = document.createElementNS(svgNS, 'line');
                     bar.setAttribute('x1', String(X1)); bar.setAttribute('x2', String(X2));
-                    bar.setAttribute('y1', '40'); bar.setAttribute('y2', '40');
-                    bar.setAttribute('stroke', '#2563eb'); bar.setAttribute('stroke-width', '6'); bar.setAttribute('stroke-linecap', 'round');
+                    bar.setAttribute('y1', String(h/2)); bar.setAttribute('y2', String(h/2));
+                    bar.setAttribute('stroke', '#1f2937'); bar.setAttribute('stroke-width', '4'); bar.setAttribute('stroke-linecap', 'round');
                     svg.appendChild(bar);
                     // end caps open/closed
                     const cap = (X, open)=>{
                       const c = document.createElementNS(svgNS, 'circle');
-                      c.setAttribute('cx', String(X)); c.setAttribute('cy', '40'); c.setAttribute('r', '5');
-                      c.setAttribute('fill', open ? '#fff' : '#2563eb');
-                      c.setAttribute('stroke', '#2563eb'); c.setAttribute('stroke-width', '2');
+                      c.setAttribute('cx', String(X)); c.setAttribute('cy', String(h/2)); c.setAttribute('r', '5');
+                      c.setAttribute('fill', open ? '#fff' : '#1f2937');
+                      c.setAttribute('stroke', '#1f2937'); c.setAttribute('stroke-width', '2');
                       svg.appendChild(c);
                     };
                     cap(X1, !!int.openLeft); cap(X2, !!int.openRight);
@@ -1749,7 +1755,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                 const stem = document.createElement('div'); stem.className='ps-stem'; stem.innerHTML = `${step+1}. ${latexifyStem(q.stem)}`; card.appendChild(stem);
                 ensureMathRendered(stem);
                 if (q.graph){
-                  const img = renderGraphAsImage(q.graph.expressions||[], 600, 280);
+                  const img = renderGraphAsImage(q.graph.expressions||[], 640, 300);
+                  img.style.border='1px solid #eee'; img.style.borderRadius='10px'; img.style.margin='10px 0';
                   card.appendChild(img);
                 }
                 // Render table if provided
