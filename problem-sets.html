@@ -1531,7 +1531,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                 const q = orderedProblems[orderedPointer++];
                 const card = document.createElement('div'); card.className='ps-q-card'; stage.appendChild(card);
                 const meta = document.createElement('div'); meta.className='ps-qmeta';
-                const qid = (q && q._id) ? String(q._id) : '';
+                const qid = (q && (q._id && (q._id.$oid || q._id))) ? String(q._id.$oid || q._id) : '';
                 if (qid){ const idBadge=document.createElement('span'); idBadge.className='ps-qid'; idBadge.textContent = qid; meta.appendChild(idBadge); }
                 if (meta.childNodes.length) card.appendChild(meta);
                 const stem = document.createElement('div'); stem.className='ps-stem'; stem.innerHTML = `${step+1}. ${latexifyStem(q.stem)}`; card.appendChild(stem);
@@ -1743,7 +1743,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                 const q = retry2.q; const pickedNow = retry2; // alias for downstream rendering
                 const card = document.createElement('div'); card.className='ps-q-card'; stage.appendChild(card);
                 const meta = document.createElement('div'); meta.className='ps-qmeta';
-                const qid = (q && q._id) ? String(q._id) : '';
+                const qid = (q && (q._id && (q._id.$oid || q._id))) ? String(q._id.$oid || q._id) : '';
                 if (qid){ const idBadge=document.createElement('span'); idBadge.className='ps-qid'; idBadge.textContent = qid; meta.appendChild(idBadge); }
                 if (meta.childNodes.length) card.appendChild(meta);
                 const stem = document.createElement('div'); stem.className='ps-stem'; stem.innerHTML = `${step+1}. ${latexifyStem(q.stem)}`; card.appendChild(stem);
@@ -1939,7 +1939,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             const q = picked.q;
             const card = document.createElement('div'); card.className='ps-q-card'; stage.appendChild(card);
             const meta = document.createElement('div'); meta.className='ps-qmeta';
-            const qid = (q && q._id) ? String(q._id) : '';
+            const qid = (q && (q._id && (q._id.$oid || q._id))) ? String(q._id.$oid || q._id) : '';
             if (qid){ const idBadge=document.createElement('span'); idBadge.className='ps-qid'; idBadge.textContent = qid; meta.appendChild(idBadge); }
             if (meta.childNodes.length) card.appendChild(meta);
             const stem = document.createElement('div'); stem.className='ps-stem'; stem.innerHTML = `${step+1}. ${latexifyStem(q.stem)}`; card.appendChild(stem);
@@ -2218,6 +2218,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             const j = await r.json();
             if (j && j.ok && Array.isArray(j.questions) && j.questions.length){
               probs = j.questions.map(q=> ({
+                _id: (q && q._id && (q._id.$oid || q._id)) || undefined,
                 stem: q.stem,
                 options: q.options,
                 correct: q.correct,
