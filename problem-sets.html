@@ -909,6 +909,31 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             return s;
           } catch { return String(t||''); }
         }
+
+        // Ensure KaTeX renders even if the auto-render script isn't ready yet
+        function __renderMathNow(el){
+          try {
+            if (el && window.katex && window.renderMathInElement){
+              window.renderMathInElement(el, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false });
+              return true;
+            }
+          } catch {}
+          return false;
+        }
+        function ensureMathRendered(el){
+          try {
+            if (!el) return;
+            if (__renderMathNow(el)) return;
+            let tries = 0;
+            const maxTries = 12; // ~3.6s total
+            const timer = setInterval(()=>{
+              tries++;
+              if (__renderMathNow(el) || tries >= maxTries){
+                try { clearInterval(timer); } catch {}
+              }
+            }, 300);
+          } catch {}
+        }
         function fixCommonLatexTypos(t){
           try {
             let s = String(t||'');
@@ -1502,8 +1527,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
               if (orderedProblems && orderedPointer < orderedProblems.length){
                 const q = orderedProblems[orderedPointer++];
                 const card = document.createElement('div'); card.className='ps-q-card'; stage.appendChild(card);
-                const stem = document.createElement('div'); stem.className='ps-stem'; stem.textContent = `${step+1}. ${q.stem}`; card.appendChild(stem);
-                try { if (window.katex && window.renderMathInElement) { renderMathInElement(stem, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
+                const stem = document.createElement('div'); stem.className='ps-stem'; stem.innerHTML = `${step+1}. ${latexifyStem(q.stem)}`; card.appendChild(stem);
+                ensureMathRendered(stem);
                 if (q.graph){
                   const img = renderGraphAsImage(q.graph.expressions||[], 600, 280);
                   card.appendChild(img);
@@ -1625,7 +1650,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                 const opts = document.createElement('div'); opts.className='ps-opts'; card.appendChild(opts);
                 const order = _.shuffle(q.options.map((opt, idx)=> ({opt, idx})));
                 order.forEach(pair=>{
-                  const btn = document.createElement('button'); btn.type='button'; btn.className='ps-opt'; btn.innerHTML = pair.opt; btn.setAttribute('aria-pressed','false');
+                  const btn = document.createElement('button'); btn.type='button'; btn.className='ps-opt'; btn.innerHTML = latexifyInline(pair.opt); btn.setAttribute('aria-pressed','false');
                   btn.dataset.idx = String(pair.idx);
                   btn.addEventListener('click', ()=>{
                     if (btn.dataset.locked==='1') return;
@@ -1635,7 +1660,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   });
                   opts.appendChild(btn);
                 });
-                try { if (window.katex && window.renderMathInElement) { renderMathInElement(opts, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
+                ensureMathRendered(opts);
                 const controls = document.createElement('div'); controls.className='ps-controls'; controls.style.display='flex'; controls.style.alignItems='center'; controls.style.justifyContent='space-between'; controls.style.gap='12px'; controls.style.marginTop='8px'; card.appendChild(controls);
                 const explain = document.createElement('div'); explain.className='ps-explain'; explain.style.flex='1'; explain.style.marginRight='12px';
                 const action = document.createElement('button'); action.className='btn btn-primary'; action.style.minWidth='180px'; action.style.marginTop='12px'; action.textContent='Check'; action.dataset.mode='check';
@@ -1670,7 +1695,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
                   action.dataset.mode = 'next'; action.textContent = 'Next';
                   explain.innerHTML = correct ? `<span style="color:#155e2b"><i class='bi bi-check-circle'></i> Correct.</span> ${q.explanation||''}` : `<span style=\"color:#991b1b\"><i class='bi bi-x-circle'></i> Incorrect.</span> ${q.explanation||''}`;
-                  try { if (window.katex && window.renderMathInElement) { renderMathInElement(explain, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
+                  ensureMathRendered(explain);
                   await bumpSessionCount(correct, q);
                   if (correct){
                     try {
@@ -1710,8 +1735,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                 used.add(retry2.id);
                 const q = retry2.q; const pickedNow = retry2; // alias for downstream rendering
                 const card = document.createElement('div'); card.className='ps-q-card'; stage.appendChild(card);
-                const stem = document.createElement('div'); stem.className='ps-stem'; stem.textContent = `${step+1}. ${q.stem}`; card.appendChild(stem);
-                try { if (window.katex && window.renderMathInElement) { renderMathInElement(stem, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
+                const stem = document.createElement('div'); stem.className='ps-stem'; stem.innerHTML = `${step+1}. ${latexifyStem(q.stem)}`; card.appendChild(stem);
+                ensureMathRendered(stem);
                 if (q.graph){
                   const img = renderGraphAsImage(q.graph.expressions||[], 600, 280);
                   card.appendChild(img);
@@ -1840,7 +1865,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   });
                   opts.appendChild(btn);
                 });
-                try { if (window.katex && window.renderMathInElement) { renderMathInElement(opts, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
+                ensureMathRendered(opts);
                 const controls = document.createElement('div'); controls.className='ps-controls'; controls.style.display='flex'; controls.style.justifyContent='flex-end'; controls.style.marginTop='22px'; card.appendChild(controls);
                 const action = document.createElement('button'); action.className='btn btn-primary'; action.style.minWidth='180px'; action.textContent='Check'; action.dataset.mode='check';
                 // Revert Try Again to Check when any option is selected
@@ -1872,7 +1897,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                   [...opts.children].forEach(ch=>{ ch.dataset.locked='1'; ch.disabled=true; ch.classList.add('locked'); });
                   action.dataset.mode = 'next'; action.textContent = 'Next';
                   explain.innerHTML = correct ? `<span style="color:#155e2b"><i class='bi bi-check-circle'></i> Correct.</span> ${q.explanation||''}` : `<span style=\"color:#991b1b\"><i class='bi bi-x-circle'></i> Incorrect.</span> ${q.explanation||''}`;
-                  try { if (window.katex && window.renderMathInElement) { renderMathInElement(explain, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
+                  ensureMathRendered(explain);
                   if (correct){ currentDifficulty = currentDifficulty==='easy' ? 'medium' : (currentDifficulty==='medium' ? 'hard' : 'hard'); }
                   else { currentDifficulty = currentDifficulty==='hard' ? 'medium' : (currentDifficulty==='medium' ? 'easy' : 'easy'); }
                   await bumpSessionCount(correct, q);
@@ -1902,8 +1927,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             }
             const q = picked.q;
             const card = document.createElement('div'); card.className='ps-q-card'; stage.appendChild(card);
-            const stem = document.createElement('div'); stem.className='ps-stem'; stem.textContent = `${step+1}. ${q.stem}`; card.appendChild(stem);
-            try { if (window.katex && window.renderMathInElement) { renderMathInElement(stem, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
+            const stem = document.createElement('div'); stem.className='ps-stem'; stem.innerHTML = `${step+1}. ${latexifyStem(q.stem)}`; card.appendChild(stem);
+            ensureMathRendered(stem);
 
             // Desmos container if graph is requested
             if (q.graph){
@@ -1945,7 +1970,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
               });
               opts.appendChild(btn);
             });
-            try { if (window.katex && window.renderMathInElement) { renderMathInElement(opts, { delimiters:[{left:"$$", right:"$$", display:true},{left:"$", right:"$", display:false},{left:"\\(", right:"\\)", display:false}], throwOnError:false }); } } catch{}
+            ensureMathRendered(opts);
             const controls = document.createElement('div'); controls.className='ps-controls'; controls.style.display='flex'; controls.style.justifyContent='flex-end'; controls.style.marginTop='22px'; card.appendChild(controls);
             const action = document.createElement('button'); action.className='btn btn-primary'; action.textContent='Check'; action.dataset.mode='check';
             const explain = document.createElement('div'); explain.className='ps-explain';
