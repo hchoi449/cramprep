@@ -85,8 +85,8 @@
       .ps-opt.sel{outline:2px solid #8B4513;background:#fff}
       .ps-opt .katex{font-size:1.05em;white-space:normal;max-width:100%;overflow-wrap:anywhere;word-break:break-word;display:inline-block}
       .ps-opt .katex-display{margin:0}
-      .ps-explain{white-space:normal;overflow-wrap:anywhere;word-break:break-word;line-height:1.55}
-      .ps-controls{display:flex;justify-content:flex-end;gap:12px;flex-wrap:wrap}
+      .ps-explain{white-space:normal;overflow-wrap:anywhere;word-break:break-word;line-height:1.55;flex:1;min-width:0}
+      .ps-controls{display:flex;justify-content:flex-end;gap:12px;flex-wrap:nowrap}
       .ps-controls .btn{max-width:100%}
       @media(max-width:1200px){.ps-container{grid-template-columns:360px minmax(0,1fr);gap:28px}}
       @media(max-width:900px){.ps-container{grid-template-columns:1fr;width:100%;padding:0 16px}.ps-sidebar{position:relative;top:auto;height:auto;overflow:visible}.ps-toggle{display:none}.ps-controls .btn{width:100%}}
