@@ -77,13 +77,16 @@
       .ps-actions .btn{padding:10px 14px;border-radius:10px}
       .ps-body{line-height:1.7;color:#1a1a1a}
       /* Choice layout: left-align text, allow math inline, and keep button full-width */
-      .ps-opts{display:flex;flex-direction:column;gap:10px}
-      .ps-opt{display:block;text-align:left;justify-content:flex-start;align-items:flex-start;width:100%;padding:12px 14px;border:1px solid #efe7dc;border-radius:10px;background:#fbf5ee;color:#1a1a1a;white-space:normal;overflow-wrap:anywhere;word-break:break-word}
+      .ps-q-card{overflow:hidden}
+      .ps-opts{display:flex;flex-direction:column;gap:10px;width:100%;max-width:100%}
+      .ps-opt{display:block;text-align:left;justify-content:flex-start;align-items:flex-start;width:100%;max-width:100%;padding:12px 14px;border:1px solid #efe7dc;border-radius:10px;background:#fbf5ee;color:#1a1a1a;white-space:normal;overflow-wrap:anywhere;word-break:break-word;box-sizing:border-box}
       .ps-opt.sel{outline:2px solid #8B4513;background:#fff}
-      .ps-opt .katex{font-size:1.05em;white-space:normal;max-width:100%}
+      .ps-opt .katex{font-size:1.05em;white-space:normal;max-width:100%;overflow-wrap:anywhere;word-break:break-word;display:inline-block}
       .ps-explain{white-space:normal;overflow-wrap:anywhere;word-break:break-word}
+      .ps-controls{display:flex;justify-content:flex-end;gap:12px;flex-wrap:wrap}
+      .ps-controls .btn{max-width:100%}
       @media(max-width:1200px){.ps-container{grid-template-columns:360px minmax(0,1fr);gap:28px}}
-      @media(max-width:900px){.ps-container{grid-template-columns:1fr;width:100%;padding:0 16px}.ps-sidebar{position:relative;top:auto;height:auto;overflow:visible}.ps-toggle{display:none}}
+      @media(max-width:900px){.ps-container{grid-template-columns:1fr;width:100%;padding:0 16px}.ps-sidebar{position:relative;top:auto;height:auto;overflow:visible}.ps-toggle{display:none}.ps-controls .btn{width:100%}}
       /* Ensure hidden state always respected */
       #psApp[hidden]{display:none !important}
     </style>
