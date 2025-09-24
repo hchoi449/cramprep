@@ -1357,11 +1357,14 @@ async function bootstrap() {
   // One-time fixer: scan existing questions and ensure unique options by canonical form
   app.post('/ai/fix-duplicates', async (req, res) => {
     try {
-      const { lesson } = req.query || {};
+      const { lesson, id } = req.query || {};
       const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
       await client.connect();
       const col = await getQuestionCollection(client);
-      const filter = lesson ? { lessonSlug: String(lesson).trim() } : {};
+      let filter = lesson ? { lessonSlug: String(lesson).trim() } : {};
+      if (id) {
+        try { filter = { _id: new ObjectId(String(id)) }; } catch {}
+      }
       const cur = col.find(filter).limit(20000);
       let inspected = 0, updated = 0;
       while (await cur.hasNext()){
