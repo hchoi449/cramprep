@@ -967,6 +967,11 @@ async function bootstrap() {
       if (docs.length >= target){
         try { const del = await col.deleteMany({ lessonSlug }); deletedCount = del.deletedCount || 0; } catch {}
         if (docs.length){ try { await col.insertMany(docs, { ordered: false }); } catch {} }
+        // Post-insert safety: trigger fixer to canonicalize and dedupe options for this lesson
+        try {
+          const baseUrl = (process.env.PUBLIC_BASE_URL && process.env.PUBLIC_BASE_URL.trim()) || `http://127.0.0.1:${process.env.PORT||8080}`;
+          await fetch(`${baseUrl}/ai/fix-duplicates?lesson=${encodeURIComponent(lessonSlug)}`, { method:'POST' });
+        } catch {}
       }
       await client.close();
       return res.json({ ok:true, deleted: deletedCount, inserted: docs.length, attempts });
