@@ -671,10 +671,13 @@ async function bootstrap() {
       const ing = await getIngestCollection(client);
 
       const perBatch = 12; // small fast batches
-      const target = Math.max(30, Number(req.query.target||0) || 30);
+      const target = 30; // exactly 30 questions per lesson
       const maxAttempts = 6;
       const seen = new Set();
       const docs = [];
+      const flushSize = 10; // insert to DB in small chunks
+      let insertedCount = 0;
+      let deletedCount = 0;
       let attempts = 0;
       const requireVisual = String(req.query.require || '').toLowerCase();
       const visualNote = requireVisual === 'graph'
@@ -687,6 +690,8 @@ async function bootstrap() {
       // Prefer ingested chunks for the lesson, fall back to model-only
       try { await ingestLocalTextbooks(ing); } catch {}
       const chunks = await ing.find({ $or:[ { lessonSlug }, { lessonSlug: null } ] }).limit(500).toArray();
+      // Replace old questions for this lesson before inserting new ones
+      try { const del = await col.deleteMany({ lessonSlug }); deletedCount = del.deletedCount || 0; } catch {}
       const contextText = chunks && chunks.length ? chunks.slice(0,40).map(c=> `p.${c.page}: ${c.text}`).join('\n\n') : '';
       while (docs.length < target && attempts < maxAttempts){
         attempts++;
@@ -792,16 +797,23 @@ async function bootstrap() {
           generatedAt: new Date().toISOString(),
           generator: 'agent1'
         });
+          // Flush recent docs in small batches to DB to avoid large single insert
+          if (docs.length - insertedCount >= flushSize){
+            const slice = docs.slice(insertedCount);
+            if (slice.length){ try { await col.insertMany(slice, { ordered: false }); } catch {}
+              insertedCount = docs.length;
+            }
+          }
           if (docs.length >= target) break;
         }
       }
-      // Replace old questions for this lesson
-      const del = await col.deleteMany({ lessonSlug });
-      if (docs.length) {
-        await col.insertMany(docs, { ordered: false });
+      // Final flush of any remaining docs
+      if (docs.length - insertedCount > 0){
+        const slice = docs.slice(insertedCount);
+        if (slice.length){ try { await col.insertMany(slice, { ordered: false }); } catch {} }
       }
       await client.close();
-      return res.json({ ok:true, deleted: del.deletedCount || 0, inserted: docs.length, attempts });
+      return res.json({ ok:true, deleted: deletedCount, inserted: docs.length, attempts });
     } catch (e){ console.error(e); return res.status(500).json({ error:'generation_failed' }); }
   });
 
