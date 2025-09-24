@@ -670,7 +670,7 @@ async function bootstrap() {
       const col = await getQuestionCollection(client);
       const ing = await getIngestCollection(client);
 
-      const perBatch = 12; // small fast batches
+      const perBatch = 30; // request all 30 in one go
       const target = 30; // exactly 30 questions per lesson
       const maxAttempts = 12; // give more tries to reach exact target
       const seen = new Set();
@@ -692,16 +692,16 @@ async function bootstrap() {
       while (docs.length < target && attempts < maxAttempts){
         attempts++;
         const need = target - docs.length;
-        const batches = Math.min(4, Math.max(1, Math.ceil(need / perBatch)));
-        const prompts = new Array(batches).fill(0).map(()=> {
-          const base = buildLessonPrompt(lessonTitle, lessonSlug, perBatch);
+        const batchSize = Math.min(perBatch, need);
+        const prompts = [(()=>{
+          const base = buildLessonPrompt(lessonTitle, lessonSlug, batchSize);
           const withContext = contextText ? `${base}\n\nUse this textbook context (extract key facts, captions, tables, graphs):\n${contextText.substring(0, 8000)}` : base;
           return visualNote ? `${withContext}\n\n${visualNote}` : withContext;
-        });
+        })()];
         const genModel = process.env.TBP_GENERATE_MODEL || process.env.TBP_DEFAULT_MODEL || 'gemini-1.5-flash';
-        const results = await Promise.all(prompts.map(p=> callGeminiGenerate(genModel, p).catch(()=>'')));
+        const txt = await callGeminiGenerate(genModel, prompts[0]).catch(()=> '');
         const all = [];
-        for (const txt of results){
+        {
           try {
             const m = txt.match(/```json[\s\S]*?```/i);
             const raw = m ? m[0].replace(/```json/i,'').replace(/```/,'').trim() : (txt.trim().startsWith('{')? txt.trim(): null);
@@ -1019,7 +1019,7 @@ async function bootstrap() {
   });
 
   // Daily refresh runner (Agent 1 regenerate → Agent 2 enrich → Agent 4 verify)
-  async function runDailyRefresh(limit, offset){
+  async function runDailyRefresh(limit, offset, wipe){
     const startedAt = new Date();
     const startStrNY = startedAt.toLocaleString('en-US', { timeZone: 'America/New_York', hour12:false });
     console.log(`[refresh] start ${startStrNY}`);
@@ -1028,6 +1028,9 @@ async function bootstrap() {
       const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
       await client.connect();
       const col = await getQuestionCollection(client);
+      if (wipe){
+        try { const delAll = await col.deleteMany({}); console.log(`[refresh] wiped all: ${delAll.deletedCount||0}`); } catch(e){ console.error('[refresh] wipe failed', e); }
+      }
       const existingSlugs = await col.distinct('lessonSlug');
       await client.close();
       // Union with lessons discovered from repository so missing lessons are still refreshed/seeded
@@ -1064,7 +1067,8 @@ async function bootstrap() {
     try {
       const limit = Number(req.query.limit || 0) || undefined;
       const offset = Number(req.query.offset || 0) || 0;
-      const result = await runDailyRefresh(limit, offset);
+      const wipe = String(req.query.wipe||'').toLowerCase() === '1' || String(req.query.wipe||'').toLowerCase() === 'true';
+      const result = await runDailyRefresh(limit, offset, wipe);
       return res.json({ ok: true, ...result });
     } catch (e){
       console.error(e);
