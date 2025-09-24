@@ -582,8 +582,19 @@ async function bootstrap() {
       // coordinate (x,y) -> (x+bump,y)
       const mPt = String(plain).match(/^\(\s*([-\d\.]+)\s*,\s*([-\d\.]+)\s*\)$/);
       if (mPt){ const x=parseFloat(mPt[1]); const y=parseFloat(mPt[2]); if (!Number.isNaN(x)&&!Number.isNaN(y)) return `(${x+Math.max(1,bump)},${y})`; }
+      // algebraic expression: bump the last integer constant found (e.g., 2x+3 -> 2x+4)
+      {
+        const s = String(plain);
+        const re = /(-?\d+)/g; let m, last=null; while ((m = re.exec(s))) last = { idx: m.index, val: m[0] };
+        if (last && typeof last.idx === 'number'){
+          const before = s.slice(0, last.idx);
+          const after = s.slice(last.idx + String(last.val).length);
+          const nextVal = String(parseInt(last.val,10) + Math.max(1, bump));
+          return before + nextVal + after;
+        }
+      }
       // fallback: append a narrow no-break space + letter to make distinct
-      return `${plain}\u202f`; // visually identical but distinct
+      return `${plain}′`; // add prime mark to make visibly distinct
     } catch { return String(text||''); }
   }
 
@@ -598,13 +609,29 @@ async function bootstrap() {
       let candidate = out[i];
       let norm = normalizePlainServer(candidate);
       let tries = 0;
-      while (seen.has(norm) && tries < 5){
+      while (seen.has(norm) && tries < 8){
         candidate = mutateDistractorForUniqueness(candidate, i+1+tries);
         norm = normalizePlainServer(candidate);
         tries++;
       }
       out[i] = candidate;
       seen.add(norm);
+    }
+    // Final guard: if still not unique by normalized form, force slight constant bumps on duplicates
+    const counts = {};
+    for (let i=0;i<out.length;i++){
+      const norm = normalizePlainServer(out[i]);
+      counts[norm] = (counts[norm]||0)+1;
+    }
+    if (Object.values(counts).some(c=> c>1)){
+      for (let i=0;i<out.length;i++){
+        if (i===correctIdx) continue;
+        const norm = normalizePlainServer(out[i]);
+        if (counts[norm] > 1){
+          out[i] = mutateDistractorForUniqueness(out[i], i+2);
+          counts[norm]--;
+        }
+      }
     }
     // Special case: if stem asks for prime in a range, force distractors to be composite or out-of-range
     try {
