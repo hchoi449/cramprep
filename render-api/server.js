@@ -623,9 +623,39 @@ async function bootstrap() {
   }
 
   async function callGeminiGenerate(model, prompt){
-    const key = process.env.GEMINI_API_KEY || process.env.gemini_api_key || process.env.GOOGLE_GEMINI_API_KEY;
-    const defaultModel = process.env.TBP_DEFAULT_MODEL || process.env.TBP_GENERATE_MODEL || 'gemini-1.5-flash';
+    const defaultModel = process.env.TBP_GENERATE_MODEL || process.env.TBP_DEFAULT_MODEL || 'gemini-1.5-flash';
     const useModel = model || defaultModel;
+    // OpenAI route if model starts with openai:
+    if (String(useModel).toLowerCase().startsWith('openai:')){
+      const openaiKey = process.env.OPENAI_API_KEY || process.env.openai_api_key;
+      if (!openaiKey) throw new Error('missing_OPENAI_API_KEY');
+      const openaiModel = String(useModel).split(':',2)[1] || 'gpt-4o-mini';
+      const wantsJson = /return\s+strict\s+json|return\s+json/i.test(String(prompt||''));
+      const messages = wantsJson
+        ? [
+            { role: 'system', content: 'You are a precise JSON generator. Respond with a single JSON object only, no code fences, no prose.' },
+            { role: 'user', content: String(prompt||'') }
+          ]
+        : [ { role:'user', content: String(prompt||'') } ];
+      const r = await fetch('https://api.openai.com/v1/chat/completions', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', 'Authorization': `Bearer ${openaiKey}` },
+        body: JSON.stringify({
+          model: openaiModel,
+          messages,
+          temperature: 0.3,
+          top_p: 0.8,
+          n: 1,
+          response_format: wantsJson ? { type: 'json_object' } : undefined
+        })
+      });
+      const j = await r.json().catch(()=>({}));
+      if (!r.ok) throw new Error((j && j.error && (j.error.message||j.error)) || 'openai_upstream_error');
+      return (j && j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
+    }
+    // Gemini default
+    const key = process.env.GEMINI_API_KEY || process.env.gemini_api_key || process.env.GOOGLE_GEMINI_API_KEY;
+    if (!key) throw new Error('missing_GEMINI_API_KEY');
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(useModel)}:generateContent?key=${encodeURIComponent(key)}`;
     const body = {
       contents: [ { role: 'user', parts: [ { text: prompt } ] } ],
@@ -705,7 +735,10 @@ async function bootstrap() {
   app.post('/ai/agent1/generate', async (req, res) => {
     const lessonSlug = String(req.query.lesson || '').trim();
     const lessonTitle = String(req.body && req.body.title || req.query.title || lessonSlug).trim();
-    const book = String((req.query && req.query.book) || (req.body && req.body.book) || '').trim() || null;
+    let book = String((req.query && req.query.book) || (req.body && req.body.book) || '').trim() || null;
+    const targetParam = Number(req.query.target || req.body && req.body.target || 0);
+    const targetEnv = Number(process.env.TBP_AGENT1_TARGET || 0);
+    const targetDesired = Math.max(1, Math.min(40, Number.isFinite(targetParam) && targetParam>0 ? targetParam : (Number.isFinite(targetEnv) && targetEnv>0 ? targetEnv : 15)));
     if (!lessonSlug) return res.status(400).json({ error: 'lesson (slug) is required' });
     try {
       const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
@@ -713,8 +746,13 @@ async function bootstrap() {
       const col = await getQuestionCollection(client);
       const ing = await getIngestCollection(client);
 
-      const perBatch = 15; // request all 15 in one go
-      const target = 15; // exactly 15 questions per lesson
+      // Resolve book automatically if not provided
+      if (!book) {
+        try { book = resolveBookForLessonFromRepo(lessonSlug); } catch {}
+      }
+
+      const perBatch = Math.min(20, targetDesired); // request up to 20 at once
+      const target = targetDesired; // exact target per lesson
       const maxAttempts = 12; // give more tries to reach exact target
       const seen = new Set();
       const docs = [];
@@ -1062,7 +1100,7 @@ async function bootstrap() {
   });
 
   // Daily refresh runner (Agent 1 regenerate → Agent 2 enrich → Agent 4 verify)
-  async function runDailyRefresh(limit, offset, wipe){
+  async function runDailyRefresh(limit, offset, wipe, target){
     const startedAt = new Date();
     const startStrNY = startedAt.toLocaleString('en-US', { timeZone: 'America/New_York', hour12:false });
     console.log(`[refresh] start ${startStrNY}`);
@@ -1089,7 +1127,7 @@ async function bootstrap() {
       for (const slug of slice){
         try {
         const book = resolveBookForLessonFromRepo(slug);
-        const url1 = `${baseUrl}/ai/agent1/generate?lesson=${encodeURIComponent(slug)}${book?`&book=${encodeURIComponent(book)}`:''}`;
+        const url1 = `${baseUrl}/ai/agent1/generate?lesson=${encodeURIComponent(slug)}${book?`&book=${encodeURIComponent(book)}`:''}${target?`&target=${encodeURIComponent(target)}`:''}`;
         const r1 = await fetch(url1, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title: slug, book }) });
           if (!r1.ok) throw new Error(`agent1 ${r1.status}`);
           try { await fetch(`${baseUrl}/ai/agent2/enrich?lesson=${encodeURIComponent(slug)}`, { method:'POST' }); } catch {}
@@ -1111,7 +1149,8 @@ async function bootstrap() {
       const limit = Number(req.query.limit || 0) || undefined;
       const offset = Number(req.query.offset || 0) || 0;
       const wipe = String(req.query.wipe||'').toLowerCase() === '1' || String(req.query.wipe||'').toLowerCase() === 'true';
-      const result = await runDailyRefresh(limit, offset, wipe);
+      const target = Number(req.query.target || 0) || undefined;
+      const result = await runDailyRefresh(limit, offset, wipe, target);
       return res.json({ ok: true, ...result });
     } catch (e){
       console.error(e);
