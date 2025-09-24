@@ -553,6 +553,49 @@ async function bootstrap() {
     } catch { return String(text||''); }
   }
 
+  // ---- Canonicalization helpers for options ----
+  function gcdInt(a, b){ a = Math.abs(a|0); b = Math.abs(b|0); while (b){ const t = a % b; a = b; b = t; } return a || 1; }
+  function parseFractionFromPlain(text){
+    try {
+      const s = String(text||'').trim();
+      // match a/b where a, b are integers, with optional parentheses and spaces
+      const m = s.match(/^\(?\s*([+-]?\d+)\s*\)?\s*\/\s*\(?\s*([+-]?\d+)\s*\)?$/);
+      if (!m) return null;
+      let n = parseInt(m[1],10); let d = parseInt(m[2],10);
+      if (!Number.isFinite(n) || !Number.isFinite(d) || d === 0) return null;
+      // normalize sign to numerator only
+      if (d < 0) { n = -n; d = -d; }
+      // reduce
+      const g = gcdInt(n, d);
+      n = n / g; d = d / g;
+      return { n, d };
+    } catch { return null; }
+  }
+  function canonicalNumberOrFraction(text){
+    try {
+      const plain = stripLatexToPlain(text);
+      const f = parseFractionFromPlain(plain);
+      if (f) return { key: `frac:${f.n}/${f.d}`, display: { type:'frac', n:f.n, d:f.d } };
+      // try pure number
+      const num = parseFloat(plain.replace(/,/g,''));
+      if (!Number.isNaN(num)){
+        // normalize to string without trailing zeros
+        let s = num.toFixed(12);
+        s = s.replace(/\.0+$/,'').replace(/(\.\d*?)0+$/,'$1');
+        return { key: `num:${s}`, display: { type:'num', s } };
+      }
+      return { key: `expr:${normalizePlainServer(plain)}`, display: { type:'expr' } };
+    } catch { return { key: `expr:${normalizePlainServer(text)}`, display: { type:'expr' } }; }
+  }
+  function prettyFractionForDisplay(original, n, d){
+    try {
+      const orig = String(original||'');
+      const prefersLatex = /\\(?:d?frac)\s*\{/i.test(orig) || /\$/.test(orig);
+      if (prefersLatex) return `\\frac{${n}}{${d}}`;
+      return `${n}/${d}`;
+    } catch { return `${n}/${d}`; }
+  }
+
   function normalizePlainServer(s){
     try { return String(stripLatexToPlain(s)||'').toLowerCase().replace(/\s+/g,' ').trim(); } catch { return String(s||''); }
   }
@@ -600,36 +643,52 @@ async function bootstrap() {
 
   function dedupeOptions(options, correctIdx){
     const out = options.slice(0,4).map(String);
+    // First pass: reduce fractions to lowest terms and sign-normalize
+    for (let i=0;i<out.length;i++){
+      const orig = out[i];
+      const plain = stripLatexToPlain(orig);
+      const f = parseFractionFromPlain(plain);
+      if (f){ out[i] = prettyFractionForDisplay(orig, f.n, f.d); }
+    }
+    // Ensure uniqueness by canonical equivalence (fraction reduced, sign-normalized; numbers normalized)
     const seen = new Set();
-    // ensure correct option reserved
-    const normCorrect = normalizePlainServer(out[correctIdx]||'');
-    seen.add(normCorrect);
+    const makeKey = (s)=> canonicalNumberOrFraction(s).key;
+    const reserveKey = makeKey(out[correctIdx]||'');
+    seen.add(reserveKey);
     for (let i=0;i<out.length;i++){
       if (i === correctIdx) continue;
       let candidate = out[i];
-      let norm = normalizePlainServer(candidate);
+      let key = makeKey(candidate);
       let tries = 0;
-      while (seen.has(norm) && tries < 8){
+      while (seen.has(key) && tries < 10){
         candidate = mutateDistractorForUniqueness(candidate, i+1+tries);
-        norm = normalizePlainServer(candidate);
+        // if mutation yields a fraction, simplify and sign-normalize again
+        const f = parseFractionFromPlain(stripLatexToPlain(candidate));
+        if (f) candidate = prettyFractionForDisplay(candidate, f.n, f.d);
+        key = makeKey(candidate);
         tries++;
       }
       out[i] = candidate;
-      seen.add(norm);
+      seen.add(key);
     }
-    // Final guard: if still not unique by normalized form, force slight constant bumps on duplicates
+    // Final guard: if still not unique by canonical form, force numeric bump on duplicates
     const counts = {};
-    for (let i=0;i<out.length;i++){
-      const norm = normalizePlainServer(out[i]);
-      counts[norm] = (counts[norm]||0)+1;
-    }
+    const keys = out.map(s=> makeKey(s));
+    for (const k of keys){ counts[k] = (counts[k]||0)+1; }
     if (Object.values(counts).some(c=> c>1)){
       for (let i=0;i<out.length;i++){
         if (i===correctIdx) continue;
-        const norm = normalizePlainServer(out[i]);
-        if (counts[norm] > 1){
-          out[i] = mutateDistractorForUniqueness(out[i], i+2);
-          counts[norm]--;
+        const k0 = keys[i];
+        if (counts[k0] > 1){
+          let cand = out[i];
+          let kk = k0; let bump = 2; let guard = 0;
+          while (seen.has(kk) && guard < 4){
+            cand = mutateDistractorForUniqueness(cand, bump++);
+            const f = parseFractionFromPlain(stripLatexToPlain(cand));
+            if (f) cand = prettyFractionForDisplay(cand, f.n, f.d);
+            kk = makeKey(cand); guard++;
+          }
+          out[i] = cand; counts[k0]--; counts[kk] = (counts[kk]||0)+1; seen.add(kk);
         }
       }
     }
