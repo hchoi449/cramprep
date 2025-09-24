@@ -1013,6 +1013,9 @@ async function bootstrap() {
         try {
           const baseUrl = (process.env.PUBLIC_BASE_URL && process.env.PUBLIC_BASE_URL.trim()) || `http://127.0.0.1:${process.env.PORT||8080}`;
           await fetch(`${baseUrl}/ai/fix-duplicates?lesson=${encodeURIComponent(lessonSlug)}`, { method:'POST' });
+          // Verify and apply corrections so stored 'correct' and 'answer' are consistent
+          try { await fetch(`${baseUrl}/ai/agent4/verify-lesson?lesson=${encodeURIComponent(lessonSlug)}`, { method:'POST' }); } catch {}
+          try { await fetch(`${baseUrl}/ai/agent4/apply-corrections?lesson=${encodeURIComponent(lessonSlug)}`, { method:'POST' }); } catch {}
         } catch {}
       }
       await client.close();
@@ -1239,6 +1242,50 @@ async function bootstrap() {
       await client.close();
       return res.json({ ok: true, inspected, corrected, lesson: lessonSlug || null });
     } catch (e){ console.error(e); return res.status(500).json({ error: 'apply_corrections_failed' }); }
+  });
+
+  // Verify and correct a single question by _id
+  app.post('/ai/agent4/verify-one', async (req, res) => {
+    try {
+      const { id } = req.query || {};
+      if (!id) return res.status(400).json({ error: 'id is required' });
+      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+      await client.connect();
+      const col = await getQuestionCollection(client);
+      const _id = new ObjectId(String(id));
+      const d = await col.findOne({ _id });
+      if (!d) { await client.close(); return res.status(404).json({ error: 'not_found' }); }
+      // Dedupe/canonicalize options first
+      let options = Array.isArray(d.options) ? d.options.slice(0,4).map(String) : [];
+      const correct = Math.max(0, Math.min(3, Number(d.correct||0)));
+      const pre = adjustOptionsForRounding(d.stem, options);
+      const norm = dedupeOptions(pre, correct);
+      if (norm.options.join('||') !== options.join('||') || norm.correctIdx !== correct){
+        options = norm.options;
+        await col.updateOne({ _id }, { $set: {
+          options,
+          correct: norm.correctIdx,
+          answer: options[norm.correctIdx] || '',
+          answerPlain: stripLatexToPlain(options[norm.correctIdx] || ''),
+          fixedAt: new Date().toISOString(), fixedBy: 'agent4-verify-one-dedupe'
+        } });
+      }
+      // Verify with LLM
+      const decided = await agent4DecideCorrectIndex(d.stem, options);
+      if (decided !== null && decided !== Number(d.correct)){
+        const newAnswer = String(options[decided] || '');
+        await col.updateOne({ _id }, { $set: {
+          correct: decided,
+          answer: newAnswer,
+          answerPlain: stripLatexToPlain(newAnswer),
+          verified: true, verifiedBy: 'agent4-one', correctedAt: new Date().toISOString()
+        } });
+      } else if (decided !== null){
+        await col.updateOne({ _id }, { $set: { verified: true, verifiedBy: 'agent4-one', verifiedAt: new Date().toISOString() } });
+      }
+      await client.close();
+      return res.json({ ok:true, id: String(id), decided });
+    } catch (e){ console.error(e); return res.status(500).json({ error: 'verify_one_failed' }); }
   });
 
   // Agent 1 stats: counts per lesson
