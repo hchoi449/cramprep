@@ -670,8 +670,8 @@ async function bootstrap() {
       const col = await getQuestionCollection(client);
       const ing = await getIngestCollection(client);
 
-      const perBatch = 30; // request all 30 in one go
-      const target = 30; // exactly 30 questions per lesson
+      const perBatch = 15; // request all 15 in one go
+      const target = 15; // exactly 15 questions per lesson
       const maxAttempts = 12; // give more tries to reach exact target
       const seen = new Set();
       const docs = [];
@@ -1152,7 +1152,7 @@ async function bootstrap() {
     try {
       const lessons = tryReadLessonsFromRepo();
       if (!lessons.length) return res.status(404).json({ error:'no_lessons_found' });
-      const target = Math.max(30, Number(req.query.target||0) || 30);
+      const target = Math.max(15, Number(req.query.target||0) || 15);
       const limit = 4; // concurrency
       let idx = 0, okCount = 0, failCount = 0;
       const baseUrl = (process.env.PUBLIC_BASE_URL && process.env.PUBLIC_BASE_URL.trim()) || `http://127.0.0.1:${process.env.PORT||8080}`;
