@@ -581,7 +581,8 @@ async function bootstrap() {
 
   async function callGeminiGenerate(model, prompt){
     const key = process.env.GEMINI_API_KEY || process.env.gemini_api_key || process.env.GOOGLE_GEMINI_API_KEY;
-    const useModel = model || 'gemini-1.5-flash-8b';
+    const defaultModel = process.env.TBP_DEFAULT_MODEL || process.env.TBP_GENERATE_MODEL || 'gemini-1.5-flash';
+    const useModel = model || defaultModel;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(useModel)}:generateContent?key=${encodeURIComponent(key)}`;
     const body = {
       contents: [ { role: 'user', parts: [ { text: prompt } ] } ],
@@ -696,7 +697,8 @@ async function bootstrap() {
           const withContext = contextText ? `${base}\n\nUse this textbook context (extract key facts, captions, tables, graphs):\n${contextText.substring(0, 8000)}` : base;
           return visualNote ? `${withContext}\n\n${visualNote}` : withContext;
         });
-        const results = await Promise.all(prompts.map(p=> callGeminiGenerate('gemini-1.5-flash-8b', p).catch(()=>'')));
+        const genModel = process.env.TBP_GENERATE_MODEL || process.env.TBP_DEFAULT_MODEL || 'gemini-1.5-flash';
+        const results = await Promise.all(prompts.map(p=> callGeminiGenerate(genModel, p).catch(()=>'')));
         const all = [];
         for (const txt of results){
           try {
@@ -859,7 +861,8 @@ async function bootstrap() {
         const hasVisual = (d.graph && Array.isArray((d.graph||{}).expressions) && d.graph.expressions.length) || (d.table && Array.isArray((d.table||{}).rows) && d.table.rows.length) || !!d.numberLine;
         if (hasVisual) continue;
         const instruction = `You are enhancing a math MC item with minimal visuals only when helpful to solve. If the item doesn't need a visual, return {}. Prefer NONE unless the stem or options explicitly reference a graph, number line, table, histogram, box plot, or dot plot. Input:\n${JSON.stringify({ stem: d.stem, options: d.options, correct: d.correct }, null, 2)}\nReturn STRICT JSON with optional fields only as needed: { "graph"?: { "expressions": Array< { "latex"?: string } | { "type":"point","x":number,"y":number } > }, "table"?: { "headers"?: string[], "rows": string[][] }, "numberLine"?: { "min":number, "max":number, "step"?:number, "points"?: Array<number|{ "x":number, "label"?:string, "open"?:boolean }>, "intervals"?: Array<{ "from":number, "to":number, "openLeft"?:boolean, "openRight"?:boolean, "label"?:string }> } }`;
-        const j = await callGeminiJSON('gemini-1.5-flash-8b', instruction);
+        const enrichModel = process.env.TBP_ENRICH_MODEL || process.env.TBP_DEFAULT_MODEL || 'gemini-1.5-flash';
+        const j = await callGeminiJSON(enrichModel, instruction);
         if (!j) continue;
         const update = {};
         try {
@@ -919,7 +922,8 @@ async function bootstrap() {
       };
       if (sanitized.options.length !== 4) return null;
       const instruction = `You are a strict multiple-choice checker. Given a stem and four options (indices 0..3), return STRICT JSON { "correct": number } with the index of the best correct option. If ambiguous, pick the most mathematically correct or most defensible.\n${JSON.stringify(sanitized, null, 2)}`;
-      const j = await callGeminiJSON('gemini-1.5-flash-8b', instruction);
+      const verifyModel = process.env.TBP_VERIFY_MODEL || process.env.TBP_DEFAULT_MODEL || 'gemini-1.5-flash';
+      const j = await callGeminiJSON(verifyModel, instruction);
       if (j && typeof j.correct === 'number' && j.correct >= 0 && j.correct <= 3) return j.correct;
       return null;
     } catch { return null; }
