@@ -1353,6 +1353,57 @@ async function bootstrap() {
 
   const port = PORT || 8080;
   app.listen(port, () => console.log(`Auth API listening on ${port}`));
+
+  // One-time fixer: scan existing questions and ensure unique options by canonical form
+  app.post('/ai/fix-duplicates', async (req, res) => {
+    try {
+      const { lesson } = req.query || {};
+      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+      await client.connect();
+      const col = await getQuestionCollection(client);
+      const filter = lesson ? { lessonSlug: String(lesson).trim() } : {};
+      const cur = col.find(filter).limit(20000);
+      let inspected = 0, updated = 0;
+      while (await cur.hasNext()){
+        const d = await cur.next(); inspected++;
+        try {
+          if (!Array.isArray(d.options) || d.options.length !== 4) continue;
+          const correct = Math.max(0, Math.min(3, Number(d.correct||0)));
+          const beforeKeys = d.options.map(o => canonicalNumberOrFraction(o).key);
+          const uniqueBefore = new Set(beforeKeys);
+          if (uniqueBefore.size === 4){
+            // still reduce/normalize fractions for consistency
+            const normalized = dedupeOptions(d.options, correct);
+            if (normalized.options.join('||') !== d.options.join('||')){
+              await col.updateOne({ _id: d._id }, { $set: {
+                options: normalized.options,
+                correct: normalized.correctIdx,
+                answer: normalized.options[normalized.correctIdx] || '',
+                answerPlain: stripLatexToPlain(normalized.options[normalized.correctIdx] || ''),
+                fixedAt: new Date().toISOString(), fixedBy: 'fix-duplicates'
+              } });
+              updated++;
+            }
+            continue;
+          }
+          const normalized = dedupeOptions(d.options, correct);
+          const afterKeys = normalized.options.map(o => canonicalNumberOrFraction(o).key);
+          if (new Set(afterKeys).size === 4){
+            await col.updateOne({ _id: d._id }, { $set: {
+              options: normalized.options,
+              correct: normalized.correctIdx,
+              answer: normalized.options[normalized.correctIdx] || '',
+              answerPlain: stripLatexToPlain(normalized.options[normalized.correctIdx] || ''),
+              fixedAt: new Date().toISOString(), fixedBy: 'fix-duplicates'
+            } });
+            updated++;
+          }
+        } catch {}
+      }
+      await client.close();
+      return res.json({ ok:true, inspected, updated });
+    } catch (e){ console.error(e); return res.status(500).json({ error:'fix_duplicates_failed' }); }
+  });
 }
 
 bootstrap().catch(err => { console.error('Bootstrap error', err); process.exit(1); });
