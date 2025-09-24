@@ -610,6 +610,42 @@ async function bootstrap() {
     } catch { return NaN; }
   }
 
+  function detectRoundingMagnitudeFromStem(stem){
+    try {
+      const t = String(stem||'').toLowerCase();
+      if (!/round/.test(t)) return null;
+      if (/nearest\s+thousand/.test(t)) return 1000;
+      if (/nearest\s+hundred/.test(t)) return 100;
+      if (/nearest\s+ten/.test(t)) return 10;
+      return null;
+    } catch { return null; }
+  }
+
+  function formatNumberWithCommas(n){
+    try { return Number(n).toLocaleString('en-US'); } catch { return String(n); }
+  }
+
+  function adjustOptionsForRounding(stem, options){
+    try {
+      const mag = detectRoundingMagnitudeFromStem(stem);
+      if (!mag) return options;
+      const out = options.slice(0,4).map(String);
+      for (let i=0;i<out.length;i++){
+        const plain = stripLatexToPlain(out[i]);
+        const num = parseNumberLooseServer(plain);
+        if (!Number.isNaN(num)){
+          const absn = Math.abs(num);
+          // Heuristic: tiny single/two-digit numbers in rounding tasks are often malformed distractors – scale them up
+          if (absn < 10){
+            const scaled = num * mag;
+            out[i] = formatNumberWithCommas(Math.round(scaled));
+          }
+        }
+      }
+      return out;
+    } catch { return options; }
+  }
+
   function mutateDistractorForUniqueness(text, bump){
     try {
       const plain = stripLatexToPlain(text);
@@ -658,9 +694,11 @@ async function bootstrap() {
     for (let i=0;i<out.length;i++){
       if (i === correctIdx) continue;
       let candidate = out[i];
+      // Further normalize rounding-style distractors so small integers like "4" become scaled values
+      candidate = adjustOptionsForRounding('', [candidate])[0];
       let key = makeKey(candidate);
       let tries = 0;
-      while (seen.has(key) && tries < 10){
+      while (seen.has(key) && tries < 12){
         candidate = mutateDistractorForUniqueness(candidate, i+1+tries);
         // if mutation yields a fraction, simplify and sign-normalize again
         const f = parseFractionFromPlain(stripLatexToPlain(candidate));
@@ -682,10 +720,12 @@ async function bootstrap() {
         if (counts[k0] > 1){
           let cand = out[i];
           let kk = k0; let bump = 2; let guard = 0;
-          while (seen.has(kk) && guard < 4){
+          while (seen.has(kk) && guard < 6){
             cand = mutateDistractorForUniqueness(cand, bump++);
             const f = parseFractionFromPlain(stripLatexToPlain(cand));
             if (f) cand = prettyFractionForDisplay(cand, f.n, f.d);
+            // rounding-oriented scaling as last resort
+            cand = adjustOptionsForRounding('', [cand])[0];
             kk = makeKey(cand); guard++;
           }
           out[i] = cand; counts[k0]--; counts[kk] = (counts[kk]||0)+1; seen.add(kk);
@@ -880,6 +920,8 @@ async function bootstrap() {
         for (const p of all){
         const stem = String(p && p.stem || '').trim();
         let options = Array.isArray(p && p.options) ? p.options.slice(0,4).map(String) : [];
+        // Pre-normalize rounding-style distractors
+        options = adjustOptionsForRounding(stem, options);
         let correct = Math.max(0, Math.min(3, Number(p && p.correct || 0)));
         const explanation = String(p && p.explanation || '').trim();
         if (!stem || options.length !== 4) continue;
@@ -1126,8 +1168,33 @@ async function bootstrap() {
       await client.connect();
       const col = await getQuestionCollection(client);
       const docs = await col.find({ lessonSlug }).sort({ generatedAt: -1 }).limit(limit).toArray();
-      let verifiedCount = 0; let mismatches = 0; let undecided = 0;
+      let verifiedCount = 0; let mismatches = 0; let undecided = 0; let deduped = 0;
       for (const d of docs){
+        // Step 1: enforce pairwise uniqueness on options (canonical comparison)
+        try {
+          if (Array.isArray(d.options) && d.options.length === 4){
+            const before = d.options.slice(0,4).map(String);
+            // Pre-normalize rounding distractors
+            const pre = adjustOptionsForRounding(d.stem, before);
+            const norm = dedupeOptions(pre, Math.max(0, Math.min(3, Number(d.correct||0))));
+            const changed = (norm.options.join('||') !== before.join('||')) || (norm.correctIdx !== Number(d.correct||0));
+            if (changed){
+              await col.updateOne({ _id: d._id }, { $set: {
+                options: norm.options,
+                correct: norm.correctIdx,
+                answer: norm.options[norm.correctIdx] || '',
+                answerPlain: stripLatexToPlain(norm.options[norm.correctIdx] || ''),
+                fixedAt: new Date().toISOString(), fixedBy: 'agent4-dedupe'
+              } });
+              deduped++;
+              // also update local copy for downstream verification
+              d.options = norm.options;
+              d.correct = norm.correctIdx;
+            }
+          }
+        } catch {}
+
+        // Step 2: verify correctness index with LLM
         const decided = await agent4DecideCorrectIndex(d.stem, d.options);
         if (decided === null){ undecided++; continue; }
         const isMatch = Number(d.correct) === decided;
@@ -1137,7 +1204,7 @@ async function bootstrap() {
         await col.updateOne({ _id: d._id }, { $set: update });
       }
       await client.close();
-      return res.json({ ok:true, lesson: lessonSlug, verified: verifiedCount, mismatches, undecided });
+      return res.json({ ok:true, lesson: lessonSlug, verified: verifiedCount, mismatches, undecided, deduped });
     } catch (e){ console.error(e); return res.status(500).json({ error: 'verify_lesson_failed' }); }
   });
 
