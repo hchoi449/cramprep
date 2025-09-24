@@ -115,7 +115,7 @@ const generateBotResponse = async (incomingMessageDiv) => {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "gemini-1.5-flash-8b",
+      model: "openai:gpt-4o-mini",
       contents: chatHistory,
       generationConfig: { temperature: 0.3, topP: 0.8, candidateCount: 1 },
     }),

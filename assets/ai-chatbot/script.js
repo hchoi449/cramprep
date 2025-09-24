@@ -59,10 +59,9 @@
     const chatbotToggler = document.getElementById('ai-chat-open');
     const closeChatbot = root.querySelector('#close-chatbot');
 
-    // API
-    const API_KEY_PLACEHOLDER = 'PASTE-YOUR-API-KEY';
-    const API_KEY = window.TBP_GEMINI_API_KEY || API_KEY_PLACEHOLDER;
-    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+    // API via server proxy (no client-side key exposure)
+    const AUTH_BASE = (window && window.TBP_AUTH_BASE) ? window.TBP_AUTH_BASE.replace(/\/$/,'') : '';
+    const API_URL = `${AUTH_BASE}/ai/generate`;
 
     const userData = { message: null, file: { data:null, mime_type:null } };
     const SEED_PROMPT = "You are ThinkBigPrep's scheduling assistant. Help students book sessions. Keep every reply within 300 characters. If the student's profile is available, do not ask for their name, school, or grade; use the provided profile data. Ask only what is necessary (subject, help type, preferred day/time). Be friendly and professional.";
@@ -185,7 +184,7 @@
     async function generateBotResponse(incomingMessageDiv){
       chatHistory.push({ role:'user', parts:[{ text: userData.message }, ...(userData.file.data ? [{ inline_data: userData.file }] : [])] });
       try { /* scheduling mode uses custom flows below; still call Gemini for free-form */ } catch {}
-      const requestOptions = { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ contents: chatHistory }) };
+      const requestOptions = { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ model:'openai:gpt-4o-mini', contents: chatHistory, generationConfig: { temperature: 0.3, topP: 0.8, candidateCount: 1 } }) };
       try {
         const response = await fetch(API_URL, requestOptions);
         const data = await response.json();
@@ -657,10 +656,7 @@
       } catch {}
     };
 
-    // Warn if missing API key
-    if (API_KEY === API_KEY_PLACEHOLDER && !window.TBP_GEMINI_API_KEY) {
-      console.warn('Gemini API key missing. Set window.TBP_GEMINI_API_KEY = "<key>" to enable responses.');
-    }
+    // No key needed on client; server handles provider keys
   }
 
   if (document.readyState === 'loading') {

@@ -326,23 +326,66 @@ async function bootstrap() {
     }
   });
 
-  // Gemini proxy to avoid exposing API key in client
+  // AI proxy to avoid exposing API keys in client (supports Gemini and OpenAI)
   app.post('/ai/generate', async (req, res) => {
     try {
-      const key = process.env.GEMINI_API_KEY || process.env.gemini_api_key || process.env.GOOGLE_GEMINI_API_KEY;
-      if (!key) return res.status(500).json({ error: 'Server missing GEMINI_API_KEY' });
-
       const { model, contents, generationConfig } = req.body || {};
-      const useModel = (model && typeof model === 'string' ? model : 'gemini-1.5-pro');
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(useModel)}:generateContent?key=${encodeURIComponent(key)}`;
+      const defaultModel = (process.env.TBP_DEFAULT_MODEL || '').trim() || 'gemini-1.5-pro';
+      const useModel = (model && typeof model === 'string' ? model : defaultModel);
 
+      // OpenAI branch: model like "openai:gpt-4o-mini"
+      if (String(useModel).toLowerCase().startsWith('openai:')) {
+        const openaiModel = String(useModel).split(':', 2)[1] || 'gpt-4o-mini';
+        const openaiKey = process.env.OPENAI_API_KEY || process.env.openai_api_key;
+        if (!openaiKey) return res.status(500).json({ error: 'Server missing OPENAI_API_KEY' });
+
+        // Map Gemini-like contents → OpenAI chat messages
+        const messages = Array.isArray(contents) ? contents.map((m) => {
+          const role = (m && m.role === 'user') ? 'user' : 'assistant'; // treat 'model' as 'assistant'
+          const parts = Array.isArray(m && m.parts) ? m.parts : [];
+          const text = parts.map((p) => (p && typeof p.text === 'string') ? p.text : '').filter(Boolean).join('\n\n');
+          return text ? { role, content: text } : null;
+        }).filter(Boolean) : [];
+
+        const temperature = (generationConfig && typeof generationConfig.temperature === 'number') ? generationConfig.temperature : 0.3;
+        const top_p = (generationConfig && typeof generationConfig.topP === 'number') ? generationConfig.topP : 0.8;
+
+        const r = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${openaiKey}`
+          },
+          body: JSON.stringify({
+            model: openaiModel,
+            messages,
+            temperature,
+            top_p,
+            n: 1
+          })
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          const msg = (j && j.error && (j.error.message || j.error)) || 'upstream_error';
+          return res.status(r.status || 500).json({ error: String(msg) });
+        }
+        const text = (j && j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
+        // Normalize to Gemini-like response shape expected by the clients
+        return res.json({ candidates: [ { content: { parts: [ { text } ] } } ] });
+      }
+
+      // Gemini branch (default)
+      const geminiKey = process.env.GEMINI_API_KEY || process.env.gemini_api_key || process.env.GOOGLE_GEMINI_API_KEY;
+      if (!geminiKey) return res.status(500).json({ error: 'Server missing GEMINI_API_KEY' });
+      const gemModel = useModel || 'gemini-1.5-pro';
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(gemModel)}:generateContent?key=${encodeURIComponent(geminiKey)}`;
       const upstream = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents, generationConfig })
       });
       const text = await upstream.text();
-      res.status(upstream.status).type('application/json').send(text);
+      return res.status(upstream.status).type('application/json').send(text);
     } catch (e) {
       console.error(e);
       return res.status(500).json({ error: 'Proxy error' });
