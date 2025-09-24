@@ -1076,8 +1076,14 @@ async function bootstrap() {
     }
   });
 
-  // Scheduled loop: runs once per NY date at configured hour (default 15 → 3PM)
+  // Scheduled loop (DISABLED by default). Enable only if REFRESH_ENABLED=1 (or TBP_REFRESH_ENABLED=true)
   (function scheduleDailyRefresh(){
+    const enabledStr = String(process.env.REFRESH_ENABLED || process.env.TBP_REFRESH_ENABLED || '').toLowerCase();
+    const enabled = (enabledStr === '1' || enabledStr === 'true');
+    if (!enabled){
+      console.log('[refresh] auto daily refresh disabled');
+      return;
+    }
     let lastRunDateNY = null;
     const refreshHour = Math.max(0, Math.min(23, Number(process.env.REFRESH_HOUR_NY || 15)));
     async function maybeRun(){
