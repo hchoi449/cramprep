@@ -711,10 +711,12 @@ async function bootstrap() {
         }
         for (const p of all){
         const stem = String(p && p.stem || '').trim();
-        const options = Array.isArray(p && p.options) ? p.options.slice(0,4).map(String) : [];
-        const correct = Math.max(0, Math.min(3, Number(p && p.correct || 0)));
+        let options = Array.isArray(p && p.options) ? p.options.slice(0,4).map(String) : [];
+        let correct = Math.max(0, Math.min(3, Number(p && p.correct || 0)));
         const explanation = String(p && p.explanation || '').trim();
         if (!stem || options.length !== 4) continue;
+        // Ensure all four options are distinct (by plain-text semantics) and keep correct index stable
+        try { const dedup = dedupeOptions(options, correct); options = dedup.options; correct = dedup.correctIdx; } catch{}
         const key = normalizeStem(stem);
         if (seen.has(key)) continue; seen.add(key);
         const sourceHash = sha256Hex(lessonSlug + '||' + stem + '||' + options.join('||'));
