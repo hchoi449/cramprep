@@ -79,6 +79,8 @@
       /* Choice layout: left-align text, allow math inline, and keep button full-width */
       .ps-q-card{overflow:hidden}
       .ps-opts{display:flex;flex-direction:column;gap:10px;width:100%;max-width:100%}
+      .ps-qmeta{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+      .ps-qid{font-family:ui-monospace, SFMono-Regular, Menlo, monospace;font-size:12px;color:#6b7280;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:2px 6px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
       .ps-opt{display:block;text-align:left;justify-content:flex-start;align-items:flex-start;width:100%;max-width:100%;padding:12px 14px;border:1px solid #efe7dc;border-radius:10px;background:#fbf5ee;color:#1a1a1a;white-space:normal;overflow-wrap:anywhere;word-break:break-word;box-sizing:border-box}
       .ps-opt.sel{outline:2px solid #8B4513;background:#fff}
       .ps-opt .katex{font-size:1.05em;white-space:normal;max-width:100%;overflow-wrap:anywhere;word-break:break-word;display:inline-block}
@@ -1527,6 +1529,10 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
               if (orderedProblems && orderedPointer < orderedProblems.length){
                 const q = orderedProblems[orderedPointer++];
                 const card = document.createElement('div'); card.className='ps-q-card'; stage.appendChild(card);
+                const meta = document.createElement('div'); meta.className='ps-qmeta';
+                const qid = (q && (q._id || q.id || q.sourceHash || q.sourceId)) ? String(q._id || q.id || q.sourceHash || q.sourceId) : '';
+                if (qid){ const idBadge=document.createElement('span'); idBadge.className='ps-qid'; idBadge.textContent = qid; meta.appendChild(idBadge); }
+                if (meta.childNodes.length) card.appendChild(meta);
                 const stem = document.createElement('div'); stem.className='ps-stem'; stem.innerHTML = `${step+1}. ${latexifyStem(q.stem)}`; card.appendChild(stem);
                 ensureMathRendered(stem);
                 if (q.graph){
@@ -1735,6 +1741,10 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                 used.add(retry2.id);
                 const q = retry2.q; const pickedNow = retry2; // alias for downstream rendering
                 const card = document.createElement('div'); card.className='ps-q-card'; stage.appendChild(card);
+                const meta = document.createElement('div'); meta.className='ps-qmeta';
+                const qid = (q && (q._id || q.id || q.sourceHash || q.sourceId)) ? String(q._id || q.id || q.sourceHash || q.sourceId) : '';
+                if (qid){ const idBadge=document.createElement('span'); idBadge.className='ps-qid'; idBadge.textContent = qid; meta.appendChild(idBadge); }
+                if (meta.childNodes.length) card.appendChild(meta);
                 const stem = document.createElement('div'); stem.className='ps-stem'; stem.innerHTML = `${step+1}. ${latexifyStem(q.stem)}`; card.appendChild(stem);
                 ensureMathRendered(stem);
                 if (q.graph){
@@ -1927,6 +1937,10 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             }
             const q = picked.q;
             const card = document.createElement('div'); card.className='ps-q-card'; stage.appendChild(card);
+            const meta = document.createElement('div'); meta.className='ps-qmeta';
+            const qid = (q && (q._id || q.id || q.sourceHash || q.sourceId)) ? String(q._id || q.id || q.sourceHash || q.sourceId) : '';
+            if (qid){ const idBadge=document.createElement('span'); idBadge.className='ps-qid'; idBadge.textContent = qid; meta.appendChild(idBadge); }
+            if (meta.childNodes.length) card.appendChild(meta);
             const stem = document.createElement('div'); stem.className='ps-stem'; stem.innerHTML = `${step+1}. ${latexifyStem(q.stem)}`; card.appendChild(stem);
             ensureMathRendered(stem);
 
