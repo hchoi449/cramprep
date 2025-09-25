@@ -885,13 +885,17 @@ async function bootstrap() {
       let deletedCount = 0;
       let attempts = 0;
       const requireVisual = String(req.query.require || '').toLowerCase();
-      const visualNote = requireVisual === 'graph'
+      let visualNote = requireVisual === 'graph'
         ? 'REQUIREMENT: Include a minimal graph under "graph.expressions" relevant to the item.'
         : requireVisual === 'table'
         ? 'REQUIREMENT: Include a concise table under "table" with headers and rows relevant to the item.'
         : requireVisual === 'numberline'
         ? 'REQUIREMENT: Include a compact number line under "numberLine" (min, max, points or intervals) relevant to the item.'
         : '';
+      // Science courses (e.g., Chemistry): forbid graphs and number lines; allow small tables only when necessary
+      if ((book && /chemistry/i.test(String(book))) || /chemistry/i.test(String(lessonTitle))){
+        visualNote = 'STRICT: Do NOT include any "graph" or "numberLine" structures. Include a small "table" only if truly necessary to solve the item.';
+      }
       // Prefer ingested chunks for the lesson, fall back to model-only
       try { await ingestLocalTextbooks(ing); } catch {}
       const chunks = await ing.find({ $or:[ { lessonSlug }, { lessonSlug: null } ] }).limit(500).toArray();
