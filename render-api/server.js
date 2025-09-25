@@ -1053,6 +1053,15 @@ async function bootstrap() {
         ]).toArray();
         docs = docs.concat(extra);
       }
+      // Final top-up: if still short, allow repeats to guarantee n items (with replacement)
+      if (docs.length < n){
+        const remaining = n - docs.length;
+        const extra2 = await col.aggregate([
+          { $match: (book ? { lessonSlug, book } : { lessonSlug }) },
+          { $sample: { size: remaining } }
+        ]).toArray();
+        docs = docs.concat(extra2);
+      }
       await client.close();
       return res.json({ ok: true, lesson: lessonSlug, count: docs.length, questions: docs });
     } catch (e){ console.error(e); return res.status(500).json({ error:'retrieve_failed' }); }
