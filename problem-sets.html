@@ -463,6 +463,7 @@
         ]},
         { id:'algebra-2', title:'Algebra II', subtopics:[
           /* -------------------- QUADRATIC EQUATIONS -------------------- */
+          /* Algebra II content removed per request */
           { id:'quadratics', title:'Quadratic Equations', lessons:[
             { slug:'quadratic-factoring-sqrt', title:'Factoring & Square Root Property', locked:false,
               notes:`# Quadratic Equations — Factoring & Square Root
@@ -699,6 +700,11 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           ]}
         ]}
       ];
+      // Remove Algebra II lessons/topics per request (keep the book visible)
+      try {
+        const algebra2 = COURSES.find(c=> c && c.id==='algebra-2');
+        if (algebra2) algebra2.subtopics = [];
+      } catch {}
 
       function saveProgress(key, value){ try { localStorage.setItem(key, JSON.stringify(value)); } catch{} }
       function getProgress(key, fallback){ try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch{ return fallback; } }
@@ -2319,6 +2325,18 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         function normalizeStemTextLocal(text){
           try { return String(text||'').toLowerCase().replace(/\$[^$]*\$/g,'$x$').replace(/-?\d+(?:\.\d+)?/g,'#').replace(/\\dfrac\{[^}]*\}\{[^}]*\}/g,'$f$').replace(/[()^*=+\\/]/g,' ').replace(/\s+/g,' ').trim(); } catch { return String(text||''); }
         }
+        function splitGluedWords(text){
+          try {
+            let s = String(text||'');
+            if (/\$|\\/.test(s)) return s;
+            if (/[A-Za-z]/.test(s) && !/\s/.test(s) && s.length > 8){
+              const words = ['isotope','molecule','energy','electron','proton','neutron','atomic','mass','number','periodic','table','reaction','acid','base','bond','polar','nonpolar','stable','radioactive','lightest','heaviest','most','least'];
+              for (const w of words){ s = s.replace(new RegExp('('+w+')','ig'),' $1'); }
+              s = s.replace(/^\s+/, '').replace(/\s{2,}/g,' ');
+            }
+            return s;
+          } catch { return String(text||''); }
+        }
         let probs = [];
         // Try Agent 2 fast path
         try {
@@ -2329,7 +2347,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
               probs = j.questions.map(q=> ({
                 _id: (q && q._id && (q._id.$oid || q._id)) || undefined,
                 stem: q.stem,
-                options: q.options,
+                options: (q.options||[]).map(splitGluedWords),
                 correct: q.correct,
                 explanation: q.solution || q.explanation || '',
                 graph: q.graph && Array.isArray(q.graph.expressions) ? { expressions: q.graph.expressions } : undefined,

@@ -900,6 +900,16 @@ async function bootstrap() {
       try { await ingestLocalTextbooks(ing); } catch {}
       const chunks = await ing.find({ $or:[ { lessonSlug }, { lessonSlug: null } ] }).limit(500).toArray();
       const contextText = chunks && chunks.length ? chunks.slice(0,40).map(c=> `p.${c.page}: ${c.text}`).join('\n\n') : '';
+      function looksOffTopicForChemistry(stem, options){
+        try {
+          const s = String(stem||'').toLowerCase();
+          const joined = [s, ...(Array.isArray(options)? options : [])].join(' ').toLowerCase();
+          const hasChemWord = /(atom|isotope|electron|proton|neutron|atomic|mass|mole|gas|pressure|volume|temperature|acid|base|ph|bond|ionic|covalent|vsepr|polarity|metallic|solution|concentration|rate|equilibrium|enthalpy|entropy|energy|redox|nuclear|radioactive|half\-life|periodic|table|reaction|stoich|stoichiometry)/.test(joined);
+          const hasMathDirectives = /(simplify|evaluate|solve|expression|factor|expand)/.test(s);
+          const hasAlgebraLike = /\$?\s*[0-9]*\s*[a-df-z](?:\s*[+\-*/^]\s*[0-9a-z()]+)+/i.test(joined);
+          return (!hasChemWord) || hasMathDirectives || hasAlgebraLike;
+        } catch { return false; }
+      }
       while (docs.length < target && attempts < maxAttempts){
         attempts++;
         const need = target - docs.length;
@@ -929,6 +939,9 @@ async function bootstrap() {
         let correct = Math.max(0, Math.min(3, Number(p && p.correct || 0)));
         const explanation = String(p && p.explanation || '').trim();
         if (!stem || options.length !== 4) continue;
+        if (book && /chemistry/i.test(String(book))){
+          if (looksOffTopicForChemistry(stem, options)) continue;
+        }
         // Ensure all four options are distinct (by plain-text semantics) and keep correct index stable
         try { const dedup = dedupeOptions(options, correct); options = dedup.options; correct = dedup.correctIdx; } catch{}
         const key = normalizeStem(stem);
@@ -1530,6 +1543,24 @@ async function bootstrap() {
       await client.close();
       return res.json({ ok:true, inspected, updated });
     } catch (e){ console.error(e); return res.status(500).json({ error:'fix_duplicates_failed' }); }
+  });
+
+  // Admin: delete questions by book or lesson
+  app.post('/ai/delete-questions', async (req, res) => {
+    try {
+      const { book, lesson, lessonRegex } = Object(req.query || {});
+      if (!book && !lesson && !lessonRegex) return res.status(400).json({ error:'specify book or lesson or lessonRegex' });
+      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+      await client.connect();
+      const col = await getQuestionCollection(client);
+      const filter = {};
+      if (book) filter.book = String(book).trim();
+      if (lesson) filter.lessonSlug = String(lesson).trim();
+      if (lessonRegex) filter.lessonSlug = { $regex: String(lessonRegex) };
+      const r = await col.deleteMany(filter);
+      await client.close();
+      return res.json({ ok:true, deleted: r && r.deletedCount || 0, filter });
+    } catch (e){ console.error(e); return res.status(500).json({ error:'delete_failed' }); }
   });
 }
 
