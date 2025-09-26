@@ -3409,14 +3409,28 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
       const openBtn = document.getElementById('psOpenBtn');
       const grid = document.getElementById('psBooksGrid');
       const BOOKS = [
-        { id:'algebra-1', label:'Pre‑Algebra' },
-        { id:'geometry', label:'Geometry' },
-        { id:'algebra', label:'Algebra' },
-        { id:'algebra-2', label:'Algebra II' },
+        { id:'prealgebra', label:'Pre‑Algebra' },
+        { id:'algebra I', label:'Algebra I' },
+        { id:'algebra II', label:'Algebra II' },
         { id:'precalculus', label:'Pre‑Calculus' },
-        { id:'calculus', label:'Calculus' },
-        { id:'chemistry', label:'General Chemistry' },
+        { id:'calculus I', label:'Calculus I' },
+        { id:'calculus II', label:'Calculus II' },
+        { id:'chem', label:'Chemistry' },
+        { id:'physics', label:'Physics' },
+        { id:'bio', label:'Biology' },
       ];
+      // Map display/book ids → canonical course ids in COURSES
+      const BOOK_ID_ALIAS = {
+        'prealgebra':'algebra-1',
+        'algebra I':'algebra',
+        'algebra II':'algebra-2',
+        'precalculus':'precalculus',
+        'calculus I':'calculus',
+        'calculus II':'calculus',
+        'chem':'chemistry',
+        'physics':'physics',
+        'bio':'biology'
+      };
       function renderGrid(){
         grid.innerHTML = '';
         BOOKS.forEach(b => {
@@ -3461,12 +3475,13 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
       function enterSubject(subjectId){
         // show app and render sidebar; default lesson of that subject
         document.getElementById('psApp').hidden = false;
-        currentCourseId = subjectId; renderSidebar();
-        const c = COURSES.find(c=>c.id===subjectId) || COURSES[0];
+        const canonicalId = BOOK_ID_ALIAS[subjectId] || subjectId;
+        currentCourseId = canonicalId; renderSidebar();
+        const c = COURSES.find(c=>c.id===canonicalId) || COURSES[0];
         if (c) loadLesson(c.id, c.subtopics[0].id, c.subtopics[0].lessons[0].slug);
         // hide shelf grid after selection
         shelf.style.display='none';
-        history.replaceState(null, '', `problem-sets.html#/${subjectId}/${c.subtopics[0].id}/${c.subtopics[0].lessons[0].slug}`);
+        history.replaceState(null, '', `problem-sets.html#/${canonicalId}/${c.subtopics[0].id}/${c.subtopics[0].lessons[0].slug}`);
       }
 
       // deep-link (hash)
