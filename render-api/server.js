@@ -428,6 +428,133 @@ async function bootstrap() {
     } catch (e){ console.error(e); return res.status(500).json({ error: 'session_answer_failed' }); }
   });
 
+  // Get current session state
+  app.get('/ai/session/state', async (req, res) => {
+    try {
+      const sessionId = String(req.query.session || '').trim();
+      if (!sessionId) return res.status(400).json({ error: 'session id is required' });
+      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+      await client.connect();
+      const sess = await getSessionCollection(client);
+      const _id = new ObjectId(sessionId);
+      const doc = await sess.findOne({ _id });
+      await client.close();
+      if (!doc) return res.status(404).json({ error: 'session_not_found' });
+      // sanitize internal fields if any
+      return res.json({ ok: true, session: { id: String(doc._id), ...doc, _id: undefined } });
+    } catch (e){ console.error(e); return res.status(500).json({ error: 'session_state_failed' }); }
+  });
+
+  // Adaptive next question with banding and no repeats
+  app.post('/ai/session/next', async (req, res) => {
+    try {
+      const sessionId = String(req.query.session || '').trim();
+      const lessonSlug = String(req.query.lesson || '').trim();
+      const book = String(req.query.book || '').trim();
+      if (!sessionId && !lessonSlug) return res.status(400).json({ error: 'session or lesson is required' });
+      const payload = req.body || {};
+      const last = payload.last || null; // { questionId, sourceHash, is_correct }
+      const nowIso = new Date().toISOString();
+
+      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+      await client.connect();
+      const sessCol = await getSessionCollection(client);
+      let sessDoc = null; let sessIdObj = null;
+      if (sessionId){
+        try { sessIdObj = new ObjectId(sessionId); } catch {}
+        if (sessIdObj) sessDoc = await sessCol.findOne({ _id: sessIdObj });
+      }
+      // If no session found, create a transient one if lesson provided
+      if (!sessDoc){
+        if (!lessonSlug) { await client.close(); return res.status(404).json({ error: 'session_not_found' }); }
+        const init = { lessonSlug, currentBand: 'medium', mastery: 0.0, servedIds: [], servedHashes: [], history: [], createdAt: nowIso, updatedAt: nowIso };
+        const r = await sessCol.insertOne(init);
+        sessIdObj = r.insertedId;
+        sessDoc = { _id: r.insertedId, ...init };
+      }
+
+      const lesson = lessonSlug || String(sessDoc.lessonSlug || '');
+      if (!lesson) { await client.close(); return res.status(400).json({ error: 'lesson (slug) is required' }); }
+
+      // Update session from last answer if provided
+      let currentBand = String(sessDoc.currentBand || 'medium');
+      let mastery = Number(sessDoc.mastery || 0);
+      const servedIds = Array.isArray(sessDoc.servedIds) ? sessDoc.servedIds.map(String).slice(0, 500) : [];
+      const servedHashes = Array.isArray(sessDoc.servedHashes) ? sessDoc.servedHashes.map(String).slice(0, 500) : [];
+      const history = Array.isArray(sessDoc.history) ? sessDoc.history.slice(0, 500) : [];
+
+      if (last && typeof last === 'object'){
+        const isCorrect = !!last.is_correct;
+        // mastery update
+        mastery = Math.max(-1, Math.min(1, mastery + (isCorrect ? 0.1 : -0.1)));
+        // band transition
+        const up = { easy: 'medium', medium: 'hard', hard: 'hard' };
+        const down = { hard: 'medium', medium: 'easy', easy: 'easy' };
+        currentBand = isCorrect ? (up[currentBand] || currentBand) : (down[currentBand] || currentBand);
+        // track served
+        if (last.questionId){
+          const qid = String(last.questionId);
+          if (!servedIds.includes(qid)) servedIds.push(qid);
+        }
+        if (last.sourceHash){
+          const sh = String(last.sourceHash);
+          if (!servedHashes.includes(sh)) servedHashes.push(sh);
+        }
+        history.push({ questionId: last.questionId ? String(last.questionId) : undefined, sourceHash: last.sourceHash ? String(last.sourceHash) : undefined, is_correct: isCorrect, band_at_serve: String(sessDoc.currentBand || 'medium'), answered_at: nowIso });
+      }
+
+      const qCol = await getQuestionCollection(client);
+      const excludeIds = servedIds.filter(Boolean).map(id=>{ try { return new ObjectId(id); } catch { return null; } }).filter(Boolean);
+      const excludeHashes = servedHashes.filter(Boolean);
+
+      async function sampleOne(filter){
+        const pipeline = [ { $match: filter }, { $sample: { size: 1 } } ];
+        const arr = await qCol.aggregate(pipeline).toArray();
+        return arr && arr[0] ? arr[0] : null;
+      }
+
+      // primary band then fallbacks
+      const bands = currentBand === 'hard' ? ['hard','medium','easy'] : (currentBand === 'easy' ? ['easy','medium','hard'] : ['medium','easy','hard']);
+      let picked = null;
+      for (const b of bands){
+        const filter = book ? { lessonSlug: lesson, difficulty: b, book, _id: { $nin: excludeIds }, sourceHash: { $nin: excludeHashes } } : { lessonSlug: lesson, difficulty: b, _id: { $nin: excludeIds }, sourceHash: { $nin: excludeHashes } };
+        picked = await sampleOne(filter);
+        if (picked) { currentBand = b; break; }
+      }
+      // if none, try any not served
+      if (!picked){
+        const filter = book ? { lessonSlug: lesson, book, _id: { $nin: excludeIds }, sourceHash: { $nin: excludeHashes } } : { lessonSlug: lesson, _id: { $nin: excludeIds }, sourceHash: { $nin: excludeHashes } };
+        picked = await sampleOne(filter);
+      }
+      // last resort: any
+      if (!picked){
+        const filter = book ? { lessonSlug: lesson, book } : { lessonSlug: lesson };
+        picked = await sampleOne(filter);
+      }
+
+      if (!picked){ await client.close(); return res.status(404).json({ error: 'no_questions_available' }); }
+
+      // update served
+      const pickedId = String(picked._id);
+      if (!servedIds.includes(pickedId)) servedIds.push(pickedId);
+      if (picked.sourceHash && !servedHashes.includes(picked.sourceHash)) servedHashes.push(picked.sourceHash);
+
+      await sessCol.updateOne({ _id: sessIdObj }, { $set: {
+        lessonSlug: lesson,
+        currentBand,
+        mastery,
+        servedIds,
+        servedHashes,
+        lastServedQuestionId: pickedId,
+        updatedAt: nowIso,
+        history
+      } });
+
+      await client.close();
+      return res.json({ ok: true, session: String(sessIdObj), band: currentBand, mastery, question: picked });
+    } catch (e){ console.error(e); return res.status(500).json({ error: 'session_next_failed' }); }
+  });
+
   // ===== Agent pipeline: Question Generation (Agent 1) and Serving (Agent 2) =====
   const MONGO_URI = process.env.MONGODB_URI || process.env.MONGODB_URL || process.env.MONGO_URI;
   const QUESTIONS_DB = 'thinkpod';
@@ -1105,6 +1232,7 @@ async function bootstrap() {
     const lessonSlug = String(req.query.lesson || '').trim();
     const n = Math.max(1, Math.min(20, Number(req.query.n || 15)));
     const book = String(req.query.book || '').trim();
+    const ordered = String(req.query.ordered || '').trim();
     if (!lessonSlug) return res.status(400).json({ error: 'lesson (slug) is required' });
     try {
       const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
@@ -1147,6 +1275,16 @@ async function bootstrap() {
         ]).toArray();
         docs = docs.concat(extra2);
       }
+      // optional ordering easy->medium->hard
+      if (ordered === '1' || /true|yes/i.test(ordered)){
+        const byBand = { easy: [], medium: [], hard: [] };
+        for (const d of docs){
+          if (d && typeof d.difficulty === 'string' && byBand[d.difficulty]) byBand[d.difficulty].push(d);
+          else byBand.medium.push(d);
+        }
+        docs = [...byBand.easy, ...byBand.medium, ...byBand.hard];
+      }
+
       await client.close();
       return res.json({ ok: true, lesson: lessonSlug, count: docs.length, questions: docs });
     } catch (e){ console.error(e); return res.status(500).json({ error:'retrieve_failed' }); }
