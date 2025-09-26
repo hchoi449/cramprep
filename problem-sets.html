@@ -1659,7 +1659,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
                 wrap.style.margin = '10px 0';
                 const msg = document.createElement('div');
                 msg.style.color = '#6b7280';
-                msg.textContent = 'Generating questions (fast mode)...';
+                msg.textContent = 'Loading questions from database...';
                 const btn = document.createElement('button');
                 btn.className = 'btn btn-secondary';
                 btn.style.marginLeft = '8px';
@@ -2418,7 +2418,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         const endpoint = `${AUTH_BASE}/ai/generate`;
         const rawBook = String(course && course.id || '').trim();
         const book = (window && window.BOOK_ID_ALIAS && window.BOOK_ID_ALIAS[rawBook]) ? window.BOOK_ID_ALIAS[rawBook] : rawBook;
-        const agent2 = `${AUTH_BASE}/ai/agent2/questions?lesson=${encodeURIComponent(lesson.slug)}&n=${Math.max(15, count||15)}${book?`&book=${encodeURIComponent(book)}`:''}`;
+        const agent2 = `${AUTH_BASE}/ai/agent2/questions?lesson=${encodeURIComponent(lesson.slug)}&n=${Math.max(15, count||15)}${book?`&book=${encodeURIComponent(book)}`:''}&ordered=1&t=${Date.now()}`;
         const topic = `${course.title} → ${subtopic.title} → ${lesson.title}`;
         const isWritingExpr = /writing expressions/i.test(String((lesson && lesson.title) || ''));
         const sys = `You create math MC questions. Return STRICT JSON only.`;
@@ -2462,24 +2462,33 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             return s;
           } catch { return String(text||''); }
         }
+        async function fetchWithRetries(url, attempts, delayMs){
+          let lastErr; const tries = Math.max(1, attempts||3); const delay = Math.max(100, delayMs||800);
+          for (let i=0; i<tries; i++){
+            try {
+              const r = await fetch(url, { method:'GET' });
+              if (r.ok) return await r.json();
+              lastErr = new Error(`status_${r.status}`);
+            } catch(e){ lastErr = e; }
+            if (i < tries-1) await new Promise(res=> setTimeout(res, delay));
+          }
+          throw lastErr || new Error('fetch_failed');
+        }
         let probs = [];
-        // Try Agent 2 fast path
+        // Try Agent 2 fast path (with retries)
         try {
-          const r = await fetch(agent2, { method:'GET' });
-          if (r.ok){
-            const j = await r.json();
-            if (j && j.ok && Array.isArray(j.questions) && j.questions.length){
-              probs = j.questions.map(q=> ({
-                _id: (q && q._id && (q._id.$oid || q._id)) || undefined,
-                stem: q.stem,
-                options: (q.options||[]).map(splitGluedWords),
-                correct: q.correct,
-                explanation: q.solution || q.explanation || '',
-                graph: q.graph && Array.isArray(q.graph.expressions) ? { expressions: q.graph.expressions } : undefined,
-                table: (q.table && Array.isArray(q.table.rows)) ? { headers: Array.isArray(q.table.headers) ? q.table.headers : undefined, rows: q.table.rows } : undefined,
-                numberLine: q.numberLine || undefined
-              }));
-            }
+          const j = await fetchWithRetries(agent2, 3, 900);
+          if (j && j.ok && Array.isArray(j.questions) && j.questions.length){
+            probs = j.questions.map(q=> ({
+              _id: (q && q._id && (q._id.$oid || q._id)) || undefined,
+              stem: q.stem,
+              options: (q.options||[]).map(splitGluedWords),
+              correct: q.correct,
+              explanation: q.solution || q.explanation || '',
+              graph: q.graph && Array.isArray(q.graph.expressions) ? { expressions: q.graph.expressions } : undefined,
+              table: (q.table && Array.isArray(q.table.rows)) ? { headers: Array.isArray(q.table.headers) ? q.table.headers : undefined, rows: q.table.rows } : undefined,
+              numberLine: q.numberLine || undefined
+            }));
           }
         } catch {}
         // Serve only Agent 2 results; no on-demand generation fallback
