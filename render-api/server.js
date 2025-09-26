@@ -1093,9 +1093,6 @@ async function bootstrap() {
         try {
           const baseUrl = (process.env.PUBLIC_BASE_URL && process.env.PUBLIC_BASE_URL.trim()) || `http://127.0.0.1:${process.env.PORT||8080}`;
           await fetch(`${baseUrl}/ai/fix-duplicates?lesson=${encodeURIComponent(lessonSlug)}`, { method:'POST' });
-          // Verify and apply corrections so stored 'correct' and 'answer' are consistent
-          try { await fetch(`${baseUrl}/ai/agent4/verify-lesson?lesson=${encodeURIComponent(lessonSlug)}`, { method:'POST' }); } catch {}
-          try { await fetch(`${baseUrl}/ai/agent4/apply-corrections?lesson=${encodeURIComponent(lessonSlug)}`, { method:'POST' }); } catch {}
         } catch {}
       }
       await client.close();
@@ -1216,165 +1213,33 @@ async function bootstrap() {
     } catch (e){ console.error(e); return res.status(500).json({ error:'enrich_failed' }); }
   });
 
-  // Agent 3: compile (alias to Agent 2 retrieval)
+  // Agent 3 removed: keep backward-compatibility stub returning 410
   app.get('/ai/agent3/questions', async (req, res) => {
-    req.url = req.url.replace('/ai/agent3/questions', '/ai/agent2/questions');
-    app._router.handle(req, res, ()=>{});
+    return res.status(410).json({ error: 'gone', message: 'Agent 3 has been removed. Use /ai/agent2/questions.' });
   });
 
   // ===== Agent 4: Verification (determine correct index using LLM) =====
-  async function agent4DecideCorrectIndex(stem, options){
-    try {
-      const sanitized = {
-        stem: String(stem||'').slice(0, 2000),
-        options: (Array.isArray(options)? options : []).slice(0,4).map(o=> String(o||'').slice(0,500))
-      };
-      if (sanitized.options.length !== 4) return null;
-      const instruction = `You are a strict multiple-choice checker. Given a stem and four options (indices 0..3), return STRICT JSON { "correct": number } with the index of the best correct option. If ambiguous, pick the most mathematically correct or most defensible.\n${JSON.stringify(sanitized, null, 2)}`;
-      const verifyModel = process.env.TBP_VERIFY_MODEL || process.env.TBP_DEFAULT_MODEL || 'gemini-1.5-flash';
-      const j = await callGeminiJSON(verifyModel, instruction);
-      if (j && typeof j.correct === 'number' && j.correct >= 0 && j.correct <= 3) return j.correct;
-      return null;
-    } catch { return null; }
-  }
+  // Agent 4 removed: stub returns null and endpoints return 410
+  async function agent4DecideCorrectIndex(){ return null; }
 
   // Single-item verify
   app.post('/ai/agent4/verify', async (req, res) => {
-    try {
-      const { stem, options, correct } = req.body || {};
-      if (!Array.isArray(options) || options.length !== 4) return res.status(400).json({ error: 'options[4] required' });
-      const decided = await agent4DecideCorrectIndex(stem, options);
-      if (decided === null) return res.json({ ok:true, verified: false, reason: 'undecided' });
-      const verified = Number(correct) === decided;
-      return res.json({ ok:true, verified, decided, provided: Number(correct) });
-    } catch (e){ console.error(e); return res.status(500).json({ error: 'verify_failed' }); }
+    return res.status(410).json({ error: 'gone', message: 'Agent 4 has been removed. Verification is handled inline.' });
   });
 
   // Bulk verify for a lesson
   app.post('/ai/agent4/verify-lesson', async (req, res) => {
-    const lessonSlug = String(req.query.lesson || '').trim();
-    const limit = Math.max(1, Math.min(60, Number(req.query.limit || 30)));
-    if (!lessonSlug) return res.status(400).json({ error: 'lesson (slug) is required' });
-    try {
-      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
-      await client.connect();
-      const col = await getQuestionCollection(client);
-      const docs = await col.find({ lessonSlug }).sort({ generatedAt: -1 }).limit(limit).toArray();
-      let verifiedCount = 0; let mismatches = 0; let undecided = 0; let deduped = 0;
-      for (const d of docs){
-        // Step 1: enforce pairwise uniqueness on options (canonical comparison)
-        try {
-          if (Array.isArray(d.options) && d.options.length === 4){
-            const before = d.options.slice(0,4).map(String);
-            // Pre-normalize rounding distractors
-            const pre = adjustOptionsForRounding(d.stem, before);
-            const norm = dedupeOptions(pre, Math.max(0, Math.min(3, Number(d.correct||0))));
-            const changed = (norm.options.join('||') !== before.join('||')) || (norm.correctIdx !== Number(d.correct||0));
-            if (changed){
-              await col.updateOne({ _id: d._id }, { $set: {
-                options: norm.options,
-                correct: norm.correctIdx,
-                answer: norm.options[norm.correctIdx] || '',
-                answerPlain: stripLatexToPlain(norm.options[norm.correctIdx] || ''),
-                fixedAt: new Date().toISOString(), fixedBy: 'agent4-dedupe'
-              } });
-              deduped++;
-              // also update local copy for downstream verification
-              d.options = norm.options;
-              d.correct = norm.correctIdx;
-            }
-          }
-        } catch {}
-
-        // Step 2: verify correctness index with LLM
-        const decided = await agent4DecideCorrectIndex(d.stem, d.options);
-        if (decided === null){ undecided++; continue; }
-        const isMatch = Number(d.correct) === decided;
-        const update = { verified: isMatch, verifiedAt: new Date().toISOString(), verifiedBy: 'agent4', decidedCorrect: decided };
-        if (!isMatch) mismatches++;
-        else verifiedCount++;
-        await col.updateOne({ _id: d._id }, { $set: update });
-      }
-      await client.close();
-      return res.json({ ok:true, lesson: lessonSlug, verified: verifiedCount, mismatches, undecided, deduped });
-    } catch (e){ console.error(e); return res.status(500).json({ error: 'verify_lesson_failed' }); }
+    return res.status(410).json({ error: 'gone', message: 'Agent 4 has been removed. Use inline consistency checks.' });
   });
 
   // Apply Agent 4 decided corrections to mismatched items
   app.post('/ai/agent4/apply-corrections', async (req, res) => {
-    const lessonSlug = req.query.lesson ? String(req.query.lesson).trim() : null;
-    try {
-      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
-      await client.connect();
-      const col = await getQuestionCollection(client);
-      const filter = lessonSlug ? { lessonSlug, decidedCorrect: { $type: 'number' }, verified: { $in: [false, null] } } : { decidedCorrect: { $type: 'number' }, verified: { $in: [false, null] } };
-      const cur = col.find(filter).limit(5000);
-      let corrected = 0; let inspected = 0;
-      while (await cur.hasNext()){
-        const d = await cur.next(); inspected++;
-        try {
-          const idx = Number(d.decidedCorrect);
-          if (!Array.isArray(d.options) || idx < 0 || idx > 3) continue;
-          const newAnswer = String(d.options[idx] || '');
-          const newAnswerPlain = stripLatexToPlain(newAnswer);
-          await col.updateOne({ _id: d._id }, { $set: {
-            correct: idx,
-            answer: newAnswer,
-            answerPlain: newAnswerPlain,
-            verified: true,
-            verifiedBy: 'agent4-auto',
-            correctedAt: new Date().toISOString()
-          } });
-          corrected++;
-        } catch {}
-      }
-      await client.close();
-      return res.json({ ok: true, inspected, corrected, lesson: lessonSlug || null });
-    } catch (e){ console.error(e); return res.status(500).json({ error: 'apply_corrections_failed' }); }
+    return res.status(410).json({ error: 'gone', message: 'Agent 4 has been removed. Corrections are applied at insert time.' });
   });
 
   // Verify and correct a single question by _id
   app.post('/ai/agent4/verify-one', async (req, res) => {
-    try {
-      const { id } = req.query || {};
-      if (!id) return res.status(400).json({ error: 'id is required' });
-      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
-      await client.connect();
-      const col = await getQuestionCollection(client);
-      const _id = new ObjectId(String(id));
-      const d = await col.findOne({ _id });
-      if (!d) { await client.close(); return res.status(404).json({ error: 'not_found' }); }
-      // Dedupe/canonicalize options first
-      let options = Array.isArray(d.options) ? d.options.slice(0,4).map(String) : [];
-      const correct = Math.max(0, Math.min(3, Number(d.correct||0)));
-      const pre = adjustOptionsForRounding(d.stem, options);
-      const norm = dedupeOptions(pre, correct);
-      if (norm.options.join('||') !== options.join('||') || norm.correctIdx !== correct){
-        options = norm.options;
-        await col.updateOne({ _id }, { $set: {
-          options,
-          correct: norm.correctIdx,
-          answer: options[norm.correctIdx] || '',
-          answerPlain: stripLatexToPlain(options[norm.correctIdx] || ''),
-          fixedAt: new Date().toISOString(), fixedBy: 'agent4-verify-one-dedupe'
-        } });
-      }
-      // Verify with LLM
-      const decided = await agent4DecideCorrectIndex(d.stem, options);
-      if (decided !== null && decided !== Number(d.correct)){
-        const newAnswer = String(options[decided] || '');
-        await col.updateOne({ _id }, { $set: {
-          correct: decided,
-          answer: newAnswer,
-          answerPlain: stripLatexToPlain(newAnswer),
-          verified: true, verifiedBy: 'agent4-one', correctedAt: new Date().toISOString()
-        } });
-      } else if (decided !== null){
-        await col.updateOne({ _id }, { $set: { verified: true, verifiedBy: 'agent4-one', verifiedAt: new Date().toISOString() } });
-      }
-      await client.close();
-      return res.json({ ok:true, id: String(id), decided });
-    } catch (e){ console.error(e); return res.status(500).json({ error: 'verify_one_failed' }); }
+    return res.status(410).json({ error: 'gone', message: 'Agent 4 has been removed. Use /ai/fix-duplicates or regenerate.' });
   });
 
   // Agent 1 stats: counts per lesson
@@ -1425,7 +1290,7 @@ async function bootstrap() {
         const r1 = await fetch(url1, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title: slug, book }) });
           if (!r1.ok) throw new Error(`agent1 ${r1.status}`);
           try { await fetch(`${baseUrl}/ai/agent2/enrich?lesson=${encodeURIComponent(slug)}`, { method:'POST' }); } catch {}
-          try { await fetch(`${baseUrl}/ai/agent4/verify-lesson?lesson=${encodeURIComponent(slug)}`, { method:'POST' }); } catch {}
+          // Agent 4 removed: no verify call
           ok++;
         } catch (e){ fail++; console.error(`[refresh] ${slug} failed: ${String(e).slice(0,200)}`); }
       }
@@ -1548,7 +1413,7 @@ async function bootstrap() {
             if (!r.ok) { failCount++; const t = await r.text().catch(()=> ''); errors.push({ slug, status:r.status, body:t.slice(0,200) }); }
             else {
               try { await fetch(`${baseUrl}/ai/agent2/enrich?lesson=${encodeURIComponent(slug)}`, { method:'POST' }); } catch {}
-              try { await fetch(`${baseUrl}/ai/agent4/verify-lesson?lesson=${encodeURIComponent(slug)}`, { method:'POST' }); } catch {}
+              // Agent 4 removed: no verify call
               okCount++;
             }
           } catch (e) { failCount++; errors.push({ slug, error: String(e).slice(0,200) }); }
