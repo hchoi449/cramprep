@@ -806,19 +806,69 @@ async function bootstrap() {
   function buildLessonPrompt(lessonTitle, lessonSlug, count){
     const nowRnd = Math.floor(Date.now()/1000);
     const seed = `${nowRnd}-${Math.floor(Math.random()*1e9)}`;
-    const isWriting = /writing expressions/i.test(String(lessonTitle||''));
-    const rules = isWriting
-      ? `RULES: Create WORD-PHRASE → EXPRESSION translation items ONLY. Each stem must be a short word phrase (e.g., "three more than twice a number"). The correct option must be an algebraic expression with variables and operations (e.g., 2n+3, (m+5)/2). Do NOT ask to simplify or solve; do NOT produce numeric answers.`
-      : `RULES: Stay strictly on lesson scope. Avoid off-topic content.`;
-    return `Seed: ${seed}\nLesson: ${lessonTitle} (slug: ${lessonSlug})\nMake ${count} multiple‑choice questions. Each item format:\n{
-  "stem": string,
-  "options": [string,string,string,string],
-  "correct": number, // 0..3
-  "explanation": string,
-  "graph"?: { "expressions": Array< { "id"?: string, "latex"?: string } | { "type": "point", "x": number, "y": number } > },
-  "table"?: { "headers"?: string[], "rows": string[][] },
-  "numberLine"?: { "min": number, "max": number, "step"?: number, "points"?: Array<number | { "x": number, "label"?: string, "open"?: boolean }>, "intervals"?: Array<{ "from": number, "to": number, "openLeft"?: boolean, "openRight"?: boolean, "label"?: string }> }
-}\n${rules}\nNotes: ONLY include visual aids when they are strictly required to solve the problem.\n- If the problem cannot be solved without a table, include a concise table under "table".\n- If a coordinate graph is essential, include a minimal set of expressions under "graph.expressions" (keep it clean).\n- If a 1D number line is essential (inequalities/intervals), include a compact "numberLine".\nBy default, omit visuals.\nReturn STRICT JSON: { "problems": [ ... ] }`;
+    const selectedTopic = String(lessonTitle||'').trim() || String(lessonSlug||'');
+    return [
+      `Seed: ${seed}`,
+      `SELECTED_TOPIC: ${selectedTopic} (slug: ${lessonSlug})`,
+      `You are an expert math assessment writer for high-school Algebra and related topics.`,
+      `Your task: Generate EXACTLY 20 multiple-choice questions (MCQs), each with 5 options, based on the SELECTED_TOPIC and the provided TEXTBOOK CONTEXT.`,
+      `STRICT RULES:`,
+      `1. FORMAT`,
+      `- Output valid JSON ONLY, no prose, no markdown.`,
+      `- Follow this JSON schema:`,
+      `{
+  "problems": [
+    {
+      "stem": string,                         // question text; may include LaTeX
+      "options": [string,string,string,string,string], // exactly 5 options (LaTeX strings)
+      "answer_index": number,                 // 0..4, the correct option index
+      "answer_plain": string,                 // correct answer in plain ASCII, e.g. (5a+4)/3
+      "difficulty": "easy"|"medium"|"hard",
+      "citations": string[],                  // e.g., ["TBK-12#p.143"]
+      "rationale_text": string,               // brief plain-text reasoning
+      "rationale_latex": string,              // LaTeX working steps (optional)
+      "option_meta": [                        // one entry per option (length 5)
+        { "index":0, "is_correct":boolean, "why_plausible":string, "misconception_tag":string },
+        { "index":1, "is_correct":boolean, "why_plausible":string, "misconception_tag":string },
+        { "index":2, "is_correct":boolean, "why_plausible":string, "misconception_tag":string },
+        { "index":3, "is_correct":boolean, "why_plausible":string, "misconception_tag":string },
+        { "index":4, "is_correct":boolean, "why_plausible":string, "misconception_tag":string }
+      ],
+      // Back-compat fields for downstream:
+      "correct": number,                      // must equal answer_index
+      "explanation": string                   // may duplicate rationale_text
+    }
+  ]
+}`,
+      `- Each field must be properly JSON-escaped.`,
+      `2. QUESTIONS`,
+      `- Exactly 20 questions.`,
+      `- Difficulty order: first 7 = "easy", next 8 = "medium", last 5 = "hard".`,
+      `- Each question must cite ≥1 source tag from the context (e.g., "TBK-12#p.143").`,
+      `- Stimulus must be clean and complete. No missing information.`,
+      `3. LATEX`,
+      `- All math must be written in pure LaTeX using \\( ... \\) for inline or \\[ ... \\\] for display.`,
+      `- No markdown $...$, no code fences.`,
+      `- Only use canonical LaTeX commands (\\frac, \\sqrt, \\cdot, \\times, ^, etc.).`,
+      `- No Unicode math symbols (√, ×, −, etc.).`,
+      `- Equations must be balanced and syntactically valid.`,
+      `4. OPTIONS`,
+      `- Exactly 5 options, all in LaTeX form (\\( ... \\)).`,
+      `- One and only one correct answer.`,
+      `- Options must be differentiating but related (plausible distractors).`,
+      `- Distractors based on realistic mistakes: sign error, distribution error, reciprocal mistake, dropped constant, etc.`,
+      `- No “All of the above”, “None of the above”, or trivial duplicates.`,
+      `5. ANSWER PLAIN`,
+      `- Include "answer_plain" that matches the correct option in plain ASCII (no LaTeX).`,
+      `6. EXPLANATION`,
+      `- rationale_text: brief explanation in plain text.`,
+      `- rationale_latex: worked steps in LaTeX (if relevant).`,
+      `- option_meta: for each option, include index, is_correct, why_plausible, misconception_tag.`,
+      `7. CONSISTENCY`,
+      `- Ensure option at answer_index matches answer_plain and option_meta.is_correct:true.`,
+      `- Ensure all LaTeX strings compile cleanly.`,
+      `Return STRICT JSON only.`,
+    ].join('\n');
   }
 
   // Ingest textbook PDF (upload by URL) and chunk text
