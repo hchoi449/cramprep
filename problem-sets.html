@@ -2420,7 +2420,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
       async function generateProblemsForLesson(course, subtopic, lesson, count, opts){
         const AUTH_BASE = (window && window.TBP_AUTH_BASE) ? window.TBP_AUTH_BASE.replace(/\/$/,'') : '';
         const endpoint = `${AUTH_BASE}/ai/generate`;
-        const book = String(course && course.id || '').trim();
+        const rawBook = String(course && course.id || '').trim();
+        const book = (window && window.BOOK_ID_ALIAS && window.BOOK_ID_ALIAS[rawBook]) ? window.BOOK_ID_ALIAS[rawBook] : rawBook;
         const agent2 = `${AUTH_BASE}/ai/agent2/questions?lesson=${encodeURIComponent(lesson.slug)}&n=${Math.max(15, count||15)}${book?`&book=${encodeURIComponent(book)}`:''}`;
         const topic = `${course.title} → ${subtopic.title} → ${lesson.title}`;
         const isWritingExpr = /writing expressions/i.test(String((lesson && lesson.title) || ''));
@@ -3420,7 +3421,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
         { id:'bio', label:'Biology' },
       ];
       // Map display/book ids → canonical course ids in COURSES
-      const BOOK_ID_ALIAS = {
+      window.BOOK_ID_ALIAS = {
         'prealgebra':'algebra-1',
         'algebra I':'algebra',
         'algebra II':'algebra-2',
@@ -3475,7 +3476,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
       function enterSubject(subjectId){
         // show app and render sidebar; default lesson of that subject
         document.getElementById('psApp').hidden = false;
-        const canonicalId = BOOK_ID_ALIAS[subjectId] || subjectId;
+        const canonicalId = (window && window.BOOK_ID_ALIAS && window.BOOK_ID_ALIAS[subjectId]) ? window.BOOK_ID_ALIAS[subjectId] : subjectId;
         currentCourseId = canonicalId; renderSidebar();
         const c = COURSES.find(c=>c.id===canonicalId) || COURSES[0];
         if (c) loadLesson(c.id, c.subtopics[0].id, c.subtopics[0].lessons[0].slug);
