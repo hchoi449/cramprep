@@ -934,69 +934,80 @@ async function bootstrap() {
     const nowRnd = Math.floor(Date.now()/1000);
     const seed = `${nowRnd}-${Math.floor(Math.random()*1e9)}`;
     const selectedTopic = String(lessonTitle||'').trim() || String(lessonSlug||'');
+    // System + schema
     return [
       `Seed: ${seed}`,
-      `SELECTED_TOPIC: ${selectedTopic} (slug: ${lessonSlug})`,
-      `You are an expert math assessment writer for high-school Algebra and related topics.`,
-      `Your task: Generate EXACTLY 20 multiple-choice questions (MCQs), each with 5 options, based on the SELECTED_TOPIC and the provided TEXTBOOK CONTEXT.`,
-      `STRICT RULES:`,
-      `1. FORMAT`,
-      `- Output valid JSON ONLY, no prose, no markdown.`,
-      `- Follow this JSON schema:`,
+      `You are ChatGPT, a large language model trained by OpenAI.`,
+      `Follow these rules:`,
+      `PRINCIPLES`,
+      `1) Be helpful, accurate, and concise.`,
+      `2) Always include clear reasoning steps in dedicated fields (not prose outside JSON).`,
+      `3) Use LaTeX for ALL math. Inline: \\( ... \\). Display: \\[ ... \\\].`,
+      `4) Before finalizing, simulate a regex check to ensure:`,
+      `   - All math is wrapped in \\( ... \\) or \\[ ... \\\].`,
+      `   - No raw LaTeX appears outside those delimiters.`,
+      `   - Inline regex: \\\\(.*?\\\\)  |  Display regex: \\\\[.*?\\\\]`,
+      `   If invalid, correct internally, then output the final JSON only.`,
+      `TASK`,
+      `- Generate EXACTLY 20 multiple-choice questions grounded ONLY in the provided TEXTBOOK CONTEXT and SELECTED_TOPIC objectives.`,
+      `- Difficulty order: first 7 = "easy", next 8 = "medium", last 5 = "hard".`,
+      `- Each question must cite ≥1 source tag from the context (e.g., "TBK-12#p.143").`,
+      `OUTPUT FORMAT (MANDATORY)`,
+      `- Output VALID JSON ONLY (no extra prose, no markdown).`,
+      `- Conform exactly to the JSON schema provided later.`,
+      `LATEX ENFORCEMENT (MANDATORY)`,
+      `- All math strings MUST be LaTeX wrapped: \\( ... \\) for inline, \\[ ... \\\] for display.`,
+      `- No $...$ fences; no Unicode math symbols (√, ×, −, ², …). Use \\sqrt, \\times, -, ^{2}, etc.`,
+      `- Balanced braces; canonical commands (\\frac, \\cdot, \\sqrt, \\left ... \\right, etc.).`,
+      `- If an option is textual, still wrap it: \\( \\text{...} \\).`,
+      `OPTIONS — COHESIVE BUT VARIANT`,
+      `- Produce EXACTLY 4 answer options (A, B, C, D), all in LaTeX (inline).`,
+      `- Exactly ONE option is correct; the other three are on-topic, plausible distractors.`,
+      `- “Related” = each distractor differs from the correct answer by a small but meaningful step (sign flip, ±1 coefficient/constant, swapped order, boundary slip, typical algebraic slip).`,
+      `- “Different” = not cosmetic duplicates; each reflects a distinct misconception.`,
+      `- Keep answer type natural to the prompt (scalar, pair, interval, expression).`,
+      `REASONING & METADATA`,
+      `- Provide both rationale_text (concise English) and rationale_latex (display math with steps).`,
+      `- Include option_meta for each choice: is_correct, why_plausible, misconception_tag.`,
+      `- Include answer_plain: the correct option in plain ASCII (e.g., "(5a+4)/3").`,
+      `CONSISTENCY`,
+      `- The option at answer_index MUST be the single is_correct:true and must match answer_plain (same math content).`,
+      `- LaTeX must compile and pass the simulated regex check before you output JSON.`,
+      `SCHEMA (RETURN JSON THAT MATCHES THIS EXACTLY)`,
       `{
-  "problems": [
+  "lesson_id": "string",
+  "lesson_title": "string",
+  "topic_id": "string",
+  "distribution": { "easy": 7, "medium": 8, "hard": 5 },
+  "questions": [
     {
-      "stem": string,                         // question text; may include LaTeX
-      "options": [string,string,string,string,string], // exactly 5 options (LaTeX strings)
-      "answer_index": number,                 // 0..4, the correct option index
-      "answer_plain": string,                 // correct answer in plain ASCII, e.g. (5a+4)/3
-      "difficulty": "easy"|"medium"|"hard",
-      "citations": string[],                  // e.g., ["TBK-12#p.143"]
-      "rationale_text": string,               // brief plain-text reasoning
-      "rationale_latex": string,              // LaTeX working steps (optional)
-      "option_meta": [                        // one entry per option (length 5)
-        { "index":0, "is_correct":boolean, "why_plausible":string, "misconception_tag":string },
-        { "index":1, "is_correct":boolean, "why_plausible":string, "misconception_tag":string },
-        { "index":2, "is_correct":boolean, "why_plausible":string, "misconception_tag":string },
-        { "index":3, "is_correct":boolean, "why_plausible":string, "misconception_tag":string },
-        { "index":4, "is_correct":boolean, "why_plausible":string, "misconception_tag":string }
+      "id": "string",
+      "difficulty": "easy" | "medium" | "hard",
+      "stimulus_text": "string",
+      "stimulus_latex": "string",
+      "stimulus_render": "inline" | "display",
+      "answer_type": "scalar" | "pair" | "set" | "interval" | "expression" | "vector" | "matrix",
+      "options_latex": ["string","string","string","string"],
+      "answer_index": 0 | 1 | 2 | 3,
+      "answer_plain": "string",
+      "rationale_text": "string",
+      "rationale_latex": "string",
+      "option_meta": [
+        {"index":0,"is_correct":true|false,"why_plausible":"string","misconception_tag":"string"},
+        {"index":1,"is_correct":true|false,"why_plausible":"string","misconception_tag":"string"},
+        {"index":2,"is_correct":true|false,"why_plausible":"string","misconception_tag":"string"},
+        {"index":3,"is_correct":true|false,"why_plausible":"string","misconception_tag":"string"}
       ],
-      // Back-compat fields for downstream:
-      "correct": number,                      // must equal answer_index
-      "explanation": string                   // may duplicate rationale_text
+      "sources": ["string"]
     }
   ]
 }`,
-      `- Each field must be properly JSON-escaped.`,
-      `2. QUESTIONS`,
-      `- Exactly 20 questions.`,
-      `- Difficulty order: first 7 = "easy", next 8 = "medium", last 5 = "hard".`,
-      `- Each question must cite ≥1 source tag from the context (e.g., "TBK-12#p.143").`,
-      `- Stimulus must be clean and complete. No missing information.`,
-      `3. LATEX`,
-      `- All math must be written in pure LaTeX using \\( ... \\) for inline or \\[ ... \\\] for display.`,
-      `- No markdown $...$, no code fences.`,
-      `- Only use canonical LaTeX commands (\\frac, \\sqrt, \\cdot, \\times, ^, etc.).`,
-      `- No Unicode math symbols (√, ×, −, etc.).`,
-      `- Equations must be balanced and syntactically valid.`,
-      `4. OPTIONS`,
-      `- Exactly 5 options, all in LaTeX form (\\( ... \\)).`,
-      `- One and only one correct answer.`,
-      `- Options must be differentiating but related (plausible distractors).`,
-      `- Distractors based on realistic mistakes: sign error, distribution error, reciprocal mistake, dropped constant, etc.`,
-      `- No “All of the above”, “None of the above”, or trivial duplicates.`,
-      `5. ANSWER PLAIN`,
-      `- Include "answer_plain" that matches the correct option in plain ASCII (no LaTeX).`,
-      `6. EXPLANATION`,
-      `- rationale_text: brief explanation in plain text.`,
-      `- rationale_latex: worked steps in LaTeX (if relevant).`,
-      `- option_meta: for each option, include index, is_correct, why_plausible, misconception_tag.`,
-      `7. CONSISTENCY`,
-      `- Ensure option at answer_index matches answer_plain and option_meta.is_correct:true.`,
-      `- Ensure all LaTeX strings compile cleanly.`,
-      `Return STRICT JSON only.`,
+      `Return JSON only.`
     ].join('\n');
   }
+
+  // One-line fixer prompt (for optional repair flows)
+  const FIXER_PROMPT = `You produced items that violate LaTeX/option rules. Repair ONLY the failing items so that: - ALL math is wrapped \\( ... \\) or \\[ ... \\\] (no $...$, no Unicode symbols), - EXACTLY 4 options in LaTeX inline; one correct; three plausible, distinct distractors, - answer_index aligns with is_correct:true AND answer_plain. Return JSON for the corrected items only, in the same schema.`;
 
   // Ingest textbook PDF (upload by URL) and chunk text
   app.post('/ai/agent1/ingest', async (req, res) => {
