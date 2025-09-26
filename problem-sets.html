@@ -2491,6 +2491,25 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
             }));
           }
         } catch {}
+        // Fallback: if filtered-by-book returns empty, retry without book filter once
+        if (!probs.length){
+          try {
+            const agent2NoBook = `${AUTH_BASE}/ai/agent2/questions?lesson=${encodeURIComponent(lesson.slug)}&n=${Math.max(15, count||15)}&ordered=1&t=${Date.now()}`;
+            const j2 = await fetchWithRetries(agent2NoBook, 2, 1000);
+            if (j2 && j2.ok && Array.isArray(j2.questions) && j2.questions.length){
+              probs = j2.questions.map(q=> ({
+                _id: (q && q._id && (q._id.$oid || q._id)) || undefined,
+                stem: q.stem,
+                options: (q.options||[]).map(splitGluedWords),
+                correct: q.correct,
+                explanation: q.solution || q.explanation || '',
+                graph: q.graph && Array.isArray(q.graph.expressions) ? { expressions: q.graph.expressions } : undefined,
+                table: (q.table && Array.isArray(q.table.rows)) ? { headers: Array.isArray(q.table.headers) ? q.table.headers : undefined, rows: q.table.rows } : undefined,
+                numberLine: q.numberLine || undefined
+              }));
+            }
+          } catch {}
+        }
         // Serve only Agent 2 results; no on-demand generation fallback
         const need = Math.max(15, Math.min(20, count||15));
         if (probs.length > 0){
