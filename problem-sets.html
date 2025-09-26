@@ -700,10 +700,138 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           ]}
         ]}
       ];
-      // Remove Algebra II lessons/topics per request (keep the book visible)
+      // Algebra II: load provided curriculum
       try {
         const algebra2 = COURSES.find(c=> c && c.id==='algebra-2');
-        if (algebra2) algebra2.subtopics = [];
+        if (algebra2) {
+          const curriculum = {
+            prerequisite: [
+              'Evaluating Expressions',
+              'Solving for a Variable',
+              'Literal Equations and Formulas',
+              'Domain and Range',
+              'Discrete and Continuous Functions',
+              'Functions',
+              'Forms of Linear Equations',
+              'Writing Linear Equations',
+              'Systems of Equations',
+              'Simplifying Algebraic Expressions',
+              'Factoring',
+              'Quadratic Formula',
+              'Simplifying Radical Expressions'
+            ],
+            units: [
+              { unit: 'Unit 1 - Functions', lessons: [
+                'Function Notation and Evaluation f(x)',
+                'Set Notation & Interval Notation',
+                'Domain and Range',
+                'Parent Functions & Families',
+                'Increasing and Decreasing Intervals',
+                'Domain in Rational Expression',
+                'Domain in Radical Expression',
+                'Mixed Domain Applications',
+                'Unit 1 Functions Test'
+              ]},
+              { unit: 'Unit 2 - Functions cont.', lessons: [
+                'Composition of Functions',
+                'Inverse Functions',
+                'Application of Functions',
+                'Transformations of Functions',
+                'Greatest Integer Function',
+                'Evaluating Piecewise Functions',
+                'Writing Piecewise Functions',
+                'Even and Odd Functions',
+                'Unit 2 Functions cont. Test'
+              ]},
+              { unit: 'Unit 3 - Irrational and Complex Numbers', lessons: [
+                'Roots of Real Numbers',
+                'Rational Exponents',
+                'Mixed Radicals and Rational Exponents',
+                'Solving Radical Equations',
+                'Complex Numbers',
+                'Unit 3 Irrational and Complex Numbers Test'
+              ]},
+              { unit: 'Unit 4 - Quadratic Expressions, Equations, and Functions', lessons: [
+                'Solving Quadratics by Graphing',
+                'Factoring Polynomials',
+                'Solving Quadratics by Completing the Square',
+                'Discriminant and Nature of Roots',
+                'Functions on Numworks',
+                'Quadratic Applications',
+                'Solving Systems with 3 Variables',
+                'Quadratic Regression',
+                'Non-Linear Systems and Regression',
+                'Vertex Form',
+                'Unit 4 Quadratic Expressions, Equations, and Functions Test'
+              ]},
+              { unit: 'Unit 5 - Polynomials', lessons: [
+                'Factoring Binomials',
+                'Factoring Trinomials',
+                'Mixed Quadratic Factoring',
+                'Factoring Sum and Differences of Cubes',
+                'Long Division of Polynomials',
+                'Synthetic Division',
+                'Mixed Long Division and Synthetic Division',
+                'Remainder Theorem',
+                'End Behaviors of Polynomial Functions',
+                'Finding Roots of Polynomial Functions',
+                'Writing Polynomial Functions',
+                'Analyzing Polynomial Functions',
+                'Unit 5 Polynomials Test'
+              ]},
+              { unit: 'Unit 6 - Rational Functions', lessons: [
+                'Multiplying Rational Expressions',
+                'Dividing Rational Expressions',
+                'Adding/Subtracting Rational Expressions',
+                'Complex Rational Expressions',
+                'Solving Rational Equations',
+                'Direct, Inverse, and Joint Variation',
+                'Rational Equations Applications',
+                'Graphing Rational Expressions',
+                'Unit 6 Rational Functions Test'
+              ]},
+              { unit: 'Unit 7 - Exponential and Logarithmic Functions', lessons: [
+                'Exponential Functions',
+                'Graphing Exponential Functions',
+                'Solving Exponential Equations',
+                'Logarithm Functions',
+                'Graphing Logarithm Functions',
+                'Solving Logarithm Equations',
+                'Application of Exponential and Log Functions',
+                'Unit 7 Exponential and Logarithmic Functions Test'
+              ]},
+              { unit: 'Unit 8 - Sequences and Series', lessons: [
+                'Arithmetic Sequences and Series',
+                'Geometric Sequences and Series',
+                'Mixed Practice with Sequences and Series',
+                'Applications of Sequences and Series',
+                'Sum of Infinite Geometric Series',
+                'Summation Notation',
+                'Recursive Rules with Sequences',
+                'Sequences and Series Test'
+              ]},
+              { unit: 'Unit 9 - Statistics', lessons: [
+                'Mean, Median, and Mode',
+                'Shape Distribution',
+                'Normal Distribution',
+                'Z-Scores and Standard Deviation',
+                'Normal Distribution Probabilities',
+                'Sampling Methods',
+                'Statistics Test'
+              ]}
+            ]
+          };
+          const slugify = (s)=> s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+          const toLessons = (arr)=> arr.map(name=> ({ slug: slugify(name), title: name, locked:false, notes:`Lesson outline.` }));
+          const subtopics = [];
+          // prerequisite
+          subtopics.push({ id:'prerequisite', title:'Prerequisite', lessons: toLessons(curriculum.prerequisite) });
+          // units
+          for (const u of curriculum.units){
+            subtopics.push({ id: slugify(u.unit).substring(0, 64) || 'unit', title: u.unit, lessons: toLessons(u.lessons) });
+          }
+          algebra2.subtopics = subtopics;
+        }
       } catch {}
 
       function saveProgress(key, value){ try { localStorage.setItem(key, JSON.stringify(value)); } catch{} }
