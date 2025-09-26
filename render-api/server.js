@@ -877,6 +877,17 @@ async function bootstrap() {
         try { book = resolveBookForLessonFromRepo(lessonSlug); } catch {}
       }
 
+      // Temporary pause: skip Chemistry generation when toggled via env
+      try {
+        const pauseFlag = String(process.env.TBP_PAUSE_CHEMISTRY || process.env.TBP_PAUSE_CHEM || '').toLowerCase();
+        const pauseChemistry = pauseFlag === '1' || pauseFlag === 'true' || pauseFlag === 'yes';
+        const isChemistry = (book && /chemistry/i.test(String(book))) || /chemistry/i.test(String(lessonTitle));
+        if (pauseChemistry && isChemistry){
+          await client.close();
+          return res.json({ ok:true, paused:true, reason:'chemistry_paused', book, lesson: lessonSlug, inserted: 0, attempts: 0 });
+        }
+      } catch {}
+
       const perBatch = Math.min(20, targetDesired); // request up to 20 at once
       const target = targetDesired; // exact target per lesson
       const maxAttempts = 12; // give more tries to reach exact target
