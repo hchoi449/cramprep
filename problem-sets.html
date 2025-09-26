@@ -1011,11 +1011,8 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           } catch { return null; }
         }
         function setCachedProblems(course, subtopic, lesson, problems){
-          try {
-            const key = getLessonCacheKey(course, subtopic, lesson);
-            const payload = { ts: Date.now(), items: problems };
-            localStorage.setItem(key, JSON.stringify(payload));
-          } catch {}
+          // disabled per request: do not persist problems to localStorage
+          return;
         }
         function isWordProblemStem(text){
           try {
@@ -1679,8 +1676,7 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
           if (window.__PS_ACTIVE_LESSON_KEY !== lessonKey) return;
           if (orderedProblems && orderedProblems.length){
             orderedProblems = makeStemsUnique(orderedProblems);
-            // Save to cache for subsequent loads
-            try { setCachedProblems(course, subtopic, lesson, orderedProblems); } catch {}
+            // Cache disabled: always pull fresh from Agent 2
           }
           try { if (loadingEl && loadingEl.parentNode) loadingEl.parentNode.removeChild(loadingEl); } catch {}
         } catch {}
