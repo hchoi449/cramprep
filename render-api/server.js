@@ -877,6 +877,16 @@ async function bootstrap() {
         try { book = resolveBookForLessonFromRepo(lessonSlug); } catch {}
       }
 
+      // Global pause: skip all Agent1 generation when toggled via env
+      try {
+        const pauseAllFlag = String(process.env.TBP_PAUSE_AGENT1 || process.env.TBP_PAUSE_ALL || '').toLowerCase();
+        const pauseAll = pauseAllFlag === '1' || pauseAllFlag === 'true' || pauseAllFlag === 'yes';
+        if (pauseAll){
+          await client.close();
+          return res.json({ ok:true, paused:true, reason:'agent1_paused', book, lesson: lessonSlug, inserted: 0, attempts: 0 });
+        }
+      } catch {}
+
       // Temporary pause: skip Chemistry generation when toggled via env
       try {
         const pauseFlag = String(process.env.TBP_PAUSE_CHEMISTRY || process.env.TBP_PAUSE_CHEM || '').toLowerCase();
