@@ -821,7 +821,13 @@ Solve intersections such as line–circle, parabola–line, by substitution or e
               ]}
             ]
           };
-          const slugify = (s)=> s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+          // Slugify: normalize titles → URL-safe slugs; handle f(x) → fx specifically
+          const slugify = (s)=> {
+            const norm = String(s||'')
+              .replace(/f\s*\(\s*x\s*\)/gi, 'fx') // map f(x) → fx
+              .replace(/&/g, ' and ');
+            return norm.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+          };
           const toLessons = (arr)=> arr.map(name=> ({ slug: slugify(name), title: name, locked:false, notes:`Lesson outline.` }));
           const subtopics = [];
           // prerequisite
