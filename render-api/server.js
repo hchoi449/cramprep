@@ -401,10 +401,13 @@ async function bootstrap() {
       await client.connect();
       const sess = await getSessionCollection(client);
       const now = new Date().toISOString();
-      const doc = { lessonSlug, count: 0, used: [], createdAt: now, updatedAt: now };
+      const pMediumEnv = Number(process.env.TBP_ADAPT_START_MEDIUM_PCT);
+      const pMedium = Number.isFinite(pMediumEnv) ? Math.max(0, Math.min(1, pMediumEnv)) : (Number.isFinite(Number(req.query.p_medium)) ? Math.max(0, Math.min(1, Number(req.query.p_medium))) : 0.7);
+      const startBand = (Math.random() < pMedium) ? 'medium' : 'easy';
+      const doc = { lessonSlug, count: 0, used: [], createdAt: now, updatedAt: now, currentBand: startBand, countCorrect: 0, countTotal: 0 };
       const r = await sess.insertOne(doc);
       await client.close();
-      return res.status(201).json({ ok: true, sessionId: String(r.insertedId), count: 0, target: 10 });
+      return res.status(201).json({ ok: true, sessionId: String(r.insertedId), count: 0, target: 10, current_band: startBand, count_correct: 0, count_total: 0 });
     } catch (e){ console.error(e); return res.status(500).json({ error: 'session_start_failed' }); }
   });
 
@@ -422,9 +425,11 @@ async function bootstrap() {
       const nextCount = Math.min(10, Number(doc.count||0) + 1);
       const used = Array.isArray(doc.used) ? doc.used.slice(0, 200) : [];
       if (sourceHash && typeof sourceHash === 'string' && !used.includes(sourceHash)) used.push(sourceHash);
-      await sess.updateOne({ _id }, { $set: { count: nextCount, used, updatedAt: new Date().toISOString() } });
+      const total = Number(doc.countTotal || 0) + 1;
+      const correctCt = Number(doc.countCorrect || 0) + (correct ? 1 : 0);
+      await sess.updateOne({ _id }, { $set: { count: nextCount, used, updatedAt: new Date().toISOString(), countTotal: total, countCorrect: correctCt } });
       await client.close();
-      return res.json({ ok: true, count: nextCount, finished: nextCount >= 10 });
+      return res.json({ ok: true, count: nextCount, finished: nextCount >= 10, count_total: total, count_correct: correctCt });
     } catch (e){ console.error(e); return res.status(500).json({ error: 'session_answer_failed' }); }
   });
 
@@ -441,7 +446,8 @@ async function bootstrap() {
       await client.close();
       if (!doc) return res.status(404).json({ error: 'session_not_found' });
       // sanitize internal fields if any
-      return res.json({ ok: true, session: { id: String(doc._id), ...doc, _id: undefined } });
+      const { countCorrect, countTotal, currentBand } = doc || {};
+      return res.json({ ok: true, session: { id: String(doc._id), ...doc, _id: undefined, count_correct: countCorrect||0, count_total: countTotal||0, current_band: currentBand||'medium' } });
     } catch (e){ console.error(e); return res.status(500).json({ error: 'session_state_failed' }); }
   });
 
@@ -467,7 +473,10 @@ async function bootstrap() {
       // If no session found, create a transient one if lesson provided
       if (!sessDoc){
         if (!lessonSlug) { await client.close(); return res.status(404).json({ error: 'session_not_found' }); }
-        const init = { lessonSlug, currentBand: 'medium', mastery: 0.0, servedIds: [], servedHashes: [], history: [], createdAt: nowIso, updatedAt: nowIso };
+        const pMediumEnv = Number(process.env.TBP_ADAPT_START_MEDIUM_PCT);
+        const pMedium = Number.isFinite(pMediumEnv) ? Math.max(0, Math.min(1, pMediumEnv)) : (Number.isFinite(Number(req.query.p_medium)) ? Math.max(0, Math.min(1, Number(req.query.p_medium))) : 0.7);
+        const startBand = (Math.random() < pMedium) ? 'medium' : 'easy';
+        const init = { lessonSlug, currentBand: startBand, mastery: 0.0, servedIds: [], servedHashes: [], history: [], createdAt: nowIso, updatedAt: nowIso, countCorrect: 0, countTotal: 0 };
         const r = await sessCol.insertOne(init);
         sessIdObj = r.insertedId;
         sessDoc = { _id: r.insertedId, ...init };
@@ -662,6 +671,21 @@ async function bootstrap() {
       }
       return out;
     } catch { return []; }
+  }
+
+  // Strict LaTeX sanitizer for rendering (server-side formatting pass)
+  function toInlineLatex(text){
+    try {
+      let s = String(text||'');
+      // Replace common Unicode math to LaTeX
+      s = s.replace(/[×✕✖]/g, '\\times').replace(/√/g, '\\sqrt').replace(/−/g, '-');
+      // If already wrapped (\\( ... \\) or \\[ ... \\]), keep
+      if (/^\s*\\\(.*\\\)\s*$/.test(s) || /^\s*\\\[.*\\\]\s*$/.test(s)) return s.trim();
+      // If looks non-math, wrap as text
+      const looksMath = /[=^_\\]|\d/.test(s);
+      const body = looksMath ? s : `\\text{${s.replace(/([{}])/g, '\\$1')}}`;
+      return `\\(${body}\\)`;
+    } catch { return String(text||''); }
   }
 
   // Convert LaTeX-ish option text to a simple plain string for canonical comparisons
@@ -963,8 +987,8 @@ async function bootstrap() {
       `OPTIONS — COHESIVE BUT VARIANT`,
       `- Produce EXACTLY 4 answer options (A, B, C, D), all in LaTeX (inline).`,
       `- Exactly ONE option is correct; the other three are on-topic, plausible distractors.`,
-      `- “Related” = each distractor differs from the correct answer by a small but meaningful step (sign flip, ±1 coefficient/constant, swapped order, boundary slip, typical algebraic slip).`,
-      `- “Different” = not cosmetic duplicates; each reflects a distinct misconception.`,
+      `- "Related" = each distractor differs from the correct answer by a small but meaningful step (sign flip, ±1 coefficient/constant, swapped order, boundary slip, typical algebraic slip).`,
+      `- "Different" = not cosmetic duplicates; each reflects a distinct misconception.`,
       `- Keep answer type natural to the prompt (scalar, pair, interval, expression).`,
       `REASONING & METADATA`,
       `- Provide both rationale_text (concise English) and rationale_latex (display math with steps).`,
@@ -1086,7 +1110,8 @@ async function bootstrap() {
         }
       } catch {}
 
-      const perBatch = Math.min(20, targetDesired); // request up to 20 at once
+      // Cap per-request generation size to avoid provider/edge timeouts; allow override via ?batch=
+      const perBatch = Math.max(1, Math.min(Number(req.query.batch || 10), targetDesired));
       const target = targetDesired; // exact target per lesson
       const maxAttempts = 12; // give more tries to reach exact target
       const seen = new Set();
@@ -1137,7 +1162,18 @@ async function bootstrap() {
             const raw = m ? m[0].replace(/```json/i,'').replace(/```/,'').trim() : (txt.trim().startsWith('{')? txt.trim(): null);
             if (!raw) continue;
             const j = JSON.parse(raw);
+            // Legacy shape: { problems: [{ stem, options, correct, explanation }] }
             if (j && Array.isArray(j.problems)) all.push(...j.problems);
+            // New schema shape: { questions: [ { stimulus_text, stimulus_latex, options_latex[4], answer_index, rationale_text, rationale_latex } ] }
+            if (j && Array.isArray(j.questions)) {
+              for (const q of j.questions){
+                const stem = String(q.stimulus_latex || q.stimulus_text || '').trim();
+                const options = Array.isArray(q.options_latex) ? q.options_latex.slice(0,4).map(String) : [];
+                const correct = Math.max(0, Math.min(3, Number(q.answer_index||0)));
+                const explanation = String(q.rationale_text || q.rationale_latex || '').trim();
+                all.push({ stem, options, correct, explanation });
+              }
+            }
           } catch {}
         }
         for (const p of all){
@@ -1230,7 +1266,12 @@ async function bootstrap() {
         // Post-insert safety: trigger fixer to canonicalize and dedupe options for this lesson
         try {
           const baseUrl = (process.env.PUBLIC_BASE_URL && process.env.PUBLIC_BASE_URL.trim()) || `http://127.0.0.1:${process.env.PORT||8080}`;
-          await fetch(`${baseUrl}/ai/fix-duplicates?lesson=${encodeURIComponent(lessonSlug)}`, { method:'POST' });
+          // Fire-and-forget to avoid extending this request duration (prevents render 502 timeouts)
+          setTimeout(() => {
+            fetch(`${baseUrl}/ai/fix-duplicates?lesson=${encodeURIComponent(lessonSlug)}`, { method:'POST' }).catch(()=>{});
+            // Agent 3: sample review/repair of ~10% of newly inserted items
+            fetch(`${baseUrl}/ai/agent3/review-lesson?lesson=${encodeURIComponent(lessonSlug)}&pct=10`, { method:'POST' }).catch(()=>{});
+          }, 0);
         } catch {}
       }
       await client.close();
@@ -1296,6 +1337,18 @@ async function bootstrap() {
         docs = [...byBand.easy, ...byBand.medium, ...byBand.hard];
       }
 
+      // Strict formatting pass: ensure LaTeX-wrapped options and stimulus consistency
+      try {
+        docs = docs.map(d => {
+          try {
+            const out = { ...d };
+            if (Array.isArray(out.options)) out.options = out.options.map(toInlineLatex);
+            if (typeof out.answer === 'string') out.answer = toInlineLatex(out.answer);
+            if (typeof out.stem === 'string') out.stem = out.stem; // stems rendered client-side; keep as-is
+            return out;
+          } catch { return d; }
+        });
+      } catch {}
       await client.close();
       return res.json({ ok: true, lesson: lessonSlug, count: docs.length, questions: docs });
     } catch (e){ console.error(e); return res.status(500).json({ error:'retrieve_failed' }); }
@@ -1362,9 +1415,117 @@ async function bootstrap() {
     } catch (e){ console.error(e); return res.status(500).json({ error:'enrich_failed' }); }
   });
 
-  // Agent 3 removed: keep backward-compatibility stub returning 410
-  app.get('/ai/agent3/questions', async (req, res) => {
-    return res.status(410).json({ error: 'gone', message: 'Agent 3 has been removed. Use /ai/agent2/questions.' });
+  // ===== Agent 3: Verifier/Editor (sample review/repair of Agent 1 output) =====
+  const AGENT3_SYSTEM = [
+    'You are Agent 3, the Verifier/Editor for math MCQs.',
+    'OBJECTIVE',
+    '- Review or repair MCQ items generated by Agent 1 to ensure quality, coherence, and pedagogical soundness while preserving mathematical truth.',
+    'NON-NEGOTIABLE RULES',
+    '1) Do NOT change the correct mathematics or the answer_index.',
+    '2) LaTeX must be clean:',
+    '   - Inline math: \\( ... \\)',
+    '   - Display math: \\[ ... \\\]',
+    '   - No $...$, no Unicode math symbols (√, ×, −, …), balanced braces.',
+    '3) Options:',
+    '   - Exactly N options (given in policy.require_options), all LaTeX inline.',
+    '   - Exactly one correct; others are plausible, distinct, on-topic distractors.',
+    '   - "Related but different": distractors are near-miss variants; no cosmetic duplicates.',
+    '4) Rationale:',
+    '   - Short tutor-level explanation in plain text + optional worked steps in LaTeX.',
+    '   - Must align with the correct solution and reference the same method.',
+    '5) Citations: If provided, keep relevant to the concept.',
+    '6) Difficulty: Judge reasonableness only; do not inflate difficulty.',
+    'MODES',
+    '- repair: Modify ONLY problematic fields (options and/or rationale) to comply, WITHOUT changing the correct result or answer_index.',
+    'POLICY',
+    '- require_options=4, inline_regex=\\(.*?\\), display_regex=\\[.*?\\]'
+  ].join('\n');
+
+  async function agent3RepairOne(model, doc){
+    try {
+      const payload = {
+        mode: 'repair',
+        policy: { require_options: 4, inline_regex: "\\\\(.*?\\\\)", display_regex: "\\\\[.*?\\\\]" },
+        item: {
+          stem: String(doc.stem||''),
+          options_latex: Array.isArray(doc.options)? doc.options.slice(0,4).map(String) : [],
+          answer_index: Number(doc.correct||0),
+          rationale_text: String(doc.solution||doc.explanation||''),
+          rationale_latex: '',
+          sources: Array.isArray(doc.citations)? doc.citations : [],
+          difficulty: String(doc.difficulty||'medium')
+        }
+      };
+      const instruction = `${AGENT3_SYSTEM}\nReturn STRICT JSON for the repaired item only. Input:\n${JSON.stringify(payload, null, 2)}`;
+      const j = await callGeminiJSON(model, instruction);
+      if (!j || typeof j !== 'object') return null;
+      const out = { ...doc };
+      try {
+        if (Array.isArray(j.options_latex) && j.options_latex.length === 4){
+          // keep correct index
+          const idx = Number(j.answer_index);
+          if (Number.isFinite(idx) && idx>=0 && idx<=3){ out.correct = idx; }
+          out.options = j.options_latex.map(toInlineLatex);
+          // dedupe deterministically and keep correct index stable
+          try { const d = dedupeOptions(out.options, out.correct); out.options = d.options; out.correct = d.correctIdx; } catch{}
+          out.answer = out.options[out.correct] || '';
+          out.answerPlain = stripLatexToPlain(out.answer);
+        }
+      } catch {}
+      try { if (typeof j.rationale_text === 'string') out.solution = j.rationale_text; } catch{}
+      try { if (Array.isArray(j.sources)) out.citations = j.sources; } catch{}
+      return out;
+    } catch { return null; }
+  }
+
+  app.post('/ai/agent3/review-lesson', async (req, res) => {
+    const lessonSlug = String(req.query.lesson || '').trim();
+    const pct = Math.max(1, Math.min(100, Number(req.query.pct || 10)));
+    if (!lessonSlug) return res.status(400).json({ error: 'lesson (slug) is required' });
+    try {
+      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+      await client.connect();
+      const col = await getQuestionCollection(client);
+      const total = await col.countDocuments({ lessonSlug });
+      const sampleSize = Math.max(1, Math.floor(total * (pct/100)));
+      const docs = await col.aggregate([
+        { $match: { lessonSlug } },
+        { $sample: { size: sampleSize } }
+      ]).toArray();
+      const model = process.env.TBP_VERIFY_MODEL || process.env.TBP_DEFAULT_MODEL || 'gemini-1.5-flash';
+      let reviewed = 0, repaired = 0, marked = 0;
+      for (const d of docs){
+        reviewed++;
+        const fixed = await agent3RepairOne(model, d);
+        if (fixed){
+          // Final duplicate check
+          const plainSet = new Set((fixed.options||[]).map(stripLatexToPlain));
+          const hasDup = plainSet.size < (fixed.options||[]).length;
+          if (hasDup){
+            // try one more dedupe pass
+            try { const d2 = dedupeOptions(fixed.options, fixed.correct); fixed.options = d2.options; fixed.correct = d2.correctIdx; fixed.answer = fixed.options[fixed.correct]||''; fixed.answerPlain = stripLatexToPlain(fixed.answer); } catch{}
+          }
+          const hasDup2 = new Set((fixed.options||[]).map(stripLatexToPlain)).size < (fixed.options||[]).length;
+          if (hasDup2){
+            await col.updateOne({ _id: d._id }, { $set: { needsReplacement: true, reviewedBy: 'agent3', reviewedAt: new Date().toISOString() } });
+            marked++;
+          } else {
+            await col.updateOne({ _id: d._id }, { $set: {
+              options: fixed.options,
+              correct: fixed.correct,
+              answer: fixed.answer,
+              answerPlain: fixed.answerPlain,
+              solution: fixed.solution || fixed.explanation || '',
+              citations: fixed.citations || d.citations || [],
+              reviewedBy: 'agent3', reviewedAt: new Date().toISOString()
+            } });
+            repaired++;
+          }
+        }
+      }
+      await client.close();
+      return res.json({ ok:true, lesson: lessonSlug, sampled: sampleSize, reviewed, repaired, marked_for_replacement: marked });
+    } catch (e){ console.error(e); return res.status(500).json({ error: 'agent3_failed' }); }
   });
 
   // ===== Agent 4: Verification (determine correct index using LLM) =====
