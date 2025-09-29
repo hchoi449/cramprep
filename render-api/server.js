@@ -1168,10 +1168,15 @@ async function bootstrap() {
       try { fs.mkdirSync(tmpDir, { recursive: true }); } catch {}
       const tmpPath = path.join(tmpDir, `upload_${Date.now()}.pdf`);
       fs.writeFileSync(tmpPath, Buffer.from(arrayBuf));
-      const { OpenAI } = require('openai');
+      const OpenAI = require('openai');
       const oai = new OpenAI({ apiKey: openaiKey });
-      const fileResp = await oai.files.create({ file: fs.createReadStream(tmpPath), purpose: 'assistants' });
-      const uj = fileResp || {};
+      let uj = {};
+      try {
+        uj = await oai.files.create({ file: fs.createReadStream(tmpPath), purpose: 'assistants' });
+      } catch (sdkErr) {
+        console.error('[upload-url] openai files.create failed', sdkErr);
+        return res.status(500).json({ error:'upload_failed_sdk', detail: String(sdkErr && sdkErr.message || sdkErr) });
+      }
 
       let vector_store_id = null;
       if (lessonSlug){
@@ -1195,7 +1200,7 @@ async function bootstrap() {
         await client.close();
       }
       return res.json({ ok:true, file_id: uj.id, vector_store_id });
-    } catch (e){ console.error(e); return res.status(500).json({ error:'upload_url_exception' }); }
+    } catch (e){ console.error('[upload-url] exception', e); return res.status(500).json({ error:'upload_url_exception', detail: String(e && e.message || e) }); }
   });
 
   // Generate via OpenAI Responses API with file_search tool using the lesson vector store
