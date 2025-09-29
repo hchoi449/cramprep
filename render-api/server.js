@@ -1160,7 +1160,7 @@ async function bootstrap() {
       if (!url) return res.status(400).json({ error:'url required' });
       const openaiKey = process.env.OPENAI_API_KEY || process.env.openai_api_key;
       if (!openaiKey) return res.status(500).json({ error:'missing_OPENAI_API_KEY' });
-      // Download to temp file and stream via OpenAI SDK
+      // Download to temp file and stream via form-data (curl-style multipart)
       const rf = await fetch(url);
       if (!rf.ok) return res.status(400).json({ error:'fetch_failed' });
       const arrayBuf = await rf.arrayBuffer();
@@ -1168,15 +1168,16 @@ async function bootstrap() {
       try { fs.mkdirSync(tmpDir, { recursive: true }); } catch {}
       const tmpPath = path.join(tmpDir, `upload_${Date.now()}.pdf`);
       fs.writeFileSync(tmpPath, Buffer.from(arrayBuf));
-      const OpenAI = require('openai');
-      const oai = new OpenAI({ apiKey: openaiKey });
-      let uj = {};
-      try {
-        uj = await oai.files.create({ file: fs.createReadStream(tmpPath), purpose: 'assistants' });
-      } catch (sdkErr) {
-        console.error('[upload-url] openai files.create failed', sdkErr);
-        return res.status(500).json({ error:'upload_failed_sdk', detail: String(sdkErr && sdkErr.message || sdkErr) });
-      }
+
+      const FormDataLib = require('form-data');
+      const form = new FormDataLib();
+      form.append('purpose', 'assistants');
+      form.append('file', fs.createReadStream(tmpPath), { filename: 'lesson.pdf', contentType: 'application/pdf' });
+      let headers = { ...form.getHeaders(), 'Authorization': `Bearer ${openaiKey}` };
+      try { const len = form.getLengthSync(); if (Number.isFinite(len)) headers['Content-Length'] = len; } catch {}
+      const up = await fetch('https://api.openai.com/v1/files', { method:'POST', headers, body: form });
+      const uj = await up.json().catch(()=>({}));
+      if (!up.ok) return res.status(500).json({ error:'upload_failed', detail: uj });
 
       let vector_store_id = null;
       if (lessonSlug){
