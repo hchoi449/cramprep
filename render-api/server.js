@@ -7,7 +7,7 @@ const pdfParse = require('pdf-parse');
 const { createCanvas, loadImage } = require('canvas');
 const Tesseract = require('tesseract.js');
 const { MongoClient, ObjectId } = require('mongodb');
-const FormData = require('form-data');
+const FormDataLib = require('form-data');
 const FormData = require('form-data');
 
 const app = express();
@@ -1121,7 +1121,7 @@ async function bootstrap() {
       const rf = await fetch(url);
       if (!rf.ok) return res.status(400).json({ error:'fetch_failed' });
       const buf = Buffer.from(await rf.arrayBuffer());
-      const fd = new FormData();
+      const fd = new FormDataLib();
       fd.append('file', buf, { filename: 'lesson.pdf', contentType: 'application/pdf' });
       fd.append('purpose', 'assistants');
       const up = await fetch('https://api.openai.com/v1/files', { method:'POST', headers: { ...fd.getHeaders(), 'Authorization': `Bearer ${openaiKey}` }, body: fd });
