@@ -1291,11 +1291,7 @@ async function bootstrap() {
           tools:[{ type:'file_search' }],
           input:[
             { role:'system', content: system },
-            {
-              role:'user',
-              content: user,
-              attachments:[ { file_id, tools:[ { type:'file_search' } ] } ]
-            }
+            { role:'user', content:[ { type:'input_text', text: user }, { type:'file_reference', file_id } ] }
           ]
         })
       });
