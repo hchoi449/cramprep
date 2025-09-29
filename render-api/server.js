@@ -1160,18 +1160,18 @@ async function bootstrap() {
       if (!url) return res.status(400).json({ error:'url required' });
       const openaiKey = process.env.OPENAI_API_KEY || process.env.openai_api_key;
       if (!openaiKey) return res.status(500).json({ error:'missing_OPENAI_API_KEY' });
+      // Download to temp file and stream via OpenAI SDK
       const rf = await fetch(url);
       if (!rf.ok) return res.status(400).json({ error:'fetch_failed' });
-      const buf = Buffer.from(await rf.arrayBuffer());
-      // Use node form-data to build a proper multipart with boundary for OpenAI
-      const form = new FormData();
-      form.append('file', buf, { filename: 'lesson.pdf', contentType: 'application/pdf' });
-      form.append('purpose', 'assistants');
-      const up = await fetch('https://api.openai.com/v1/files', {
-        method:'POST', headers:{ ...form.getHeaders(), 'Authorization': `Bearer ${openaiKey}` }, body: form
-      });
-      const uj = await up.json().catch(()=>({}));
-      if (!up.ok) return res.status(500).json({ error:'upload_failed', detail: uj });
+      const arrayBuf = await rf.arrayBuffer();
+      const tmpDir = path.resolve(__dirname, '../tmp_uploads');
+      try { fs.mkdirSync(tmpDir, { recursive: true }); } catch {}
+      const tmpPath = path.join(tmpDir, `upload_${Date.now()}.pdf`);
+      fs.writeFileSync(tmpPath, Buffer.from(arrayBuf));
+      const { OpenAI } = require('openai');
+      const oai = new OpenAI({ apiKey: openaiKey });
+      const fileResp = await oai.files.create({ file: fs.createReadStream(tmpPath), purpose: 'assistants' });
+      const uj = fileResp || {};
 
       let vector_store_id = null;
       if (lessonSlug){
