@@ -4,7 +4,10 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const pdfParse = require('pdf-parse');
+const { createCanvas, loadImage } = require('canvas');
+const Tesseract = require('tesseract.js');
 const { MongoClient, ObjectId } = require('mongodb');
+const FormData = require('form-data');
 
 const app = express();
 app.use(cors());
@@ -589,6 +592,14 @@ async function bootstrap() {
     return col;
   }
 
+  async function getLessonStoresCollection(client){
+    const col = client.db(QUESTIONS_DB).collection('lesson_vectorstores');
+    try {
+      await col.createIndex({ lessonSlug: 1 }, { unique: true });
+    } catch(err){}
+    return col;
+  }
+
   async function getSessionCollection(client){
     const col = client.db(QUESTIONS_DB).collection(SESSIONS_COL);
     try {
@@ -900,48 +911,38 @@ async function bootstrap() {
   }
 
   async function callGeminiGenerate(model, prompt){
-    const defaultModel = process.env.TBP_GENERATE_MODEL || process.env.TBP_DEFAULT_MODEL || 'gemini-1.5-flash';
-    const useModel = model || defaultModel;
-    // OpenAI route if model starts with openai:
-    if (String(useModel).toLowerCase().startsWith('openai:')){
-      const openaiKey = process.env.OPENAI_API_KEY || process.env.openai_api_key;
-      if (!openaiKey) throw new Error('missing_OPENAI_API_KEY');
-      const openaiModel = String(useModel).split(':',2)[1] || 'gpt-4o-mini';
-      const wantsJson = /return\s+strict\s+json|return\s+json/i.test(String(prompt||''));
-      const messages = wantsJson
-        ? [
-            { role: 'system', content: 'You are a precise JSON generator. Respond with a single JSON object only, no code fences, no prose.' },
-            { role: 'user', content: String(prompt||'') }
-          ]
-        : [ { role:'user', content: String(prompt||'') } ];
-      const r = await fetch('https://api.openai.com/v1/chat/completions', {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json', 'Authorization': `Bearer ${openaiKey}` },
-        body: JSON.stringify({
-          model: openaiModel,
-          messages,
-          temperature: 0.3,
-          top_p: 0.8,
-          n: 1,
-          response_format: wantsJson ? { type: 'json_object' } : undefined
-        })
-      });
-      const j = await r.json().catch(()=>({}));
-      if (!r.ok) throw new Error((j && j.error && (j.error.message||j.error)) || 'openai_upstream_error');
-      return (j && j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
+    // Force OpenAI only; do not fallback to Gemini.
+    const defaultModel = process.env.TBP_GENERATE_MODEL || process.env.TBP_DEFAULT_MODEL || 'openai:gpt-4o-mini';
+    let useModel = model || defaultModel;
+    if (!String(useModel).toLowerCase().startsWith('openai:')){
+      const def = String(defaultModel).toLowerCase().startsWith('openai:') ? String(defaultModel).split(':',2)[1] : 'gpt-4o-mini';
+      useModel = `openai:${def}`;
     }
-    // Gemini default
-    const key = process.env.GEMINI_API_KEY || process.env.gemini_api_key || process.env.GOOGLE_GEMINI_API_KEY;
-    if (!key) throw new Error('missing_GEMINI_API_KEY');
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(useModel)}:generateContent?key=${encodeURIComponent(key)}`;
-    const body = {
-      contents: [ { role: 'user', parts: [ { text: prompt } ] } ],
-      generationConfig: { temperature: 0.3, topP: 0.8, candidateCount: 1 }
-    };
-    const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
-    const j = await r.json();
-    const txt = ((((j||{}).candidates||[])[0]||{}).content||{}).parts?.[0]?.text || '';
-    return txt;
+    const openaiKey = process.env.OPENAI_API_KEY || process.env.openai_api_key;
+    if (!openaiKey) throw new Error('missing_OPENAI_API_KEY');
+    const openaiModel = String(useModel).split(':',2)[1] || 'gpt-4o-mini';
+    const wantsJson = /return\s+strict\s+json|return\s+json/i.test(String(prompt||''));
+    const messages = wantsJson
+      ? [
+          { role: 'system', content: 'You are a precise JSON generator. Respond with a single JSON object only, no code fences, no prose.' },
+          { role: 'user', content: String(prompt||'') }
+        ]
+      : [ { role:'user', content: String(prompt||'') } ];
+    const r = await fetch('https://api.openai.com/v1/chat/completions', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Authorization': `Bearer ${openaiKey}` },
+      body: JSON.stringify({
+        model: openaiModel,
+        messages,
+        temperature: 0.3,
+        top_p: 0.8,
+        n: 1,
+        response_format: wantsJson ? { type: 'json_object' } : undefined
+      })
+    });
+    const j = await r.json().catch(()=>({}));
+    if (!r.ok) throw new Error((j && j.error && (j.error.message||j.error)) || 'openai_upstream_error');
+    return (j && j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
   }
 
   async function callGeminiJSON(model, instruction){
@@ -957,9 +958,12 @@ async function bootstrap() {
   function buildLessonPrompt(lessonTitle, lessonSlug, count){
     const nowRnd = Math.floor(Date.now()/1000);
     const seed = `${nowRnd}-${Math.floor(Math.random()*1e9)}`;
-    const selectedTopic = String(lessonTitle||'').trim() || String(lessonSlug||'');
-    // System + schema
-    return [
+  // Prefer the specific lesson title; if it's generic (course-level) or empty, fall back to the slug
+  const isGenericCourse = (t)=> /^(algebra\s*ii|algebra|pre\s*-?algebra|geometry|pre\s*-?calculus|calculus|chemistry)$/i.test(String(t||'').trim());
+  const pickedTitle = (!lessonTitle || isGenericCourse(lessonTitle)) ? String(lessonSlug||'') : String(lessonTitle).trim();
+  const selectedTopic = pickedTitle || String(lessonSlug||'');
+  // System + schema + explicit topic anchor
+  return [
       `Seed: ${seed}`,
       `You are ChatGPT, a large language model trained by OpenAI.`,
       `Follow these rules:`,
@@ -967,6 +971,12 @@ async function bootstrap() {
       `1) Be helpful, accurate, and concise.`,
       `2) Always include clear reasoning steps in dedicated fields (not prose outside JSON).`,
       `3) Use LaTeX for ALL math. Inline: \\( ... \\). Display: \\[ ... \\\].`,
+    `SELECTED_TOPIC`,
+    `- id: ${String(lessonSlug||'')}`,
+    `- name: ${selectedTopic}`,
+    `CONSTRAINTS`,
+    `- Stay strictly on SELECTED_TOPIC; do not drift to general course themes.`,
+    `- If textbook context is thin or absent, still generate items ONLY for SELECTED_TOPIC.`,
       `4) Before finalizing, simulate a regex check to ensure:`,
       `   - All math is wrapped in \\( ... \\) or \\[ ... \\\].`,
       `   - No raw LaTeX appears outside those delimiters.`,
@@ -975,6 +985,7 @@ async function bootstrap() {
       `TASK`,
       `- Generate EXACTLY 20 multiple-choice questions grounded ONLY in the provided TEXTBOOK CONTEXT and SELECTED_TOPIC objectives.`,
       `- Difficulty order: first 7 = "easy", next 8 = "medium", last 5 = "hard".`,
+      `- Difficulty calibration: Top high-school level (honors/AP pre-calc/algebra). Avoid college-only techniques.`,
       `- Each question must cite ≥1 source tag from the context (e.g., "TBK-12#p.143").`,
       `OUTPUT FORMAT (MANDATORY)`,
       `- Output VALID JSON ONLY (no extra prose, no markdown).`,
@@ -1037,6 +1048,11 @@ async function bootstrap() {
   app.post('/ai/agent1/ingest', async (req, res) => {
     try {
       const { url, lessonSlug, lessonTitle } = req.body || {};
+      const q = req.query || {};
+      const ocrPagesReq = Number((req.body && req.body.ocrPages) || q.ocrPages || 0) || 0;
+      const ocrStartReq = Number((req.body && req.body.ocrStart) || q.ocrStart || 1) || 1;
+      const ocrPagesMax = Math.max(1, Math.min(60, ocrPagesReq || 15));
+      const ocrStart = Math.max(1, ocrStartReq);
       if (!url) return res.status(400).json({ error: 'url required' });
       const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
       await client.connect();
@@ -1044,8 +1060,33 @@ async function bootstrap() {
       const r = await fetch(url);
       if (!r.ok) { await client.close(); return res.status(400).json({ error: 'fetch_failed' }); }
       const buf = Buffer.from(await r.arrayBuffer());
+      // Try pdf-parse text first; if empty/short, attempt OCR via tesseract per page image
       const pdf = await pdfParse(buf);
-      const text = String(pdf && pdf.text || '');
+      let text = String((pdf && pdf.text) || '');
+      if (!text || text.trim().length < 200) {
+        // Fallback OCR: render first N pages to PNG via pdfjs-dist and run Tesseract
+        try {
+          const pdfjsLib = require('pdfjs-dist');
+          const loadingTask = pdfjsLib.getDocument({ data: buf });
+          const pdfDoc = await loadingTask.promise;
+          const maxPages = Math.min(pdfDoc.numPages || 1, ocrStart + ocrPagesMax - 1);
+          let ocrText = '';
+          for (let p=ocrStart; p<=maxPages; p++){
+            const page = await pdfDoc.getPage(p);
+            const viewport = page.getViewport({ scale: 2.0 });
+            const canvas = createCanvas(viewport.width, viewport.height);
+            const ctx = canvas.getContext('2d');
+            const renderContext = { canvasContext: ctx, viewport };
+            await page.render(renderContext).promise;
+            const png = canvas.toBuffer('image/png');
+            const ocr = await Tesseract.recognize(png, 'eng', { logger:()=>{} });
+            const pageText = (ocr && ocr.data && ocr.data.text) ? ocr.data.text : '';
+            if (pageText) ocrText += `\n\nPage ${p}:\n` + pageText;
+            if (ocrText.length > 20000) break; // early stop when enough context gathered
+          }
+          if (ocrText.trim().length > text.trim().length) text = ocrText;
+        } catch {}
+      }
       const lines = text.split(/\n+/).map(s=> s.trim()).filter(Boolean);
       const chunks = [];
       let acc = [];
@@ -1069,6 +1110,93 @@ async function bootstrap() {
     } catch (e){ console.error(e); return res.status(500).json({ error: 'ingest_failed' }); }
   });
 
+  // Vector store: upload a file to OpenAI and attach to lesson store (uses backend OPENAI_API_KEY)
+  app.post('/ai/files/upload', async (req, res) => {
+    try {
+      const { url, lessonSlug } = req.body || {};
+      if (!url) return res.status(400).json({ error:'url required' });
+      const openaiKey = process.env.OPENAI_API_KEY || process.env.openai_api_key;
+      if (!openaiKey) return res.status(500).json({ error:'missing_OPENAI_API_KEY' });
+      const rf = await fetch(url);
+      if (!rf.ok) return res.status(400).json({ error:'fetch_failed' });
+      const buf = Buffer.from(await rf.arrayBuffer());
+      const fd = new FormData();
+      fd.append('file', buf, { filename: 'lesson.pdf', contentType: 'application/pdf' });
+      fd.append('purpose', 'assistants');
+      const up = await fetch('https://api.openai.com/v1/files', { method:'POST', headers:{ 'Authorization': `Bearer ${openaiKey}` }, body: fd });
+      const uj = await up.json().catch(()=>({}));
+      if (!up.ok) return res.status(500).json({ error:'upload_failed', detail: uj });
+
+      let vector_store_id = null;
+      if (lessonSlug){
+        const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+        await client.connect();
+        const vs = await getLessonStoresCollection(client);
+        const rec = await vs.findOne({ lessonSlug });
+        const headers = { 'Authorization': `Bearer ${openaiKey}`, 'Content-Type': 'application/json' };
+        if (rec && rec.vector_store_id){
+          vector_store_id = rec.vector_store_id;
+        } else {
+          const crt = await fetch('https://api.openai.com/v1/vector_stores', { method:'POST', headers, body: JSON.stringify({ name: `lesson:${lessonSlug}` }) });
+          const cj = await crt.json().catch(()=>({}));
+          if (!crt.ok) { await client.close(); return res.status(500).json({ error:'vector_store_create_failed', detail:cj }); }
+          vector_store_id = cj.id;
+          await vs.updateOne({ lessonSlug }, { $set: { lessonSlug, vector_store_id, files: [], updatedAt: new Date().toISOString() } }, { upsert: true });
+        }
+        // attach file
+        await fetch(`https://api.openai.com/v1/vector_stores/${vector_store_id}/files`, { method:'POST', headers, body: JSON.stringify({ file_id: uj.id }) });
+        await vs.updateOne({ lessonSlug }, { $addToSet: { files: uj.id }, $set:{ updatedAt: new Date().toISOString() } });
+        await client.close();
+      }
+      return res.json({ ok:true, file_id: uj.id, vector_store_id });
+    } catch (e){ console.error(e); return res.status(500).json({ error:'upload_exception' }); }
+  });
+
+  // Generate via OpenAI Responses API with file_search tool using the lesson vector store
+  app.post('/ai/agent1/generate-assist', async (req, res) => {
+    try {
+      const lessonSlug = String(req.query.lesson||'').trim();
+      const lessonTitle = String((req.body && req.body.title) || req.query.title || lessonSlug).trim();
+      if (!lessonSlug) return res.status(400).json({ error:'lesson required' });
+      const openaiKey = process.env.OPENAI_API_KEY || process.env.openai_api_key;
+      if (!openaiKey) return res.status(500).json({ error:'missing_OPENAI_API_KEY' });
+      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+      await client.connect();
+      const vs = await getLessonStoresCollection(client);
+      const rec = await vs.findOne({ lessonSlug });
+      await client.close();
+      if (!rec || !rec.vector_store_id) return res.status(400).json({ error:'no_vector_store_for_lesson' });
+
+      const system = 'You are an expert assessment writer. Use file_search to retrieve ONLY relevant passages for the lesson. Return one JSON object only.';
+      const user = [
+        'SELECTED_TOPIC',
+        `- id: ${lessonSlug}`,
+        `- name: ${lessonTitle || lessonSlug}`,
+        'TASK',
+        '- Generate EXACTLY 20 MCQs, each with 4 options in LaTeX (\\( ... \\)). One correct, three plausible near-miss distractors.',
+        '- Order: 7 easy, 8 medium, 5 hard.',
+        '- Top high-school level.',
+        'SCHEMA',
+        '{"questions":[{"stimulus_text":"string","stimulus_latex":"string","options_latex":["string","string","string","string"],"answer_index":0,"answer_plain":"string","rationale_text":"string","rationale_latex":"string","sources":["string"]}]}'
+      ].join('\n');
+
+      const rsp = await fetch('https://api.openai.com/v1/responses', {
+        method:'POST',
+        headers:{ 'Authorization': `Bearer ${openaiKey}`, 'OpenAI-Beta':'assistants=v2', 'Content-Type':'application/json' },
+        body: JSON.stringify({
+          model:'gpt-4o',
+          tools:[{ type:'file_search' }],
+          tool_resources:{ file_search:{ vector_store_ids:[ rec.vector_store_id ] } },
+          input:[ { role:'system', content: system }, { role:'user', content: user } ]
+        })
+      });
+      const j = await rsp.json().catch(()=>({}));
+      if (!rsp.ok) return res.status(500).json({ error:'assist_failed', detail:j });
+      const text = j.output_text || '';
+      return res.json({ ok:true, preview: text.slice(0,4000) });
+    } catch (e){ console.error(e); return res.status(500).json({ error:'assist_exception' }); }
+  });
+
   // Agent 1: Generate and store ≥30 questions for a lesson
   app.post('/ai/agent1/generate', async (req, res) => {
     const lessonSlug = String(req.query.lesson || '').trim();
@@ -1077,25 +1205,32 @@ async function bootstrap() {
     const targetParam = Number(req.query.target || req.body && req.body.target || 0);
     const targetEnv = Number(process.env.TBP_AGENT1_TARGET || 0);
     const targetDesired = Math.max(1, Math.min(40, Number.isFinite(targetParam) && targetParam>0 ? targetParam : (Number.isFinite(targetEnv) && targetEnv>0 ? targetEnv : 15)));
+    const debug = String(req.query.debug || '').toLowerCase() === '1' || String(req.query.debug || '').toLowerCase() === 'true';
+    const trace = [];
+    const t0 = Date.now();
+    const addTrace = (step, meta) => { try { trace.push({ step, tMs: Date.now() - t0, ...(meta||{}) }); } catch {} };
     if (!lessonSlug) return res.status(400).json({ error: 'lesson (slug) is required' });
     try {
+      addTrace('start', { lessonSlug, lessonTitle, book, targetDesired });
       const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
-      await client.connect();
+      await client.connect(); addTrace('db_connected');
       const col = await getQuestionCollection(client);
       const ing = await getIngestCollection(client);
 
       // Resolve book automatically if not provided
-      if (!book) {
-        try { book = resolveBookForLessonFromRepo(lessonSlug); } catch {}
-      }
+      if (!book) { try { book = resolveBookForLessonFromRepo(lessonSlug); } catch {} }
+      addTrace('book_resolved', { book });
 
       // Global pause: skip all Agent1 generation when toggled via env
       try {
         const pauseAllFlag = String(process.env.TBP_PAUSE_AGENT1 || process.env.TBP_PAUSE_ALL || '').toLowerCase();
         const pauseAll = pauseAllFlag === '1' || pauseAllFlag === 'true' || pauseAllFlag === 'yes';
         if (pauseAll){
+          addTrace('paused_all');
           await client.close();
-          return res.json({ ok:true, paused:true, reason:'agent1_paused', book, lesson: lessonSlug, inserted: 0, attempts: 0 });
+          const out = { ok:true, paused:true, reason:'agent1_paused', book, lesson: lessonSlug, inserted: 0, attempts: 0 };
+          if (debug) Object.assign(out, { trace });
+          return res.json(out);
         }
       } catch {}
 
@@ -1105,8 +1240,11 @@ async function bootstrap() {
         const pauseChemistry = pauseFlag === '1' || pauseFlag === 'true' || pauseFlag === 'yes';
         const isChemistry = (book && /chemistry/i.test(String(book))) || /chemistry/i.test(String(lessonTitle));
         if (pauseChemistry && isChemistry){
+          addTrace('paused_chemistry');
           await client.close();
-          return res.json({ ok:true, paused:true, reason:'chemistry_paused', book, lesson: lessonSlug, inserted: 0, attempts: 0 });
+          const out = { ok:true, paused:true, reason:'chemistry_paused', book, lesson: lessonSlug, inserted: 0, attempts: 0 };
+          if (debug) Object.assign(out, { trace });
+          return res.json(out);
         }
       } catch {}
 
@@ -1118,6 +1256,7 @@ async function bootstrap() {
       const docs = [];
       let deletedCount = 0;
       let attempts = 0;
+      addTrace('config', { perBatch, target, maxAttempts });
       const requireVisual = String(req.query.require || '').toLowerCase();
       let visualNote = requireVisual === 'graph'
         ? 'REQUIREMENT: Include a minimal graph under "graph.expressions" relevant to the item.'
@@ -1131,8 +1270,9 @@ async function bootstrap() {
         visualNote = 'STRICT: Do NOT include any "graph" or "numberLine" structures. Include a small "table" only if truly necessary to solve the item.';
       }
       // Prefer ingested chunks for the lesson, fall back to model-only
-      try { await ingestLocalTextbooks(ing); } catch {}
+      try { await ingestLocalTextbooks(ing); addTrace('ingest_local_done'); } catch { addTrace('ingest_local_skip'); }
       const chunks = await ing.find({ $or:[ { lessonSlug }, { lessonSlug: null } ] }).limit(500).toArray();
+      addTrace('context_loaded', { chunks: chunks.length });
       const contextText = chunks && chunks.length ? chunks.slice(0,40).map(c=> `p.${c.page}: ${c.text}`).join('\n\n') : '';
       function looksOffTopicForChemistry(stem, options){
         try {
@@ -1154,7 +1294,9 @@ async function bootstrap() {
           return visualNote ? `${withContext}\n\n${visualNote}` : withContext;
         })()];
         const genModel = process.env.TBP_GENERATE_MODEL || process.env.TBP_DEFAULT_MODEL || 'gemini-1.5-flash';
+        const tCall0 = Date.now();
         const txt = await callGeminiGenerate(genModel, prompts[0]).catch(()=> '');
+        addTrace('llm_return', { attempt: attempts, ms: Date.now()-tCall0, model: genModel, size: (txt||'').length });
         const all = [];
         {
           try {
@@ -1174,6 +1316,7 @@ async function bootstrap() {
                 all.push({ stem, options, correct, explanation });
               }
             }
+            addTrace('llm_parse', { attempt: attempts, parsed: all.length });
           } catch {}
         }
         for (const p of all){
@@ -1261,8 +1404,8 @@ async function bootstrap() {
       }
       // Only replace existing questions if we achieved the full target
       if (docs.length >= target){
-        try { const del = await col.deleteMany({ lessonSlug }); deletedCount = del.deletedCount || 0; } catch {}
-        if (docs.length){ try { await col.insertMany(docs, { ordered: false }); } catch {} }
+        try { const del = await col.deleteMany({ lessonSlug }); deletedCount = del.deletedCount || 0; addTrace('db_deleted_old', { deletedCount }); } catch { addTrace('db_delete_failed'); }
+        if (docs.length){ try { await col.insertMany(docs, { ordered: false }); addTrace('db_inserted_new', { inserted: docs.length }); } catch { addTrace('db_insert_failed'); } }
         // Post-insert safety: trigger fixer to canonicalize and dedupe options for this lesson
         try {
           const baseUrl = (process.env.PUBLIC_BASE_URL && process.env.PUBLIC_BASE_URL.trim()) || `http://127.0.0.1:${process.env.PORT||8080}`;
@@ -1272,10 +1415,13 @@ async function bootstrap() {
             // Agent 3: sample review/repair of ~10% of newly inserted items
             fetch(`${baseUrl}/ai/agent3/review-lesson?lesson=${encodeURIComponent(lessonSlug)}&pct=10`, { method:'POST' }).catch(()=>{});
           }, 0);
+          addTrace('post_insert_kicked');
         } catch {}
       }
       await client.close();
-      return res.json({ ok:true, deleted: deletedCount, inserted: docs.length, attempts });
+      const out = { ok:true, deleted: deletedCount, inserted: docs.length, attempts };
+      if (debug) Object.assign(out, { trace });
+      return res.json(out);
     } catch (e){ console.error(e); return res.status(500).json({ error:'generation_failed' }); }
   });
 
