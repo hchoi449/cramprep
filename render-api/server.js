@@ -8,6 +8,7 @@ const { createCanvas, loadImage } = require('canvas');
 const Tesseract = require('tesseract.js');
 const { MongoClient, ObjectId } = require('mongodb');
 const FormData = require('form-data');
+const FormData = require('form-data');
 
 const app = express();
 app.use(cors());
@@ -1161,13 +1162,13 @@ async function bootstrap() {
       if (!openaiKey) return res.status(500).json({ error:'missing_OPENAI_API_KEY' });
       const rf = await fetch(url);
       if (!rf.ok) return res.status(400).json({ error:'fetch_failed' });
-      const ab = await rf.arrayBuffer();
-      const blob = new Blob([ab], { type: 'application/pdf' });
+      const buf = Buffer.from(await rf.arrayBuffer());
+      // Use node form-data to build a proper multipart with boundary for OpenAI
       const form = new FormData();
-      form.append('file', blob, 'lesson.pdf');
+      form.append('file', buf, { filename: 'lesson.pdf', contentType: 'application/pdf' });
       form.append('purpose', 'assistants');
       const up = await fetch('https://api.openai.com/v1/files', {
-        method:'POST', headers:{ 'Authorization': `Bearer ${openaiKey}` }, body: form
+        method:'POST', headers:{ ...form.getHeaders(), 'Authorization': `Bearer ${openaiKey}` }, body: form
       });
       const uj = await up.json().catch(()=>({}));
       if (!up.ok) return res.status(500).json({ error:'upload_failed', detail: uj });
