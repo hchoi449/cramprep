@@ -1302,6 +1302,82 @@ async function bootstrap() {
     } catch (e){ console.error(e); return res.status(500).json({ error:'assist_exception' }); }
   });
 
+  // Assistants v2: Generate using file_search on the lesson's vector store
+  app.post('/ai/agent1/generate-assist-v2', async (req, res) => {
+    try {
+      const lessonSlug = String(req.query.lesson||'').trim();
+      const lessonTitle = String((req.body && req.body.title) || req.query.title || lessonSlug).trim();
+      if (!lessonSlug) return res.status(400).json({ error:'lesson required' });
+      const openaiKey = process.env.OPENAI_API_KEY || process.env.openai_api_key;
+      if (!openaiKey) return res.status(500).json({ error:'missing_OPENAI_API_KEY' });
+
+      // Fetch lesson vector store + files
+      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+      await client.connect();
+      const vsCol = await getLessonStoresCollection(client);
+      const rec = await vsCol.findOne({ lessonSlug });
+      await client.close();
+      if (!rec || !rec.vector_store_id) return res.status(400).json({ error:'no_vector_store_for_lesson' });
+
+      const system = 'You are an expert assessment writer. Use file_search to retrieve ONLY relevant passages for the lesson. Return one JSON object only.';
+      const user = [
+        'SELECTED_TOPIC',
+        `- id: ${lessonSlug}`,
+        `- name: ${lessonTitle || lessonSlug}`,
+        'TASK',
+        '- Generate EXACTLY 20 MCQs, each with 4 options in LaTeX (\\( ... \\)). One correct, three plausible near-miss distractors.',
+        '- Order: 7 easy, 8 medium, 5 hard.',
+        '- Top high-school level.',
+        'SCHEMA',
+        '{"questions":[{"stimulus_text":"string","stimulus_latex":"string","options_latex":["string","string","string","string"],"answer_index":0,"answer_plain":"string","rationale_text":"string","rationale_latex":"string","sources":["string"]}]}'
+      ].join('\n');
+
+      // Create assistant (or reuse saved one)
+      const OpenAI = require('openai');
+      const oai = new OpenAI({ apiKey: openaiKey });
+      let assistantId = rec.assistant_id || null;
+      if (!assistantId){
+        const a = await oai.beta.assistants.create({
+          name: `lesson:${lessonSlug}`,
+          model: 'gpt-4o',
+          tools: [ { type:'file_search' } ],
+          tool_resources: { file_search: { vector_store_ids: [ rec.vector_store_id ] } }
+        });
+        assistantId = a.id;
+        const client2 = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+        await client2.connect();
+        await (await getLessonStoresCollection(client2)).updateOne({ lessonSlug }, { $set: { assistant_id: assistantId, updatedAt: new Date().toISOString() } });
+        await client2.close();
+      }
+
+      // Create thread and messages
+      const thread = await oai.beta.threads.create({ messages: [
+        { role:'system', content: system },
+        { role:'user', content: user }
+      ]});
+      // Run with assistant
+      const run = await oai.beta.threads.runs.create(thread.id, { assistant_id: assistantId });
+      // Poll run status
+      let status = run.status; let tries = 0; let last = run;
+      while (!['completed','failed','cancelled','expired'].includes(status) && tries < 90){
+        await new Promise(r => setTimeout(r, 1000));
+        last = await oai.beta.threads.runs.retrieve(thread.id, run.id);
+        status = last.status; tries++;
+      }
+      if (status !== 'completed'){
+        return res.status(500).json({ error:'assist_run_failed', status });
+      }
+      const msgs = await oai.beta.threads.messages.list(thread.id, { order:'desc', limit: 10 });
+      const first = (msgs.data||[]).find(m => m.role==='assistant') || (msgs.data||[])[0];
+      let preview = '';
+      if (first && Array.isArray(first.content)){
+        const textPart = first.content.find(p => p.type==='text');
+        if (textPart && textPart.text && textPart.text.value) preview = textPart.text.value;
+      }
+      return res.json({ ok:true, status, preview: String(preview||'').slice(0, 4000) });
+    } catch (e){ console.error('[assist-v2] exception', e); return res.status(500).json({ error:'assist_v2_exception' }); }
+  });
+
   // Agent 1: Generate and store ≥30 questions for a lesson
   app.post('/ai/agent1/generate', async (req, res) => {
     const lessonSlug = String(req.query.lesson || '').trim();
