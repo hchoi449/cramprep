@@ -1204,6 +1204,54 @@ async function bootstrap() {
     } catch (e){ console.error('[upload-url] exception', e); return res.status(500).json({ error:'upload_url_exception', detail: String(e && e.message || e) }); }
   });
 
+  // Fallback: use server-side curl to upload file to OpenAI (most reliable multipart)
+  app.post('/ai/files/upload-url-curl', async (req, res) => {
+    try {
+      const { url, lessonSlug } = req.body || {};
+      if (!url) return res.status(400).json({ error:'url required' });
+      const openaiKey = process.env.OPENAI_API_KEY || process.env.openai_api_key;
+      if (!openaiKey) return res.status(500).json({ error:'missing_OPENAI_API_KEY' });
+      const rf = await fetch(url);
+      if (!rf.ok) return res.status(400).json({ error:'fetch_failed' });
+      const buf = Buffer.from(await rf.arrayBuffer());
+      const tmpDir = path.resolve(__dirname, '../tmp_uploads');
+      try { fs.mkdirSync(tmpDir, { recursive: true }); } catch {}
+      const tmpPath = path.join(tmpDir, `upload_${Date.now()}.pdf`);
+      fs.writeFileSync(tmpPath, buf);
+      // Use curl
+      const { spawnSync } = require('child_process');
+      const curlArgs = ['-s', '-X', 'POST', 'https://api.openai.com/v1/files', '-H', `Authorization: Bearer ${openaiKey}`, '-H', 'Content-Type: multipart/form-data', '-F', 'purpose=assistants', '-F', `file=@${tmpPath}`];
+      const pr = spawnSync('curl', curlArgs, { encoding: 'utf8' });
+      if (pr.status !== 0){
+        return res.status(500).json({ error:'curl_failed', detail: pr.stderr || pr.stdout || '' });
+      }
+      let uj = {}; try { uj = JSON.parse(pr.stdout); } catch { return res.status(500).json({ error:'curl_invalid_json', body: pr.stdout }); }
+      if (!uj || !uj.id) return res.status(500).json({ error:'upload_failed', detail: uj });
+
+      let vector_store_id = null;
+      if (lessonSlug){
+        const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+        await client.connect();
+        const vs = await getLessonStoresCollection(client);
+        const rec = await vs.findOne({ lessonSlug });
+        const headers = { 'Authorization': `Bearer ${openaiKey}`, 'Content-Type': 'application/json' };
+        if (rec && rec.vector_store_id){
+          vector_store_id = rec.vector_store_id;
+        } else {
+          const crt = await fetch('https://api.openai.com/v1/vector_stores', { method:'POST', headers, body: JSON.stringify({ name: `lesson:${lessonSlug}` }) });
+          const cj = await crt.json().catch(()=>({}));
+          if (!crt.ok) { await client.close(); return res.status(500).json({ error:'vector_store_create_failed', detail:cj }); }
+          vector_store_id = cj.id;
+          await vs.updateOne({ lessonSlug }, { $set: { lessonSlug, vector_store_id, files: [], updatedAt: new Date().toISOString() } }, { upsert: true });
+        }
+        await fetch(`https://api.openai.com/v1/vector_stores/${vector_store_id}/files`, { method:'POST', headers, body: JSON.stringify({ file_id: uj.id }) });
+        await vs.updateOne({ lessonSlug }, { $addToSet: { files: uj.id }, $set:{ updatedAt: new Date().toISOString() } });
+        await client.close();
+      }
+      return res.json({ ok:true, file_id: uj.id, vector_store_id });
+    } catch (e){ console.error('[upload-url-curl] exception', e); return res.status(500).json({ error:'upload_url_curl_exception', detail: String(e && e.message || e) }); }
+  });
+
   // Generate via OpenAI Responses API with file_search tool using the lesson vector store
   app.post('/ai/agent1/generate-assist', async (req, res) => {
     try {
