@@ -1266,6 +1266,9 @@ async function bootstrap() {
       const rec = await vs.findOne({ lessonSlug });
       await client.close();
       if (!rec || !rec.vector_store_id) return res.status(400).json({ error:'no_vector_store_for_lesson' });
+      const files = Array.isArray(rec.files) ? rec.files : [];
+      if (!files.length) return res.status(400).json({ error:'no_files_attached_to_vector_store' });
+      const file_id = files[files.length - 1];
 
       const system = 'You are an expert assessment writer. Use file_search to retrieve ONLY relevant passages for the lesson. Return one JSON object only.';
       const user = [
@@ -1282,12 +1285,18 @@ async function bootstrap() {
 
       const rsp = await fetch('https://api.openai.com/v1/responses', {
         method:'POST',
-        headers:{ 'Authorization': `Bearer ${openaiKey}`, 'OpenAI-Beta':'assistants=v2', 'Content-Type':'application/json' },
+        headers:{ 'Authorization': `Bearer ${openaiKey}`, 'Content-Type':'application/json' },
         body: JSON.stringify({
           model:'gpt-4o',
           tools:[{ type:'file_search' }],
-          tool_resources:{ file_search:{ vector_store_ids:[ rec.vector_store_id ] } },
-          input:[ { role:'system', content: system }, { role:'user', content: user } ]
+          input:[
+            { role:'system', content: system },
+            {
+              role:'user',
+              content: user,
+              attachments:[ { file_id, tools:[ { type:'file_search' } ] } ]
+            }
+          ]
         })
       });
       const j = await rsp.json().catch(()=>({}));
