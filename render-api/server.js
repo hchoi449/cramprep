@@ -1123,7 +1123,7 @@ async function bootstrap() {
       const fd = new FormData();
       fd.append('file', buf, { filename: 'lesson.pdf', contentType: 'application/pdf' });
       fd.append('purpose', 'assistants');
-      const up = await fetch('https://api.openai.com/v1/files', { method:'POST', headers:{ 'Authorization': `Bearer ${openaiKey}` }, body: fd });
+      const up = await fetch('https://api.openai.com/v1/files', { method:'POST', headers: { ...fd.getHeaders(), 'Authorization': `Bearer ${openaiKey}` }, body: fd });
       const uj = await up.json().catch(()=>({}));
       if (!up.ok) return res.status(500).json({ error:'upload_failed', detail: uj });
 
@@ -1150,6 +1150,51 @@ async function bootstrap() {
       }
       return res.json({ ok:true, file_id: uj.id, vector_store_id });
     } catch (e){ console.error(e); return res.status(500).json({ error:'upload_exception' }); }
+  });
+
+  // Vector store (URL-based): fetch URL server-side, upload as multipart to OpenAI, attach to lesson store
+  app.post('/ai/files/upload-url', async (req, res) => {
+    try {
+      const { url, lessonSlug } = req.body || {};
+      if (!url) return res.status(400).json({ error:'url required' });
+      const openaiKey = process.env.OPENAI_API_KEY || process.env.openai_api_key;
+      if (!openaiKey) return res.status(500).json({ error:'missing_OPENAI_API_KEY' });
+      const rf = await fetch(url);
+      if (!rf.ok) return res.status(400).json({ error:'fetch_failed' });
+      const ab = await rf.arrayBuffer();
+      const blob = new Blob([ab], { type: 'application/pdf' });
+      const form = new FormData();
+      form.append('file', blob, 'lesson.pdf');
+      form.append('purpose', 'assistants');
+      const up = await fetch('https://api.openai.com/v1/files', {
+        method:'POST', headers:{ 'Authorization': `Bearer ${openaiKey}` }, body: form
+      });
+      const uj = await up.json().catch(()=>({}));
+      if (!up.ok) return res.status(500).json({ error:'upload_failed', detail: uj });
+
+      let vector_store_id = null;
+      if (lessonSlug){
+        const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+        await client.connect();
+        const vs = await getLessonStoresCollection(client);
+        const rec = await vs.findOne({ lessonSlug });
+        const headers = { 'Authorization': `Bearer ${openaiKey}`, 'Content-Type': 'application/json' };
+        if (rec && rec.vector_store_id){
+          vector_store_id = rec.vector_store_id;
+        } else {
+          const crt = await fetch('https://api.openai.com/v1/vector_stores', { method:'POST', headers, body: JSON.stringify({ name: `lesson:${lessonSlug}` }) });
+          const cj = await crt.json().catch(()=>({}));
+          if (!crt.ok) { await client.close(); return res.status(500).json({ error:'vector_store_create_failed', detail:cj }); }
+          vector_store_id = cj.id;
+          await vs.updateOne({ lessonSlug }, { $set: { lessonSlug, vector_store_id, files: [], updatedAt: new Date().toISOString() } }, { upsert: true });
+        }
+        // attach file to vector store
+        await fetch(`https://api.openai.com/v1/vector_stores/${vector_store_id}/files`, { method:'POST', headers, body: JSON.stringify({ file_id: uj.id }) });
+        await vs.updateOne({ lessonSlug }, { $addToSet: { files: uj.id }, $set:{ updatedAt: new Date().toISOString() } });
+        await client.close();
+      }
+      return res.json({ ok:true, file_id: uj.id, vector_store_id });
+    } catch (e){ console.error(e); return res.status(500).json({ error:'upload_url_exception' }); }
   });
 
   // Generate via OpenAI Responses API with file_search tool using the lesson vector store
