@@ -1965,8 +1965,19 @@ async function bootstrap() {
           const pngPath = images[Math.min(images.length-1, runningPage-1)] || images[0];
           let imageB64 = '';
           try { imageB64 = fs.readFileSync(pngPath).toString('base64'); } catch {}
+          // Persist a copy to public tmp uploads and store a public URL as fallback
+          let pngUrl = '';
+          try {
+            const publicTmp = path.resolve(__dirname, '../tmp_uploads');
+            try { fs.mkdirSync(publicTmp, { recursive: true }); } catch{}
+            const outName = `ws_${jobId}_p${runningPage}.png`;
+            const outPath = path.join(publicTmp, outName);
+            try { fs.copyFileSync(pngPath, outPath); } catch{}
+            const baseUrl = (req.headers['x-forwarded-proto'] ? `${req.headers['x-forwarded-proto']}` : 'https') + '://' + (req.headers['x-forwarded-host'] || req.headers.host);
+            pngUrl = `${baseUrl}/tmp/uploads/${outName}`;
+          } catch {}
           // Do NOT insert into questionbank; store only in qsources
-          storedProblems.push({ id: p.id, prompt: p.prompt, answer_fields: Array.isArray(p.answer_fields)? p.answer_fields: [], visual: p.visual||'none', page: runningPage, pngPath, dpi: DPI });
+          storedProblems.push({ id: p.id, prompt: p.prompt, answer_fields: Array.isArray(p.answer_fields)? p.answer_fields: [], visual: p.visual||'none', page: runningPage, pngPath, dpi: DPI, pngUrl });
           // Also insert a per-item record into thinkpod.qsources
           try {
             await qsrc.insertOne({
@@ -1983,6 +1994,7 @@ async function bootstrap() {
               sourceType: 'worksheet-ocr',
               jobId,
               pngPath,
+              pngUrl,
               dpi: DPI,
               imageB64
             });
@@ -2086,9 +2098,21 @@ async function bootstrap() {
           // Choose image: prefer embedded base64; else per-item path; else first rendered page
           let imgB64 = String(noisy && noisy.imageB64 || '').trim();
           if (!imgB64){
+            // Try local path
             let pngPath = String(noisy && noisy.pngPath || '').trim();
-            if (!pngPath || !fs.existsSync(pngPath)) pngPath = images[0];
-            if (pngPath && fs.existsSync(pngPath)) imgB64 = fs.readFileSync(pngPath).toString('base64');
+            if (pngPath && fs.existsSync(pngPath)){
+              try { imgB64 = fs.readFileSync(pngPath).toString('base64'); } catch{}
+            }
+          }
+          if (!imgB64){
+            // Try public URL if available
+            const pngUrl = String(noisy && noisy.pngUrl || '').trim();
+            if (pngUrl){
+              try { const pr = await fetch(pngUrl); if (pr.ok){ const ab = await pr.arrayBuffer(); imgB64 = Buffer.from(ab).toString('base64'); } } catch{}
+            }
+          }
+          if (!imgB64 && images && images[0]){
+            try { imgB64 = fs.readFileSync(images[0]).toString('base64'); } catch{}
           }
           if (!imgB64) return null;
           const rsp = await fetch('https://api.openai.com/v1/responses', {
