@@ -2099,6 +2099,126 @@ async function bootstrap() {
     } catch(e){ console.error('[qsources-set-latex] exception', e); return res.status(500).json({ error:'qsources_set_latex_exception', detail:String(e && e.message || e) }); }
   });
 
+  // Agent 1: Generate from OCR qsources (seeded by prompt/promptLatex and optional image)
+  app.post('/ai/agent1/generate-from-qsources', async (req, res) => {
+    try {
+      const lessonSlug = String(req.query.lesson||'').trim();
+      const lessonTitle = String((req.body && req.body.title) || req.query.title || lessonSlug).trim();
+      const useImages = String(req.query.useImages||'').toLowerCase();
+      const withImages = useImages==='1' || /true|yes/i.test(useImages);
+      const n = Math.max(1, Math.min(50, Number(req.query.n || req.body && req.body.n || 10)));
+      if (!lessonSlug) return res.status(400).json({ error:'lesson required' });
+      const openaiKey = process.env.OPENAI_API_KEY || process.env.openai_api_key;
+      if (!openaiKey) return res.status(500).json({ error:'missing_OPENAI_API_KEY' });
+
+      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+      await client.connect();
+      const qsrc = await getQSourcesCollection(client);
+      const col = await getQuestionCollection(client);
+      const seeds = await qsrc.find({ lessonSlug, sourceType:'worksheet-ocr' }).sort({ createdAt: -1 }).limit(n).toArray();
+
+      const system = [
+        'You are an expert math assessment writer.',
+        'Generate one high-quality MCQ based strictly on the provided SEED (LaTeX or text) and optional image.',
+        'Return STRICT JSON ONLY (no prose).',
+      ].join('\n');
+      const schema = {
+        type: 'object',
+        properties: {
+          question: {
+            type: 'object',
+            properties: {
+              stimulus_text: { type:'string' },
+              stimulus_latex: { type:'string' },
+              options_latex: { type:'array', items:{ type:'string' } },
+              answer_index: { type:'number' },
+              answer_plain: { type:'string' },
+              rationale_text: { type:'string' },
+              rationale_latex: { type:'string' },
+              difficulty: { type:'string' }
+            },
+            required:['stimulus_latex','options_latex','answer_index','answer_plain','difficulty']
+          }
+        }, required:['question']
+      };
+
+      async function callOne(seed){
+        const seedText = String(seed.promptLatex || seed.prompt || '').trim().slice(0, 800);
+        const userParts = [
+          'SEED (use this content only):',
+          seedText || '(none)',
+          'JSON SCHEMA: {"question":{"stimulus_text":"string","stimulus_latex":"string","options_latex":["string","string","string","string"],"answer_index":0,"answer_plain":"string","rationale_text":"string","rationale_latex":"string","difficulty":"easy|medium|hard"}}',
+          'Constraints: 4 options only; exactly one correct; difficulty must be easy|medium|hard; all math in LaTeX \( ... \).'
+        ].join('\n');
+        const headers = { 'Authorization': `Bearer ${openaiKey}`, 'Content-Type':'application/json' };
+        const input = [{ role:'system', content: system }];
+        const userContent = [{ type:'input_text', text: userParts }];
+        try {
+          if (withImages && seed.pngPath && fs.existsSync(String(seed.pngPath))){
+            const b64 = fs.readFileSync(seed.pngPath).toString('base64');
+            userContent.push({ type:'input_image', image_url:{ url:`data:image/png;base64,${b64}` } });
+          }
+        } catch{}
+        input.push({ role:'user', content: userContent });
+        const body = { model:'gpt-4o', response_format:{ type:'json_object' }, input, temperature: 0 };
+        const rsp = await fetch('https://api.openai.com/v1/responses', { method:'POST', headers, body: JSON.stringify(body) });
+        const j = await rsp.json().catch(()=>({}));
+        let txt = '';
+        try { txt = String(j.output_text||'').trim(); } catch { txt = ''; }
+        let out = {}; try { out = JSON.parse(txt); } catch{}
+        const q = out && out.question || {};
+        if (!q || !Array.isArray(q.options_latex) || q.options_latex.length !== 4) return null;
+        return q;
+      }
+
+      function toInlineMath(s){
+        const t = String(s||'').trim();
+        if (!t) return '';
+        if (/^\\\(|\\\[/.test(t)) return t;
+        return `\\(${t}\\)`;
+      }
+      function dedupeOptionsSimple(opts){
+        const seen = new Set();
+        const out = [];
+        for (const o of opts){
+          const k = String(o||'').replace(/\s+/g,'').toLowerCase();
+          if (seen.has(k)) { out.push(toInlineMath(`${o}~`)); }
+          else { seen.add(k); out.push(toInlineMath(o)); }
+        }
+        return out.slice(0,4);
+      }
+
+      const inserted = [];
+      const nowIso = new Date().toISOString();
+      for (const seed of seeds){
+        const q = await callOne(seed);
+        if (!q) continue;
+        const options = dedupeOptionsSimple(q.options_latex||[]);
+        const answerIdx = Math.max(0, Math.min(3, Number(q.answer_index)||0));
+        const answer = options[answerIdx] || options[0];
+        const doc = {
+          lessonSlug,
+          lessonTitle: lessonTitle||lessonSlug,
+          book: resolveBookForLessonFromRepo(lessonSlug) || null,
+          stem: String(q.stimulus_latex||q.stimulus_text||seed.promptLatex||seed.prompt||'').slice(0, 1000),
+          options,
+          correct: answerIdx,
+          solution: String(q.rationale_latex||q.rationale_text||'').slice(0, 2000),
+          answer: toInlineMath(answer||''),
+          answerPlain: String(q.answer_plain||'').slice(0, 200),
+          citations: [],
+          difficulty: (/easy|medium|hard/i.test(String(q.difficulty||'')) ? String(q.difficulty).toLowerCase() : 'medium'),
+          sourceHash: sha256Hex(lessonSlug+'|'+(q.stimulus_latex||q.stimulus_text||'')+'|'+options.join('|')),
+          generatedAt: nowIso,
+          generator: 'agent1-qsources'
+        };
+        try { await col.insertOne(doc); inserted.push({ stem: doc.stem, difficulty: doc.difficulty }); } catch{}
+      }
+      await client.close();
+      return res.json({ ok:true, seeds: seeds.length, inserted: inserted.length, sample: inserted.slice(0,5) });
+    } catch (e){ console.error('[agent1-from-qsources] exception', e); return res.status(500).json({ error:'agent1_from_qsources_exception', detail: String(e && e.message || e) }); }
+  });
+
   // Agent 1: Generate and store ≥30 questions for a lesson
   app.post('/ai/agent1/generate', async (req, res) => {
     const lessonSlug = String(req.query.lesson || '').trim();
