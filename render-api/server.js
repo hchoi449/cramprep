@@ -1908,6 +1908,22 @@ async function bootstrap() {
           await col.insertOne(doc);
           inserted++;
           storedProblems.push({ id: p.id, prompt: p.prompt, answer_fields: Array.isArray(p.answer_fields)? p.answer_fields: [], visual: p.visual||'none' });
+          // Also insert a per-item record into thinkpod.qsources
+          try {
+            await qsrc.insertOne({
+              lessonSlug,
+              lessonTitle: lessonTitle || lessonSlug,
+              sourceUrl: url,
+              sourceName,
+              page: 1,
+              problemId: p.id,
+              prompt: p.prompt,
+              answer_fields: Array.isArray(p.answer_fields)? p.answer_fields: [],
+              visual: p.visual || 'none',
+              createdAt: nowIso,
+              sourceType: 'worksheet-ocr'
+            });
+          } catch {}
         } catch(e){}
       }
       // Record provenance in qsources
