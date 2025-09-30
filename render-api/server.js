@@ -1396,7 +1396,9 @@ async function bootstrap() {
       const { url, lessonSlug, lessonTitle } = req.body || {};
       if (!url || !lessonSlug) return res.status(400).json({ error:'url and lessonSlug required' });
       // Prepare temp workspace
-      const workDir = path.resolve(__dirname, `../tmp_ws_${Date.now()}`);
+      const jobId = `ws_${Date.now()}`;
+      const DPI = 400;
+      const workDir = path.resolve(__dirname, `../tmp_ws_${jobId}`);
       fs.mkdirSync(workDir, { recursive: true });
       // Download PDF
       const pdfResp = await fetch(url);
@@ -1415,7 +1417,7 @@ async function bootstrap() {
       let images = [];
       const pdftoppm = runCmd('pdftoppm', ['-v']).code === 0;
       if (pdftoppm){
-        const out = runCmd('pdftoppm', ['-png', '-r', '400', pdfPath, path.join(workDir, 'page')]);
+        const out = runCmd('pdftoppm', ['-png', '-r', String(DPI), pdfPath, path.join(workDir, 'page')]);
         if (out.code !== 0){ console.error('[pdftoppm]', out.stderr); }
         images = fs.readdirSync(workDir).filter(f => /page-?\d+\.png$/i.test(f)).map(f => path.join(workDir, f)).sort();
       }
@@ -1769,7 +1771,9 @@ async function bootstrap() {
       }
       const allInstructionLines = new Set();
       const allLinesPool = [];
+      let pageNum = 0;
       for (const img of images){
+        pageNum++;
         let text = '';
         let linesWithBbox = [];
         if (hasTessCli){
@@ -1902,12 +1906,16 @@ async function bootstrap() {
       try { if (worksheetInstruction) await col.updateMany({ lessonSlug, generator:'worksheet-ocr' }, { $set: { worksheetInstruction } }); } catch {}
       let inserted = 0;
       const storedProblems = [];
+      // Re-scan images to map problems to pages by simple heuristic (first page for this single-page worksheet)
+      const perPage = pageNum || 1;
+      let runningPage = 1;
       for (const p of problems.slice(0, 50)){ // cap for safety
         try {
-          const doc = { lessonSlug, lessonTitle: lessonTitle||lessonSlug, book: resolveBookForLessonFromRepo(lessonSlug) || null, stem: p.prompt, options: ['\\(A\\)','\\(B\\)','\\(C\\)','\\(D\\)'], correct: 0, solution: '', answer: '\\(A\\)', answerPlain: 'A', graph: p.visual==='graph'?{}:undefined, numberLine: p.visual==='number_line'?{}:undefined, table: p.visual==='table'?{headers:[],rows:[]}:undefined, citations: [], difficulty: 'medium', sourceHash: sha256Hex(lessonSlug+'|'+p.prompt), generatedAt: nowIso, generator: 'worksheet-ocr', worksheetInstruction: worksheetInstruction || undefined, source: { name: sourceName, url } };
+          const pngPath = images[Math.min(images.length-1, runningPage-1)] || images[0];
+          const doc = { lessonSlug, lessonTitle: lessonTitle||lessonSlug, book: resolveBookForLessonFromRepo(lessonSlug) || null, stem: p.prompt, options: ['\\(A\\)','\\(B\\)','\\(C\\)','\\(D\\)'], correct: 0, solution: '', answer: '\\(A\\)', answerPlain: 'A', graph: p.visual==='graph'?{}:undefined, numberLine: p.visual==='number_line'?{}:undefined, table: p.visual==='table'?{headers:[],rows:[]}:undefined, citations: [], difficulty: 'medium', sourceHash: sha256Hex(lessonSlug+'|'+p.prompt), generatedAt: nowIso, generator: 'worksheet-ocr', worksheetInstruction: worksheetInstruction || undefined, source: { name: sourceName, url }, jobId, page: runningPage, pngPath, dpi: DPI };
           await col.insertOne(doc);
           inserted++;
-          storedProblems.push({ id: p.id, prompt: p.prompt, answer_fields: Array.isArray(p.answer_fields)? p.answer_fields: [], visual: p.visual||'none' });
+          storedProblems.push({ id: p.id, prompt: p.prompt, answer_fields: Array.isArray(p.answer_fields)? p.answer_fields: [], visual: p.visual||'none', page: runningPage, pngPath, dpi: DPI });
           // Also insert a per-item record into thinkpod.qsources
           try {
             await qsrc.insertOne({
@@ -1915,28 +1923,29 @@ async function bootstrap() {
               lessonTitle: lessonTitle || lessonSlug,
               sourceUrl: url,
               sourceName,
-              page: 1,
+              page: runningPage,
               problemId: p.id,
               prompt: p.prompt,
               answer_fields: Array.isArray(p.answer_fields)? p.answer_fields: [],
               visual: p.visual || 'none',
               createdAt: nowIso,
-              sourceType: 'worksheet-ocr'
+              sourceType: 'worksheet-ocr',
+              jobId,
+              pngPath,
+              dpi: DPI
             });
           } catch {}
+          runningPage = Math.min(perPage, runningPage + 1);
         } catch(e){}
       }
       // Record provenance in qsources
       try {
-        await qsrc.insertOne({ lessonSlug, lessonTitle: lessonTitle||lessonSlug, sourceUrl: url, sourceName, pages: images.length, problems: storedProblems, createdAt: nowIso });
+        const imgs = images.map((p,i)=>({ page:i+1, pngPath:p }));
+        await qsrc.insertOne({ lessonSlug, lessonTitle: lessonTitle||lessonSlug, sourceUrl: url, sourceName, pages: images.length, dpi: DPI, jobId, images: imgs, problems: storedProblems, createdAt: nowIso, sourceType:'worksheet-ocr' });
       } catch {}
       await client3.close();
 
-      // Cleanup temp PNGs
-      try {
-        for (const f of fs.readdirSync(workDir)) fs.unlinkSync(path.join(workDir, f));
-        fs.rmdirSync(workDir);
-      } catch {}
+      // Keep PNGs for vision-clean to consume later (cleanup handled by ops)
 
       // Return a minimal structured view for OCR output consumers
       const structured = problems.map(p => ({ id: p.id, prompt: p.prompt, answer_fields: Array.isArray(p.answer_fields)? p.answer_fields: [], visual: p.visual || 'none' }));
@@ -1946,6 +1955,11 @@ async function bootstrap() {
   });
 
   // Vision-based math transcription to clean OCR stems into LaTeX
+  // Mount a GET alias for health checks/tools
+  app.all('/api/vision-clean', async (req, res) => {
+    return res.json({ ok:true, route:'/api/vision-clean', status:'ready' });
+  });
+
   app.post('/ai/worksheet/vision-clean', async (req, res) => {
     try {
       const { url, lessonSlug, limit } = req.body || {};
