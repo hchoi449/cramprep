@@ -1405,7 +1405,7 @@ async function bootstrap() {
       let images = [];
       const pdftoppm = runCmd('pdftoppm', ['-v']).code === 0;
       if (pdftoppm){
-        const out = runCmd('pdftoppm', ['-png', '-r', '300', pdfPath, path.join(workDir, 'page')]);
+        const out = runCmd('pdftoppm', ['-png', '-r', '400', pdfPath, path.join(workDir, 'page')]);
         if (out.code !== 0){ console.error('[pdftoppm]', out.stderr); }
         images = fs.readdirSync(workDir).filter(f => /page-?\d+\.png$/i.test(f)).map(f => path.join(workDir, f)).sort();
       }
@@ -1418,7 +1418,7 @@ async function bootstrap() {
           const pageCount = Math.min(pdfDoc.numPages || 1, 40);
           for (let p=1; p<=pageCount; p++){
             const page = await pdfDoc.getPage(p);
-            const viewport = page.getViewport({ scale: 3.0 });
+            const viewport = page.getViewport({ scale: 4.0 });
             const canvas = createCanvas(viewport.width, viewport.height);
             const ctx = canvas.getContext('2d');
             await page.render({ canvasContext: ctx, viewport }).promise;
@@ -1433,17 +1433,15 @@ async function bootstrap() {
       const hasMagick = runCmd('magick', ['-version']).code === 0 || runCmd('convert', ['-version']).code === 0;
       if (hasMagick){
         for (const img of images){
-          const outPath = img.replace(/\.png$/i, '.prep.png');
-          // Try magick first
-          let r = runCmd('magick', [img, '-colorspace', 'Gray', '-deskew', '40%', '-contrast-stretch', '2%x2%', '-filter', 'Gaussian', '-threshold', '50%', outPath]);
-          if (r.code !== 0){
-            // Fallback to convert
-            r = runCmd('convert', [img, '-colorspace', 'Gray', '-deskew', '40%', '-contrast-stretch', '2%x2%', '-filter', 'Gaussian', '-threshold', '50%', outPath]);
-          }
-          if (r.code === 0){
-            try { fs.unlinkSync(img); } catch {}
-            fs.renameSync(outPath, img);
-          }
+          const softPath = img.replace(/\.png$/i, '.soft.png');
+          const hardPath = img.replace(/\.png$/i, '.hard.png');
+          // Soft preprocessing: preserve fine math details
+          let r1 = runCmd('magick', [img, '-colorspace', 'Gray', '-deskew', '30%', '-contrast-stretch', '1%x1%', softPath]);
+          if (r1.code !== 0){ r1 = runCmd('convert', [img, '-colorspace', 'Gray', '-deskew', '30%', '-contrast-stretch', '1%x1%', softPath]); }
+          // Hard preprocessing: aggressive binarization for text
+          let r2 = runCmd('magick', [img, '-colorspace', 'Gray', '-deskew', '40%', '-contrast-stretch', '2%x2%', '-sharpen', '0x1', '-adaptive-threshold', '15x15+10', hardPath]);
+          if (r2.code !== 0){ r2 = runCmd('convert', [img, '-colorspace', 'Gray', '-deskew', '40%', '-contrast-stretch', '2%x2%', '-sharpen', '0x1', '-adaptive-threshold', '15x15+10', hardPath]); }
+          // Keep original + soft + hard for dual-pass OCR
         }
       }
 
@@ -1451,27 +1449,349 @@ async function bootstrap() {
       const hasTessCli = runCmd('tesseract', ['-v']).code === 0;
       const problems = [];
       let pid = 1;
+      function normalizeOcrText(input){
+        try {
+          let s = String(input || '');
+          // Normalize common unicode dashes and symbols
+          s = s.replace(/[\u2012\u2013\u2014\u2212]/g, '-'); // various dashes and minus
+          s = s.replace(/×/g, 'x');
+          // sqrt forms: "√x" or "sqrt(x)" -> "\\sqrt{x}"
+          s = s.replace(/√\s*\(\s*([^()]+)\s*\)/g, '\\sqrt{$1}');
+          s = s.replace(/√\s*([A-Za-z0-9]+)/g, '\\sqrt{$1}');
+          s = s.replace(/sqrt\s*\(\s*([^()]+)\s*\)/gi, '\\sqrt{$1}');
+          return s;
+        } catch { return String(input||''); }
+      }
+      // Parse Tesseract TSV into line-level records with bounding boxes
+      function parseTsvToLines(tsv){
+        const rows = String(tsv||'').split(/\n+/);
+        const header = rows.shift();
+        const cols = (header||'').split('\t');
+        const idx = {
+          level: cols.indexOf('level'), page_num: cols.indexOf('page_num'), block_num: cols.indexOf('block_num'),
+          par_num: cols.indexOf('par_num'), line_num: cols.indexOf('line_num'), word_num: cols.indexOf('word_num'),
+          left: cols.indexOf('left'), top: cols.indexOf('top'), width: cols.indexOf('width'), height: cols.indexOf('height'),
+          text: cols.indexOf('text')
+        };
+        const byLine = new Map();
+        for (const r of rows){
+          if (!r) continue;
+          const a = r.split('\t');
+          if (a.length < 12) continue;
+          const lineKey = `${a[idx.page_num]||'1'}:${a[idx.block_num]||'0'}:${a[idx.par_num]||'0'}:${a[idx.line_num]||'0'}`;
+          const left = Number(a[idx.left]||'0');
+          const top = Number(a[idx.top]||'0');
+          const width = Number(a[idx.width]||'0');
+          const height = Number(a[idx.height]||'0');
+          const text = a[idx.text]||'';
+          if (!text) continue;
+          const rec = byLine.get(lineKey) || { id: lineKey, words: [], left: Infinity, top: Infinity, right: 0, bottom: 0 };
+          rec.words.push({ text, left, top, width, height });
+          rec.left = Math.min(rec.left, left);
+          rec.top = Math.min(rec.top, top);
+          rec.right = Math.max(rec.right, left + width);
+          rec.bottom = Math.max(rec.bottom, top + height);
+          byLine.set(lineKey, rec);
+        }
+        const lines = Array.from(byLine.values()).map(l => ({
+          id: l.id,
+          text: normalizeOcrText(l.words.map(w=> w.text).join(' ').replace(/\s{2,}/g,' ').trim()),
+          left: l.left,
+          top: l.top,
+          width: Math.max(0, l.right - l.left),
+          height: Math.max(0, l.bottom - l.top)
+        })).filter(li => li.text && li.height > 0);
+        lines.sort((a,b)=> a.top - b.top || a.left - b.left);
+        return lines;
+      }
+      function horizOverlapFrac(a, b){
+        const ax0 = a.left, ax1 = a.left + a.width;
+        const bx0 = b.left, bx1 = b.left + b.width;
+        const inter = Math.max(0, Math.min(ax1, bx1) - Math.max(ax0, bx0));
+        const denom = Math.max(1, Math.min(a.width, b.width));
+        return inter / denom;
+      }
+      // Tiny vision pass: detect numeric anchors (1., 2., ...) positions on a page image
+      async function detectAnchorsWithVision(imgPath){
+        try {
+          const openaiKey = process.env.OPENAI_API_KEY || process.env.openai_api_key;
+          const visionFlag = String(req.query.vision || '').trim();
+          const enable = (visionFlag === '1' || /true|yes/i.test(visionFlag));
+          if (!openaiKey || !enable) return [];
+          const b64 = fs.readFileSync(imgPath).toString('base64');
+          const rsp = await fetch('https://api.openai.com/v1/responses', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${openaiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: 'gpt-4o',
+              response_format: { type: 'json_object' },
+              input: [
+                { role: 'system', content: 'Detect positions of numbered problem anchors like 1., 2., 3., 4. Return STRICT JSON only: {"anchors":[{"n":1,"x":int,"y":int,"w":int,"h":int}, ...]}. No extra text.' },
+                { role: 'user', content: [
+                  { type: 'input_text', text: 'Return anchors sorted by n. Coordinates are in the PNG pixel space.' },
+                  { type: 'input_image', image_url: { url: `data:image/png;base64,${b64}` } }
+                ] }
+              ]
+            })
+          });
+          const j = await rsp.json().catch(()=>({}));
+          const txt = String(j.output_text || '').trim();
+          let anchors = [];
+          try { anchors = JSON.parse(txt).anchors || []; } catch {}
+          if (!Array.isArray(anchors)) return [];
+          return anchors.map((a, i) => ({
+            id: `A${i+1}`,
+            n: Number(a && a.n) || (i+1),
+            left: Number(a && a.x) || 0,
+            top: Number(a && a.y) || 0,
+            width: Number(a && a.w) || 1,
+            height: Number(a && a.h) || 1
+          })).sort((a,b)=> (a.top - b.top) || (a.left - b.left));
+        } catch { return []; }
+      }
+      function buildProblemsFromLines(lines){
+        const out = [];
+        if (!lines || !lines.length) return out;
+        const avgH = lines.reduce((s,l)=> s + (l.height||0), 0) / Math.max(1, lines.length);
+        // Tolerate minor noise after number (., ), :, -, _)
+        const anchorRe = /^\s*\(?\d+\)?\s*[\.\):_\-]?\s+/;
+        const answerRe1 = /(domain|range|x-?intercept|y-?intercept|zeros|interval)\s*:\s*[_\-]{4,}/i;
+        const answerRe2 = /^[_\-]{6,}$/;
+        // collect anchor indices
+        const anchors = [];
+        for (let i=0;i<lines.length;i++){
+          if (anchorRe.test(lines[i].text)) anchors.push(i);
+        }
+        if (!anchors.length){
+          // fallback by gap
+          let acc = [];
+          for (let i=0;i<lines.length;i++){
+            const prev = acc.length ? acc[acc.length-1] : null;
+            if (prev && (lines[i].top - prev.top) > 1.75 * avgH){
+              out.push({ id: pid++, prompt: acc.map(x=> x.text).join(' '), answer_fields: [], visual: 'none' });
+              acc = [lines[i]];
+            } else acc.push(lines[i]);
+          }
+          if (acc.length) out.push({ id: pid++, prompt: acc.map(x=> x.text).join(' '), answer_fields: [], visual: 'none' });
+          return out;
+        }
+        anchors.push(lines.length);
+        for (let ai=0; ai<anchors.length-1; ai++){
+          const startIdx = anchors[ai];
+          const endIdx = anchors[ai+1];
+          const colRef = lines[startIdx];
+          const group = [colRef];
+          for (let j=startIdx+1; j<endIdx; j++){
+            const ln = lines[j];
+            const gap = ln.top - group[group.length-1].top;
+            const sameCol = horizOverlapFrac(colRef, ln) >= 0.3;
+            if (gap > 1.75 * avgH) break;
+            if (!sameCol) continue;
+            group.push(ln);
+          }
+          // answer fields near anchor within 1.5x problem height
+          const problemTop = group[0].top;
+          const problemBottom = group[group.length-1].top + group[group.length-1].height;
+          const problemHeight = Math.max(avgH, problemBottom - problemTop);
+          const maxAttachY = problemTop + 1.5 * problemHeight;
+          const answerFields = [];
+          for (let j=endIdx; j<lines.length && lines[j].top <= maxAttachY; j++){
+            const t = lines[j].text;
+            if (answerRe1.test(t)){
+              const m = t.match(/(domain|range|x-?intercept|y-?intercept|zeros|interval)/i);
+              if (m && !answerFields.includes(m[1])) answerFields.push(m[1]);
+            } else if (answerRe2.test(t)){
+              if (!answerFields.includes('blank')) answerFields.push('blank');
+            }
+          }
+          const prompt = group.map(g=> g.text).join(' ').replace(anchorRe, '').trim();
+          out.push({ id: pid++, prompt: prompt.slice(0, 800), answer_fields: answerFields, visual: 'none' });
+        }
+        return out;
+      }
+      function buildProblemsFromVision(lines, anchors){
+        try {
+          const out = [];
+          if (!Array.isArray(lines) || !lines.length || !Array.isArray(anchors) || !anchors.length) return out;
+          const sortedA = anchors.slice().sort((a,b)=> a.top - b.top);
+          for (let i=0; i<sortedA.length; i++){
+            const a = sortedA[i];
+            const nextTop = (sortedA[i+1] && sortedA[i+1].top) || Infinity;
+            const group = [];
+            for (const ln of lines){
+              if (ln.top >= a.top - 2 && ln.top < nextTop - 2) group.push(ln);
+            }
+            if (!group.length) continue;
+            const prompt = group.map(g=> g.text).join(' ').trim();
+            out.push({ id: pid++, prompt: prompt.slice(0,800), answer_fields: [], visual: 'none', anchor: { left:a.left, top:a.top, width: Math.max(1,a.width), height: Math.max(1,a.height) } });
+          }
+          return out;
+        } catch { return []; }
+      }
+      function detectSectionLines(lines){
+        const out = [];
+        const secRe = /(use the graph of the function|answer the following questions using the graph)/i;
+        for (const ln of lines){ if (secRe.test(ln.text)) out.push(ln); }
+        return out;
+      }
+      function assignVisualsToProblems(pageHeight, visuals, problemsPage, lines){
+        function horizOverlap(a, b){ return horizOverlapFrac(a, b); }
+        const attachmentsById = new Map();
+        for (const pr of problemsPage) attachmentsById.set(pr.id, new Set());
+        // Shared visuals via section anchors
+        const sections = detectSectionLines(lines || []);
+        if (visuals && visuals.length && sections && sections.length){
+          const visSorted = visuals.slice().sort((a,b)=> a.top - b.top);
+          for (const sec of sections){
+            const below = visSorted.filter(v => v.top > sec.top);
+            if (!below.length) continue;
+            const shared = below[0];
+            const nextSecTop = (sections.find(s => s.top > sec.top) || { top: pageHeight }).top;
+            const nextVisTop = (visSorted.find(v => v.top > shared.top) || { top: pageHeight }).top;
+            const scopeEnd = Math.min(nextSecTop, nextVisTop, pageHeight);
+            for (const pr of problemsPage){
+              const at = pr.anchor || { top:0, left:0, width:0, height:0 };
+              if (at.top > sec.top && at.top < scopeEnd){ attachmentsById.get(pr.id).add(shared.id); }
+            }
+          }
+        }
+        // Single-problem visuals via scoring
+        if (visuals && visuals.length){
+          for (const pr of problemsPage){
+            const at = pr.anchor || { top:0, left:0, width:0, height:0 };
+            const candidates = visuals.filter(v => v.top > at.top);
+            let best = null; let bestScore = Infinity;
+            for (const v of candidates){
+              const vDist = v.top - at.top;
+              const overlap = horizOverlap(at, v);
+              const sameColBonus = overlap >= 0.3 ? 1 : 0;
+              const score = vDist - 0.6 * overlap - 0.2 * sameColBonus;
+              const withinRadius = vDist <= (pageHeight / 3);
+              const overlapOk = overlap >= 0.25;
+              if (withinRadius && overlapOk && score < bestScore){ bestScore = score; best = v; }
+            }
+            if (best){ attachmentsById.get(pr.id).add(best.id); }
+          }
+        }
+        const out = new Map();
+        for (const pr of problemsPage){ out.set(pr.id, Array.from(attachmentsById.get(pr.id) || new Set())); }
+        return out;
+      }
+      function isInstructionLine(ln){
+        try {
+          const s = String(ln||'').trim();
+          if (!s) return false;
+          if (/^(\(?\d+\)?[.)]|[A-D][.)])\s+/.test(s)) return false; // looks like numbered or lettered item
+          const longEnough = s.length >= 40;
+          const hasKeyword = /(find|determine|solve|instructions|for the following|for each|calculate|evaluate|given|use|identify|compute|round|graph|sketch|simplify|factor|domain|range|intercept|show|prove)/i.test(s);
+          return longEnough && hasKeyword;
+        } catch { return false; }
+      }
+      function extractInstructions(lines){
+        const out = [];
+        try {
+          for (const ln of lines){ if (isInstructionLine(ln)) out.push(ln); }
+        } catch {}
+        return out.slice(0, 8);
+      }
+      // If OCR merged multiple problems into one line like "1. ... 2. ...",
+      // split that line into multiple logical lines using mid-line anchors
+      function expandLinesByInternalAnchors(lines){
+        const out = [];
+        const midAnchor = /(\s|^)\d+\s*[\.\):_\-]?\s+/g; // matches in-line noisy anchors like " 2." or " 4_ "
+        const funcAnchor = /\b([a-zA-Z])\(x\)\s*=/g; // split on f(x)=, g(x)=, etc.
+        for (const li of (lines||[])){
+          const t = String(li.text||'');
+          let indices = [];
+          let m;
+          // find all anchor starts (excluding very first at index 0 to keep as-is)
+          while ((m = midAnchor.exec(t)) !== null){
+            const start = m.index + m[1].length; // after leading space if any
+            if (start === 0) continue; // start-of-line anchor handled naturally
+            indices.push(start);
+          }
+          // also split before occurrences of letter(x)=
+          while ((m = funcAnchor.exec(t)) !== null){
+            const start = m.index; if (start>0) indices.push(start);
+          }
+          if (!indices.length){ out.push(li); continue; }
+          // build segments
+          const cuts = [0, ...Array.from(new Set(indices))].sort((a,b)=>a-b);
+          for (let i=0;i<cuts.length;i++){
+            const a = cuts[i];
+            const b = i+1<cuts.length ? cuts[i+1] : t.length;
+            const seg = t.slice(a, b).trim();
+            if (!seg) continue;
+            out.push({ ...li, text: seg });
+          }
+        }
+        // keep original ordering by top then left
+        out.sort((a,b)=> (a.top - b.top) || (a.left - b.left));
+        return out;
+      }
+      function isInstructionText(txt){
+        try {
+          const s = String(txt||'').trim();
+          if (!s) return false;
+          if (isInstructionLine(s)) return true;
+          if (/(use the graph of the function|answer the following questions using the graph)/i.test(s)) return true;
+          return false;
+        } catch { return false; }
+      }
+      const allInstructionLines = new Set();
+      const allLinesPool = [];
       for (const img of images){
         let text = '';
+        let linesWithBbox = [];
         if (hasTessCli){
-          const r = runCmd('tesseract', [img, 'stdout', '-l', 'eng']);
-          if (r.code === 0) text = r.stdout; else console.error('[tesseract cli]', r.stderr);
+          // Attempt OCR on original + dual preprocessed variants and union lines
+          const variants = [img, img.replace(/\.png$/i, '.soft.png'), img.replace(/\.png$/i, '.hard.png')].filter(p=> fs.existsSync(p));
+          const union = new Map();
+          for (const v of variants){
+            for (const psm of ['6','3']){
+              const r = runCmd('tesseract', [v, 'stdout', '-l', 'eng', '--psm', psm, '-c', 'preserve_interword_spaces=1', 'tsv']);
+              if (r.code === 0){
+                const ls = parseTsvToLines(r.stdout);
+                for (const li of ls){ union.set(`${li.top}:${li.left}:${li.text}`, li); }
+              } else { console.error('[tesseract cli]', r.stderr); }
+            }
+          }
+          linesWithBbox = Array.from(union.values()).sort((a,b)=> a.top - b.top || a.left - b.left);
+          text = linesWithBbox.map(l=> l.text).join('\n');
         } else {
           try {
             const o = await Tesseract.recognize(fs.readFileSync(img), 'eng', { logger:()=>{} });
             text = (o && o.data && o.data.text) || '';
+            // Optional: attempt line boxes from Tesseract.js result if available
+            try {
+              const linesJs = Array.isArray(o?.data?.lines) ? o.data.lines : [];
+              linesWithBbox = linesJs.map(li => ({
+                id: `${li.block_num||0}:${li.par_num||0}:${li.line_num||0}`,
+                text: normalizeOcrText(String(li.text||'')),
+                left: Number(li.bbox?.x0 ?? 0),
+                top: Number(li.bbox?.y0 ?? 0),
+                width: Number((li.bbox ? (li.bbox.x1 - li.bbox.x0) : 0)),
+                height: Number((li.bbox ? (li.bbox.y1 - li.bbox.y0) : 0))
+              })).filter(li => li.text);
+            } catch {}
           } catch(e){ console.error('[tesseract.js]', e); }
         }
-        // naive split into problem-like chunks by line prefixes (e.g., numbers/letters)
-        const lines = String(text||'').split(/\n+/).map(s=>s.trim()).filter(Boolean);
-        const chunks = [];
-        let acc = [];
-        for (const ln of lines){
-          if (/^(\(?\d+\)?[.)]|[A-Z][.)])\s+/.test(ln) && acc.length){ chunks.push(acc.join(' ')); acc = [ln]; }
-          else acc.push(ln);
-        }
-        if (acc.length) chunks.push(acc.join(' '));
-        // simple visual tag heuristics
+        // Post-OCR normalization to improve math fidelity (e.g., square roots)
+        text = normalizeOcrText(text);
+        // Build line list (prefer bbox lines)
+        let lines = (linesWithBbox && linesWithBbox.length)
+          ? linesWithBbox
+          : String(text||'').split(/\n+/).map(s=> ({ text: s.trim(), left:0, top:0, width:0, height:0 })).filter(li => li.text);
+        // Expand mid-line anchors for both bbox and fallback lines
+        try { if (linesWithBbox && linesWithBbox.length) linesWithBbox = expandLinesByInternalAnchors(linesWithBbox); } catch {}
+        // Expand mid-line anchors (e.g., "... 2. ...") to separate logical lines
+        try { lines = expandLinesByInternalAnchors(lines); } catch {}
+        try { allLinesPool.push(...(Array.isArray(lines) ? lines.map(li=> li.text) : [])); } catch {}
+        try { for (const l of extractInstructions(lines.map(li=> li.text))) allInstructionLines.add(l); } catch {}
+        // Per-page visuals placeholder (detection TBD)
+        const pageHeight = lines.reduce((m,li)=> Math.max(m, li.top + li.height), 0) || 1000;
+        const visuals = [];
+        // simple visual tag heuristics (placeholder)
         function tagVisual(txt){
           const s = txt.toLowerCase();
           if (/coordinate|axis|axes|plot|graph|slope|y\s*=|x\s*=/.test(s)) return 'graph';
@@ -1479,9 +1799,32 @@ async function bootstrap() {
           if (/table|row|column|cells|\|\s*\|/.test(s)) return 'table';
           return 'none';
         }
-        for (const c of chunks){
-          // build minimal JSON
-          problems.push({ id: pid++, prompt: c.slice(0, 500), answer_fields: [], visual: tagVisual(c) });
+        // Build problems using anchor-based grouping when bbox present; fallback otherwise
+        let built = [];
+        let visionAnchors = [];
+        try { visionAnchors = await detectAnchorsWithVision(img); } catch {}
+        if (!built.length && visionAnchors.length && linesWithBbox && linesWithBbox.length){
+          built = buildProblemsFromVision(linesWithBbox, visionAnchors);
+        }
+        if (linesWithBbox && linesWithBbox.length && !built.length){
+          built = buildProblemsFromLines(linesWithBbox);
+        } else if (!linesWithBbox || !linesWithBbox.length){
+          const flat = lines.map(li=> li.text);
+          const chunks = [];
+          let acc = [];
+          for (const ln of flat){
+            if (/^(\(?\d+\)?[.)]|[A-Z][.)])\s+/.test(ln) && acc.length){ chunks.push(acc.join(' ')); acc = [ln]; }
+            else acc.push(ln);
+          }
+          if (acc.length) chunks.push(acc.join(' '));
+          built = chunks.map(c => ({ id: pid++, prompt: c.slice(0, 800), answer_fields: [], visual: 'none' }));
+        }
+        // Filter out instruction-only blocks
+        built = built.filter(pr => !isInstructionText(pr.prompt));
+        // Assign visuals per scoring and section rules
+        const attachMap = assignVisualsToProblems(pageHeight, visuals, built, (linesWithBbox && linesWithBbox.length ? linesWithBbox : []));
+        for (const pr of built){
+          problems.push({ id: pr.id, prompt: pr.prompt, answer_fields: pr.answer_fields||[], visual: pr.visual || tagVisual(pr.prompt), attachments: attachMap.get(pr.id) || [] });
         }
       }
 
@@ -1490,10 +1833,28 @@ async function bootstrap() {
       await client3.connect();
       const col = await getQuestionCollection(client3);
       const nowIso = new Date().toISOString();
+      // Optional wipe of previous OCR docs for this lesson
+      try {
+        const wipeFlag = (req.query && (req.query.wipe==='1' || /true|yes/i.test(String(req.query.wipe)))) || (!!req.body && (req.body.wipe===true));
+        if (wipeFlag){
+          await col.deleteMany({ lessonSlug, generator: 'worksheet-ocr' });
+        }
+      } catch {}
+      let worksheetInstruction = Array.from(allInstructionLines).join(' ').slice(0, 1200);
+      if (!worksheetInstruction){
+        try {
+          const candidates = Array.from(new Set(allLinesPool.filter(l=> l && !/^(\(?\d+\)?[.)]|[A-D][.)])\s+/.test(l))))
+            .sort((a,b)=> b.length - a.length);
+          const best = candidates.find(s=> s.length >= 50) || candidates[0] || '';
+          worksheetInstruction = String(best||'').slice(0, 1200);
+        } catch {}
+      }
+      // Backfill/update instruction on existing OCR docs for this lesson
+      try { if (worksheetInstruction) await col.updateMany({ lessonSlug, generator:'worksheet-ocr' }, { $set: { worksheetInstruction } }); } catch {}
       let inserted = 0;
       for (const p of problems.slice(0, 50)){ // cap for safety
         try {
-          await col.insertOne({ lessonSlug, lessonTitle: lessonTitle||lessonSlug, book: resolveBookForLessonFromRepo(lessonSlug) || null, stem: p.prompt, options: ['\\(A\\)','\\(B\\)','\\(C\\)','\\(D\\)'], correct: 0, solution: '', answer: '\\(A\\)', answerPlain: 'A', graph: p.visual==='graph'?{}:undefined, numberLine: p.visual==='number_line'?{}:undefined, table: p.visual==='table'?{headers:[],rows:[]}:undefined, citations: [], difficulty: 'medium', sourceHash: sha256Hex(lessonSlug+'|'+p.prompt), generatedAt: nowIso, generator: 'worksheet-ocr' });
+          await col.insertOne({ lessonSlug, lessonTitle: lessonTitle||lessonSlug, book: resolveBookForLessonFromRepo(lessonSlug) || null, stem: p.prompt, options: ['\\(A\\)','\\(B\\)','\\(C\\)','\\(D\\)'], correct: 0, solution: '', answer: '\\(A\\)', answerPlain: 'A', graph: p.visual==='graph'?{}:undefined, numberLine: p.visual==='number_line'?{}:undefined, table: p.visual==='table'?{headers:[],rows:[]}:undefined, citations: [], difficulty: 'medium', sourceHash: sha256Hex(lessonSlug+'|'+p.prompt), generatedAt: nowIso, generator: 'worksheet-ocr', worksheetInstruction: worksheetInstruction || undefined });
           inserted++;
         } catch(e){}
       }
@@ -1505,7 +1866,10 @@ async function bootstrap() {
         fs.rmdirSync(workDir);
       } catch {}
 
-      return res.json({ ok:true, pages: images.length, extracted: problems.length, inserted });
+      // Return a minimal structured view for OCR output consumers
+      const structured = problems.map(p => ({ id: p.id, prompt: p.prompt, answer_fields: Array.isArray(p.answer_fields)? p.answer_fields: [], visual: p.visual || 'none' }));
+      const preview = structured.slice(0, 10);
+      return res.json({ ok:true, pages: images.length, extracted: problems.length, inserted, structured: structured.slice(0, 50), preview });
     } catch (e){ console.error('[worksheet-process] exception', e); return res.status(500).json({ error:'worksheet_process_exception', detail: String(e && e.message || e) }); }
   });
 
