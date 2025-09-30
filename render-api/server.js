@@ -574,6 +574,7 @@ async function bootstrap() {
   const QUESTIONS_COL = 'questionbank';
   const INGEST_COL = 'textbook_chunks';
   const SESSIONS_COL = 'practice_sessions';
+  const QSOURCES_COL = 'qsources';
 
   async function getQuestionCollection(client){
     const col = client.db(QUESTIONS_DB).collection(QUESTIONS_COL);
@@ -605,6 +606,15 @@ async function bootstrap() {
     const col = client.db(QUESTIONS_DB).collection(SESSIONS_COL);
     try {
       await col.createIndex({ lessonSlug: 1, createdAt: -1 });
+    } catch(err){}
+    return col;
+  }
+
+  async function getQSourcesCollection(client){
+    const col = client.db(QUESTIONS_DB).collection(QSOURCES_COL);
+    try {
+      await col.createIndex({ lessonSlug: 1, createdAt: -1 });
+      await col.createIndex({ sourceHash: 1 }, { unique: false });
     } catch(err){}
     return col;
   }
@@ -1554,7 +1564,7 @@ async function bootstrap() {
         if (!lines || !lines.length) return out;
         const avgH = lines.reduce((s,l)=> s + (l.height||0), 0) / Math.max(1, lines.length);
         // Tolerate minor noise after number (., ), :, -, _)
-        const anchorRe = /^\s*\(?\d+\)?\s*[\.\):_\-]?\s+/;
+        const anchorRe = /^\s*\(?\d+\)?\s*(?:[\.:)_\-]|=)?\s+/;
         const answerRe1 = /(domain|range|x-?intercept|y-?intercept|zeros|interval)\s*:\s*[_\-]{4,}/i;
         const answerRe2 = /^[_\-]{6,}$/;
         // collect anchor indices
@@ -1609,6 +1619,25 @@ async function bootstrap() {
         }
         return out;
       }
+  // Heuristic column splitter using line left positions; returns [ [lines col1], [lines col2], ... ]
+  function splitLinesIntoColumns(lines){
+    try {
+      if (!Array.isArray(lines) || lines.length < 8) return [lines];
+      const rightMost = lines.reduce((m,l)=> Math.max(m, l.left + l.width), 0) || 1;
+      const centers = Array.from(new Set(lines.map(l=> l.left + l.width/2))).sort((a,b)=> a-b);
+      let best = { gap: 0, at: null };
+      for (let i=1; i<centers.length; i++){
+        const gap = centers[i] - centers[i-1];
+        if (gap > best.gap) best = { gap, at: (centers[i] + centers[i-1]) / 2 };
+      }
+      if (!best.at || best.gap < 0.12 * rightMost) return [lines];
+      const mid = best.at;
+      const col1 = lines.filter(l => (l.left + l.width/2) < mid).sort((a,b)=> a.top - b.top || a.left - b.left);
+      const col2 = lines.filter(l => (l.left + l.width/2) >= mid).sort((a,b)=> a.top - b.top || a.left - b.left);
+      if (col1.length < 3 || col2.length < 3) return [lines];
+      return [col1, col2];
+    } catch { return [lines]; }
+  }
       function buildProblemsFromVision(lines, anchors){
         try {
           const out = [];
@@ -1799,26 +1828,38 @@ async function bootstrap() {
           if (/table|row|column|cells|\|\s*\|/.test(s)) return 'table';
           return 'none';
         }
-        // Build problems using anchor-based grouping when bbox present; fallback otherwise
-        let built = [];
-        let visionAnchors = [];
-        try { visionAnchors = await detectAnchorsWithVision(img); } catch {}
-        if (!built.length && visionAnchors.length && linesWithBbox && linesWithBbox.length){
-          built = buildProblemsFromVision(linesWithBbox, visionAnchors);
-        }
-        if (linesWithBbox && linesWithBbox.length && !built.length){
-          built = buildProblemsFromLines(linesWithBbox);
-        } else if (!linesWithBbox || !linesWithBbox.length){
-          const flat = lines.map(li=> li.text);
-          const chunks = [];
-          let acc = [];
-          for (const ln of flat){
-            if (/^(\(?\d+\)?[.)]|[A-Z][.)])\s+/.test(ln) && acc.length){ chunks.push(acc.join(' ')); acc = [ln]; }
-            else acc.push(ln);
+      // Build problems using anchor-based grouping; supports optional vision anchors and column splits
+      let built = [];
+      let visionAnchors = [];
+      try { visionAnchors = await detectAnchorsWithVision(img); } catch {}
+      if (linesWithBbox && linesWithBbox.length){
+        const cols = splitLinesIntoColumns(linesWithBbox);
+        for (const col of cols){
+          let added = false;
+          if (visionAnchors && visionAnchors.length){
+            const minX = Math.min(...col.map(l=> l.left));
+            const maxX = Math.max(...col.map(l=> l.left + l.width));
+            const anchorsInCol = visionAnchors.filter(a => (a.left >= minX - 8) && (a.left <= maxX + 8));
+            if (anchorsInCol.length){
+              built = built.concat(buildProblemsFromVision(col, anchorsInCol));
+              added = true;
+            }
           }
-          if (acc.length) chunks.push(acc.join(' '));
-          built = chunks.map(c => ({ id: pid++, prompt: c.slice(0, 800), answer_fields: [], visual: 'none' }));
+          if (!added){
+            built = built.concat(buildProblemsFromLines(col));
+          }
         }
+      } else {
+        const flat = lines.map(li=> li.text);
+        const chunks = [];
+        let acc = [];
+        for (const ln of flat){
+          if (/^(\(?\d+\)?[.)]|[A-Z][.)])\s+/.test(ln) && acc.length){ chunks.push(acc.join(' ')); acc = [ln]; }
+          else acc.push(ln);
+        }
+        if (acc.length) chunks.push(acc.join(' '));
+        built = chunks.map(c => ({ id: pid++, prompt: c.slice(0, 800), answer_fields: [], visual: 'none' }));
+      }
         // Filter out instruction-only blocks
         built = built.filter(pr => !isInstructionText(pr.prompt));
         // Assign visuals per scoring and section rules
@@ -1832,6 +1873,7 @@ async function bootstrap() {
       const client3 = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
       await client3.connect();
       const col = await getQuestionCollection(client3);
+      const qsrc = await getQSourcesCollection(client3);
       const nowIso = new Date().toISOString();
       // Optional wipe of previous OCR docs for this lesson
       try {
@@ -1840,6 +1882,13 @@ async function bootstrap() {
           await col.deleteMany({ lessonSlug, generator: 'worksheet-ocr' });
         }
       } catch {}
+      // Derive worksheet source name
+      let sourceName = '';
+      try {
+        const u = new URL(url);
+        const last = (u.pathname || '').split('/').filter(Boolean).pop() || '';
+        sourceName = last && /\.pdf$/i.test(last) ? last : `${lessonTitle||lessonSlug}.pdf`;
+      } catch { sourceName = `${lessonTitle||lessonSlug}.pdf`; }
       let worksheetInstruction = Array.from(allInstructionLines).join(' ').slice(0, 1200);
       if (!worksheetInstruction){
         try {
@@ -1852,12 +1901,19 @@ async function bootstrap() {
       // Backfill/update instruction on existing OCR docs for this lesson
       try { if (worksheetInstruction) await col.updateMany({ lessonSlug, generator:'worksheet-ocr' }, { $set: { worksheetInstruction } }); } catch {}
       let inserted = 0;
+      const storedProblems = [];
       for (const p of problems.slice(0, 50)){ // cap for safety
         try {
-          await col.insertOne({ lessonSlug, lessonTitle: lessonTitle||lessonSlug, book: resolveBookForLessonFromRepo(lessonSlug) || null, stem: p.prompt, options: ['\\(A\\)','\\(B\\)','\\(C\\)','\\(D\\)'], correct: 0, solution: '', answer: '\\(A\\)', answerPlain: 'A', graph: p.visual==='graph'?{}:undefined, numberLine: p.visual==='number_line'?{}:undefined, table: p.visual==='table'?{headers:[],rows:[]}:undefined, citations: [], difficulty: 'medium', sourceHash: sha256Hex(lessonSlug+'|'+p.prompt), generatedAt: nowIso, generator: 'worksheet-ocr', worksheetInstruction: worksheetInstruction || undefined });
+          const doc = { lessonSlug, lessonTitle: lessonTitle||lessonSlug, book: resolveBookForLessonFromRepo(lessonSlug) || null, stem: p.prompt, options: ['\\(A\\)','\\(B\\)','\\(C\\)','\\(D\\)'], correct: 0, solution: '', answer: '\\(A\\)', answerPlain: 'A', graph: p.visual==='graph'?{}:undefined, numberLine: p.visual==='number_line'?{}:undefined, table: p.visual==='table'?{headers:[],rows:[]}:undefined, citations: [], difficulty: 'medium', sourceHash: sha256Hex(lessonSlug+'|'+p.prompt), generatedAt: nowIso, generator: 'worksheet-ocr', worksheetInstruction: worksheetInstruction || undefined, source: { name: sourceName, url } };
+          await col.insertOne(doc);
           inserted++;
+          storedProblems.push({ id: p.id, prompt: p.prompt, answer_fields: Array.isArray(p.answer_fields)? p.answer_fields: [], visual: p.visual||'none' });
         } catch(e){}
       }
+      // Record provenance in qsources
+      try {
+        await qsrc.insertOne({ lessonSlug, lessonTitle: lessonTitle||lessonSlug, sourceUrl: url, sourceName, pages: images.length, problems: storedProblems, createdAt: nowIso });
+      } catch {}
       await client3.close();
 
       // Cleanup temp PNGs
@@ -1871,6 +1927,88 @@ async function bootstrap() {
       const preview = structured.slice(0, 10);
       return res.json({ ok:true, pages: images.length, extracted: problems.length, inserted, structured: structured.slice(0, 50), preview });
     } catch (e){ console.error('[worksheet-process] exception', e); return res.status(500).json({ error:'worksheet_process_exception', detail: String(e && e.message || e) }); }
+  });
+
+  // Vision-based math transcription to clean OCR stems into LaTeX
+  app.post('/ai/worksheet/vision-clean', async (req, res) => {
+    try {
+      const { url, lessonSlug, limit } = req.body || {};
+      if (!url || !lessonSlug) return res.status(400).json({ error:'url and lessonSlug required' });
+      const openaiKey = process.env.OPENAI_API_KEY || process.env.openai_api_key;
+      if (!openaiKey) return res.status(500).json({ error:'missing_OPENAI_API_KEY' });
+
+      // Download PDF and render first page to PNG (fast path for single-page worksheets)
+      const workDir = path.resolve(__dirname, `../tmp_vis_${Date.now()}`);
+      fs.mkdirSync(workDir, { recursive: true });
+      const pdfResp = await fetch(url);
+      if (!pdfResp.ok) return res.status(400).json({ error:'fetch_failed' });
+      const pdfBuf = Buffer.from(await pdfResp.arrayBuffer());
+      const pdfPath = path.join(workDir, 'ws.pdf');
+      fs.writeFileSync(pdfPath, pdfBuf);
+      const images = [];
+      try {
+        const pdfjsLib = require('pdfjs-dist');
+        const loadingTask = pdfjsLib.getDocument({ data: pdfBuf });
+        const pdfDoc = await loadingTask.promise;
+        const page = await pdfDoc.getPage(1);
+        const viewport = page.getViewport({ scale: 4.0 });
+        const canvas = createCanvas(viewport.width, viewport.height);
+        const ctx = canvas.getContext('2d');
+        await page.render({ canvasContext: ctx, viewport }).promise;
+        const imgPath = path.join(workDir, `page-1.png`);
+        fs.writeFileSync(imgPath, canvas.toBuffer('image/png'));
+        images.push(imgPath);
+      } catch(e){ try { fs.rmSync(workDir, { recursive:true, force:true }); } catch{}; return res.status(500).json({ error:'render_failed' }); }
+
+      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+      await client.connect();
+      const col = await getQuestionCollection(client);
+      const docs = await col.find({ lessonSlug, generator:'worksheet-ocr' }).sort({ generatedAt: -1 }).limit(Math.max(1, Math.min(20, Number(limit)||10))).toArray();
+
+      const OpenAI = require('openai');
+      const oai = new OpenAI({ apiKey: openaiKey });
+      const imgB64 = fs.readFileSync(images[0]).toString('base64');
+
+      async function transcribeOne(noisy){
+        const instruction = 'Transcribe the math expression(s) precisely from the image. Prefer LaTeX. If multiple small expressions are visible for this item, return a single LaTeX line that represents the item clearly.';
+        const user = [
+          noisy && noisy.stem ? `Noisy OCR hint: ${String(noisy.stem).slice(0,200)}` : 'Noisy OCR hint: (none)',
+          'Return STRICT JSON: {"latex":"..."}.'
+        ].join('\n');
+        try {
+          const rsp = await fetch('https://api.openai.com/v1/responses', {
+            method:'POST', headers:{ 'Authorization': `Bearer ${openaiKey}`, 'Content-Type':'application/json' },
+            body: JSON.stringify({
+              model:'gpt-4o', response_format:{ type:'json_object' },
+              input:[
+                { role:'system', content: instruction },
+                { role:'user', content:[ { type:'input_text', text: user }, { type:'input_image', image_url:{ url:`data:image/png;base64,${imgB64}` } } ] }
+              ]
+            })
+          });
+          const j = await rsp.json().catch(()=>({}));
+          const txt = String(j.output_text||'').trim();
+          let out = { latex:'' }; try { out = JSON.parse(txt); } catch{}
+          let latex = String(out && out.latex || '').trim();
+          if (latex && !/^\\\(|\\\[/.test(latex)) latex = `\\(${latex}\\)`;
+          if (latex) return latex;
+        } catch{}
+        return null;
+      }
+
+      let updated = 0; const results = [];
+      for (const d of docs){
+        const latex = await transcribeOne(d);
+        if (latex){
+          await col.updateOne({ _id: d._id }, { $set: { stem: latex } });
+          updated++;
+          results.push({ id: String(d._id), stem: latex });
+        }
+      }
+      await client.close();
+      try { fs.rmSync(workDir, { recursive:true, force:true }); } catch{}
+      return res.json({ ok:true, updated, results });
+    } catch (e){ console.error('[worksheet-vision-clean] exception', e); return res.status(500).json({ error:'worksheet_vision_clean_exception', detail: String(e && e.message || e) }); }
   });
 
   // Agent 1: Generate and store ≥30 questions for a lesson
