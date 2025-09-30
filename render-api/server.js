@@ -2027,11 +2027,14 @@ async function bootstrap() {
           'Return STRICT JSON: {"latex":"..."}.'
         ].join('\n');
         try {
-          // Choose PNG: prefer per-item path captured during OCR; otherwise first rendered page
-          let pngPath = String(noisy && noisy.pngPath || '').trim();
-          if (!pngPath || !fs.existsSync(pngPath)) pngPath = images[0];
-          if (!pngPath || !fs.existsSync(pngPath)) return null;
-          const imgB64 = fs.readFileSync(pngPath).toString('base64');
+          // Choose image: prefer embedded base64; else per-item path; else first rendered page
+          let imgB64 = String(noisy && noisy.imageB64 || '').trim();
+          if (!imgB64){
+            let pngPath = String(noisy && noisy.pngPath || '').trim();
+            if (!pngPath || !fs.existsSync(pngPath)) pngPath = images[0];
+            if (pngPath && fs.existsSync(pngPath)) imgB64 = fs.readFileSync(pngPath).toString('base64');
+          }
+          if (!imgB64) return null;
           const rsp = await fetch('https://api.openai.com/v1/responses', {
             method:'POST', headers:{ 'Authorization': `Bearer ${openaiKey}`, 'Content-Type':'application/json' },
             body: JSON.stringify({
