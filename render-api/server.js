@@ -1967,44 +1967,46 @@ async function bootstrap() {
   app.post('/ai/worksheet/vision-clean', async (req, res) => {
     try {
       const { url, lessonSlug, limit } = req.body || {};
-      if (!url || !lessonSlug) return res.status(400).json({ error:'url and lessonSlug required' });
+      if (!lessonSlug) return res.status(400).json({ error:'lessonSlug required' });
       const openaiKey = process.env.OPENAI_API_KEY || process.env.openai_api_key;
       if (!openaiKey) return res.status(500).json({ error:'missing_OPENAI_API_KEY' });
 
-      // Download PDF
+      // Optionally download PDF if a URL is provided; otherwise rely on stored imageB64/pngPath
       const workDir = path.resolve(__dirname, `../tmp_vis_${Date.now()}`);
       fs.mkdirSync(workDir, { recursive: true });
-      const pdfResp = await fetch(url);
-      if (!pdfResp.ok) return res.status(400).json({ error:'fetch_failed' });
-      const pdfBuf = Buffer.from(await pdfResp.arrayBuffer());
-      const pdfPath = path.join(workDir, 'ws.pdf');
-      fs.writeFileSync(pdfPath, pdfBuf);
-      const { spawnSync } = require('child_process');
       const images = [];
-      // Try pdftoppm first
-      const havePdftoppm = spawnSync('pdftoppm', ['-v'], { encoding:'utf8' }).status === 0;
-      if (havePdftoppm){
-        const r = spawnSync('pdftoppm', ['-png', '-r', '400', pdfPath, path.join(workDir, 'page')], { encoding:'utf8' });
-        if (r.status === 0){
-          for (const f of fs.readdirSync(workDir)) if (/page-?\d+\.png$/i.test(f)) images.push(path.join(workDir, f));
-          images.sort();
+      if (url){
+        const pdfResp = await fetch(url);
+        if (!pdfResp.ok) return res.status(400).json({ error:'fetch_failed' });
+        const pdfBuf = Buffer.from(await pdfResp.arrayBuffer());
+        const pdfPath = path.join(workDir, 'ws.pdf');
+        fs.writeFileSync(pdfPath, pdfBuf);
+        const { spawnSync } = require('child_process');
+        // Try pdftoppm first
+        const havePdftoppm = spawnSync('pdftoppm', ['-v'], { encoding:'utf8' }).status === 0;
+        if (havePdftoppm){
+          const r = spawnSync('pdftoppm', ['-png', '-r', '400', pdfPath, path.join(workDir, 'page')], { encoding:'utf8' });
+          if (r.status === 0){
+            for (const f of fs.readdirSync(workDir)) if (/page-?\d+\.png$/i.test(f)) images.push(path.join(workDir, f));
+            images.sort();
+          }
         }
-      }
-      // Fallback to pdfjs if pdftoppm failed
-      if (!images.length){
-        try {
-          const pdfjsLib = require('pdfjs-dist');
-          const loadingTask = pdfjsLib.getDocument({ data: pdfBuf });
-          const pdfDoc = await loadingTask.promise;
-          const page = await pdfDoc.getPage(1);
-          const viewport = page.getViewport({ scale: 4.0 });
-          const canvas = createCanvas(viewport.width, viewport.height);
-          const ctx = canvas.getContext('2d');
-          await page.render({ canvasContext: ctx, viewport }).promise;
-          const imgPath = path.join(workDir, `page-1.png`);
-          fs.writeFileSync(imgPath, canvas.toBuffer('image/png'));
-          images.push(imgPath);
-        } catch(e){ try { fs.rmSync(workDir, { recursive:true, force:true }); } catch{}; return res.status(500).json({ error:'render_failed' }); }
+        // Fallback to pdfjs if pdftoppm failed
+        if (!images.length){
+          try {
+            const pdfjsLib = require('pdfjs-dist');
+            const loadingTask = pdfjsLib.getDocument({ data: pdfBuf });
+            const pdfDoc = await loadingTask.promise;
+            const page = await pdfDoc.getPage(1);
+            const viewport = page.getViewport({ scale: 4.0 });
+            const canvas = createCanvas(viewport.width, viewport.height);
+            const ctx = canvas.getContext('2d');
+            await page.render({ canvasContext: ctx, viewport }).promise;
+            const imgPath = path.join(workDir, `page-1.png`);
+            fs.writeFileSync(imgPath, canvas.toBuffer('image/png'));
+            images.push(imgPath);
+          } catch(e){ try { fs.rmSync(workDir, { recursive:true, force:true }); } catch{}; return res.status(500).json({ error:'render_failed' }); }
+        }
       }
 
       const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
