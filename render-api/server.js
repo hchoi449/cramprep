@@ -1380,6 +1380,135 @@ async function bootstrap() {
     } catch (e){ console.error('[assist-v2] exception', e); return res.status(500).json({ error:'assist_v2_exception', detail: String(e && e.message || e) }); }
   });
 
+  // Worksheet pipeline: PDF -> high-DPI PNGs -> preprocess -> OCR -> simple visual tags -> JSON -> (optionally) GPT-4o -> MongoDB
+  app.post('/ai/worksheet/process', async (req, res) => {
+    try {
+      const { url, lessonSlug, lessonTitle } = req.body || {};
+      if (!url || !lessonSlug) return res.status(400).json({ error:'url and lessonSlug required' });
+      // Prepare temp workspace
+      const workDir = path.resolve(__dirname, `../tmp_ws_${Date.now()}`);
+      fs.mkdirSync(workDir, { recursive: true });
+      // Download PDF
+      const pdfResp = await fetch(url);
+      if (!pdfResp.ok) return res.status(400).json({ error:'fetch_failed' });
+      const pdfBuf = Buffer.from(await pdfResp.arrayBuffer());
+      const pdfPath = path.join(workDir, 'ws.pdf');
+      fs.writeFileSync(pdfPath, pdfBuf);
+
+      const { spawnSync } = require('child_process');
+      function runCmd(cmd, args, opts){
+        const r = spawnSync(cmd, args, { encoding:'utf8', ...opts });
+        return { code:r.status, stdout:r.stdout||'', stderr:r.stderr||'' };
+      }
+
+      // Convert PDF pages to PNGs at ~300 DPI using pdftoppm (Poppler) if available
+      let images = [];
+      const pdftoppm = runCmd('pdftoppm', ['-v']).code === 0;
+      if (pdftoppm){
+        const out = runCmd('pdftoppm', ['-png', '-r', '300', pdfPath, path.join(workDir, 'page')]);
+        if (out.code !== 0){ console.error('[pdftoppm]', out.stderr); }
+        images = fs.readdirSync(workDir).filter(f => /page-?\d+\.png$/i.test(f)).map(f => path.join(workDir, f)).sort();
+      }
+      // Fallback: render with pdfjs + canvas at scale 3.0 (approx 300 DPI on typical 96dpi base)
+      if (!images.length){
+        try {
+          const pdfjsLib = require('pdfjs-dist');
+          const loadingTask = pdfjsLib.getDocument({ data: pdfBuf });
+          const pdfDoc = await loadingTask.promise;
+          const pageCount = Math.min(pdfDoc.numPages || 1, 40);
+          for (let p=1; p<=pageCount; p++){
+            const page = await pdfDoc.getPage(p);
+            const viewport = page.getViewport({ scale: 3.0 });
+            const canvas = createCanvas(viewport.width, viewport.height);
+            const ctx = canvas.getContext('2d');
+            await page.render({ canvasContext: ctx, viewport }).promise;
+            const imgPath = path.join(workDir, `page-${p}.png`);
+            fs.writeFileSync(imgPath, canvas.toBuffer('image/png'));
+            images.push(imgPath);
+          }
+        } catch(e){ console.error('[pdfjs render]', e); }
+      }
+
+      // Preprocess with ImageMagick if available (deskew, denoise, binarize, contrast)
+      const hasMagick = runCmd('magick', ['-version']).code === 0 || runCmd('convert', ['-version']).code === 0;
+      if (hasMagick){
+        for (const img of images){
+          const outPath = img.replace(/\.png$/i, '.prep.png');
+          // Try magick first
+          let r = runCmd('magick', [img, '-colorspace', 'Gray', '-deskew', '40%', '-contrast-stretch', '2%x2%', '-filter', 'Gaussian', '-threshold', '50%', outPath]);
+          if (r.code !== 0){
+            // Fallback to convert
+            r = runCmd('convert', [img, '-colorspace', 'Gray', '-deskew', '40%', '-contrast-stretch', '2%x2%', '-filter', 'Gaussian', '-threshold', '50%', outPath]);
+          }
+          if (r.code === 0){
+            try { fs.unlinkSync(img); } catch {}
+            fs.renameSync(outPath, img);
+          }
+        }
+      }
+
+      // OCR each image: use tesseract CLI if present; otherwise Tesseract.js
+      const hasTessCli = runCmd('tesseract', ['-v']).code === 0;
+      const problems = [];
+      let pid = 1;
+      for (const img of images){
+        let text = '';
+        if (hasTessCli){
+          const r = runCmd('tesseract', [img, 'stdout', '-l', 'eng']);
+          if (r.code === 0) text = r.stdout; else console.error('[tesseract cli]', r.stderr);
+        } else {
+          try {
+            const o = await Tesseract.recognize(fs.readFileSync(img), 'eng', { logger:()=>{} });
+            text = (o && o.data && o.data.text) || '';
+          } catch(e){ console.error('[tesseract.js]', e); }
+        }
+        // naive split into problem-like chunks by line prefixes (e.g., numbers/letters)
+        const lines = String(text||'').split(/\n+/).map(s=>s.trim()).filter(Boolean);
+        const chunks = [];
+        let acc = [];
+        for (const ln of lines){
+          if (/^(\(?\d+\)?[.)]|[A-Z][.)])\s+/.test(ln) && acc.length){ chunks.push(acc.join(' ')); acc = [ln]; }
+          else acc.push(ln);
+        }
+        if (acc.length) chunks.push(acc.join(' '));
+        // simple visual tag heuristics
+        function tagVisual(txt){
+          const s = txt.toLowerCase();
+          if (/coordinate|axis|axes|plot|graph|slope|y\s*=|x\s*=/.test(s)) return 'graph';
+          if (/number\s*line|interval|inequality|open\s*dot|closed\s*dot/.test(s)) return 'number_line';
+          if (/table|row|column|cells|\|\s*\|/.test(s)) return 'table';
+          return 'none';
+        }
+        for (const c of chunks){
+          // build minimal JSON
+          problems.push({ id: pid++, prompt: c.slice(0, 500), answer_fields: [], visual: tagVisual(c) });
+        }
+      }
+
+      // Store minimally to Mongo (raw extraction), keyed to lessonSlug
+      const client3 = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+      await client3.connect();
+      const col = await getQuestionCollection(client3);
+      const nowIso = new Date().toISOString();
+      let inserted = 0;
+      for (const p of problems.slice(0, 50)){ // cap for safety
+        try {
+          await col.insertOne({ lessonSlug, lessonTitle: lessonTitle||lessonSlug, book: resolveBookForLessonFromRepo(lessonSlug) || null, stem: p.prompt, options: ['\\(A\\)','\\(B\\)','\\(C\\)','\\(D\\)'], correct: 0, solution: '', answer: '\\(A\\)', answerPlain: 'A', graph: p.visual==='graph'?{}:undefined, numberLine: p.visual==='number_line'?{}:undefined, table: p.visual==='table'?{headers:[],rows:[]}:undefined, citations: [], difficulty: 'medium', sourceHash: sha256Hex(lessonSlug+'|'+p.prompt), generatedAt: nowIso, generator: 'worksheet-ocr' });
+          inserted++;
+        } catch(e){}
+      }
+      await client3.close();
+
+      // Cleanup temp PNGs
+      try {
+        for (const f of fs.readdirSync(workDir)) fs.unlinkSync(path.join(workDir, f));
+        fs.rmdirSync(workDir);
+      } catch {}
+
+      return res.json({ ok:true, pages: images.length, extracted: problems.length, inserted });
+    } catch (e){ console.error('[worksheet-process] exception', e); return res.status(500).json({ error:'worksheet_process_exception', detail: String(e && e.message || e) }); }
+  });
+
   // Agent 1: Generate and store ≥30 questions for a lesson
   app.post('/ai/agent1/generate', async (req, res) => {
     const lessonSlug = String(req.query.lesson || '').trim();
