@@ -2166,8 +2166,27 @@ async function bootstrap() {
         }, required:['question']
       };
 
+      function normalizeSeedText(input){
+        try {
+          let s = String(input || '');
+          s = s.replace(/[\u2012\u2013\u2014\u2212]/g, '-'); // dashes/minus
+          s = s.replace(/×/g, 'x');
+          s = s.replace(/÷/g, '/');
+          s = s.replace(/ﬂ/g, 'fl');
+          s = s.replace(/ﬁ/g, 'fi');
+          s = s.replace(/°/g, '');
+          s = s.replace(/√/g, 'sqrt');
+          s = s.replace(/[\u00A0\u2000-\u200D]/g, ' '); // various spaces
+          s = s.replace(/[^\x20-\x7E\n]/g, ''); // strip non-ASCII
+          s = s.replace(/\s+/g, ' ').trim();
+          return s;
+        } catch { return String(input||'').trim(); }
+      }
+
       async function callOne(seed){
-        const seedText = String(seed.promptLatex || seed.prompt || '').trim().slice(0, 800);
+        const rawSeed = String(seed.promptLatex || seed.prompt || '').trim();
+        const seedText = rawSeed.slice(0, 800);
+        const seedClean = normalizeSeedText(seedText);
         let seedVerbatim = '';
         try {
           const copy = { ...seed };
@@ -2175,8 +2194,10 @@ async function bootstrap() {
           seedVerbatim = JSON.stringify(copy, null, 2).slice(0, 6000);
         } catch {}
         const userParts = [
-          'SEED (use this content only):',
+          'SEED (raw, use only this content):',
           seedText || '(none)',
+          'SEED (normalized for readability):',
+          seedClean || '(none)',
           'OCR JSON (verbatim):',
           seedVerbatim || '(none)',
           'JSON SCHEMA: {"question":{"stimulus_text":"string","stimulus_latex":"string","options_latex":["string","string","string","string"],"answer_index":0,"answer_plain":"string","rationale_text":"string","rationale_latex":"string","difficulty":"easy|medium|hard"}}',
