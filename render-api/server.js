@@ -1340,8 +1340,7 @@ async function bootstrap() {
         const a = await oai.beta.assistants.create({
           name: `lesson:${lessonSlug}`,
           model: 'gpt-4o',
-          tools: [ { type:'file_search' } ],
-          tool_resources: { file_search: { vector_store_ids: [ rec.vector_store_id ] } }
+          tools: [ { type:'file_search' } ]
         });
         assistantId = a.id;
         const client2 = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
@@ -1355,8 +1354,11 @@ async function bootstrap() {
         { role:'system', content: system },
         { role:'user', content: user }
       ]});
-      // Run with assistant
-      const run = await oai.beta.threads.runs.create(thread.id, { assistant_id: assistantId });
+      // Run with assistant, attach vector store to file_search at run-time
+      const run = await oai.beta.threads.runs.create(thread.id, {
+        assistant_id: assistantId,
+        tool_resources: { file_search: { vector_store_ids: [ rec.vector_store_id ] } }
+      });
       // Poll run status
       let status = run.status; let tries = 0; let last = run;
       while (!['completed','failed','cancelled','expired'].includes(status) && tries < 90){
@@ -1365,7 +1367,7 @@ async function bootstrap() {
         status = last.status; tries++;
       }
       if (status !== 'completed'){
-        return res.status(500).json({ error:'assist_run_failed', status });
+        return res.status(500).json({ error:'assist_run_failed', status, run: last });
       }
       const msgs = await oai.beta.threads.messages.list(thread.id, { order:'desc', limit: 10 });
       const first = (msgs.data||[]).find(m => m.role==='assistant') || (msgs.data||[])[0];
@@ -1375,7 +1377,7 @@ async function bootstrap() {
         if (textPart && textPart.text && textPart.text.value) preview = textPart.text.value;
       }
       return res.json({ ok:true, status, preview: String(preview||'').slice(0, 4000) });
-    } catch (e){ console.error('[assist-v2] exception', e); return res.status(500).json({ error:'assist_v2_exception' }); }
+    } catch (e){ console.error('[assist-v2] exception', e); return res.status(500).json({ error:'assist_v2_exception', detail: String(e && e.message || e) }); }
   });
 
   // Agent 1: Generate and store ≥30 questions for a lesson
