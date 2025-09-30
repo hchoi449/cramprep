@@ -2198,9 +2198,24 @@ async function bootstrap() {
         let txt = '';
         try { txt = String(j.output_text||'').trim(); } catch { txt = ''; }
         let out = {}; try { out = JSON.parse(txt); } catch{}
-        const q = out && out.question || {};
-        if (!q || !Array.isArray(q.options_latex) || q.options_latex.length !== 4) return null;
-        return q;
+        let q = out && out.question || {};
+        let valid = q && Array.isArray(q.options_latex) && q.options_latex.length === 4 && Number.isFinite(Number(q.answer_index));
+        if (valid) return q;
+        // Fixer: coerce to strict schema
+        const fixerSystem = [
+          'You produced output that must be corrected to match this JSON schema exactly:',
+          '{"question":{"stimulus_text":"string","stimulus_latex":"string","options_latex":["string","string","string","string"],"answer_index":0,"answer_plain":"string","rationale_text":"string","rationale_latex":"string","difficulty":"easy|medium|hard"}}',
+          'Return STRICT JSON ONLY. Ensure options_latex has exactly 4 entries and answer_index is 0..3.'
+        ].join(' ');
+        const fixBody = { model:'gpt-4o', response_format:{ type:'json_object' }, temperature: 0, input:[ { role:'system', content: fixerSystem }, { role:'user', content:[ { type:'input_text', text: (txt || '(empty)') } ] } ] };
+        const fixRsp = await fetch('https://api.openai.com/v1/responses', { method:'POST', headers, body: JSON.stringify(fixBody) });
+        const fj = await fixRsp.json().catch(()=>({}));
+        let ftxt = ''; try { ftxt = String(fj.output_text||'').trim(); } catch { ftxt = ''; }
+        let fout = {}; try { fout = JSON.parse(ftxt); } catch{}
+        q = fout && fout.question || {};
+        valid = q && Array.isArray(q.options_latex) && q.options_latex.length === 4 && Number.isFinite(Number(q.answer_index));
+        if (valid) return q;
+        return null;
       }
 
       function toInlineMath(s){
