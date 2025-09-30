@@ -1398,7 +1398,9 @@ async function bootstrap() {
       // Prepare temp workspace
       const jobId = `ws_${Date.now()}`;
       const DPI = 400;
-      const workDir = path.resolve(__dirname, `../tmp_ws_${jobId}`);
+      const baseTmp = String(process.env.TBP_OCR_TMP_DIR || '/tmp/worksheet');
+      try { fs.mkdirSync(baseTmp, { recursive: true }); } catch{}
+      const workDir = path.resolve(baseTmp, jobId);
       fs.mkdirSync(workDir, { recursive: true });
       // Download PDF
       const pdfResp = await fetch(url);
