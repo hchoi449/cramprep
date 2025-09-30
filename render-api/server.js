@@ -2066,7 +2066,8 @@ async function bootstrap() {
       const latestJobArr = await qsrc.find({ lessonSlug, sourceType:'worksheet-ocr', jobId: { $exists:true } }).project({ jobId:1, createdAt:1 }).sort({ createdAt:-1 }).limit(1).toArray();
       const latestJobId = latestJobArr && latestJobArr[0] && latestJobArr[0].jobId;
       // Prefer items from latest job that are missing promptLatex; otherwise take recent
-      let queryBase = latestJobId ? { lessonSlug, sourceType:'worksheet-ocr', jobId: latestJobId } : { lessonSlug, sourceType:'worksheet-ocr' };
+      // Only process per-problem records (exclude summary docs)
+      let queryBase = latestJobId ? { lessonSlug, sourceType:'worksheet-ocr', jobId: latestJobId, problemId: { $exists:true } } : { lessonSlug, sourceType:'worksheet-ocr', problemId: { $exists:true } };
       let docs = await qsrc.find({ ...queryBase, $or:[ { promptLatex: { $exists:false } }, { promptLatex: '' } ] }).sort({ createdAt: -1 }).limit(maxN).toArray();
       if (!docs.length){
         docs = await qsrc.find(queryBase).sort({ createdAt: -1 }).limit(maxN).toArray();
