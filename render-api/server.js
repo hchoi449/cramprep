@@ -1914,6 +1914,8 @@ async function bootstrap() {
       for (const p of problems.slice(0, 50)){ // cap for safety
         try {
           const pngPath = images[Math.min(images.length-1, runningPage-1)] || images[0];
+          let imageB64 = '';
+          try { imageB64 = fs.readFileSync(pngPath).toString('base64'); } catch {}
           // Do NOT insert into questionbank; store only in qsources
           storedProblems.push({ id: p.id, prompt: p.prompt, answer_fields: Array.isArray(p.answer_fields)? p.answer_fields: [], visual: p.visual||'none', page: runningPage, pngPath, dpi: DPI });
           // Also insert a per-item record into thinkpod.qsources
@@ -1932,7 +1934,8 @@ async function bootstrap() {
               sourceType: 'worksheet-ocr',
               jobId,
               pngPath,
-              dpi: DPI
+              dpi: DPI,
+              imageB64
             });
             inserted++;
           } catch {}
@@ -2158,11 +2161,19 @@ async function bootstrap() {
 
       async function callOne(seed){
         const seedText = String(seed.promptLatex || seed.prompt || '').trim().slice(0, 800);
+        let seedVerbatim = '';
+        try {
+          const copy = { ...seed };
+          if (copy && copy.imageB64) delete copy.imageB64;
+          seedVerbatim = JSON.stringify(copy, null, 2).slice(0, 6000);
+        } catch {}
         const userParts = [
           'SEED (use this content only):',
           seedText || '(none)',
+          'OCR JSON (verbatim):',
+          seedVerbatim || '(none)',
           'JSON SCHEMA: {"question":{"stimulus_text":"string","stimulus_latex":"string","options_latex":["string","string","string","string"],"answer_index":0,"answer_plain":"string","rationale_text":"string","rationale_latex":"string","difficulty":"easy|medium|hard"}}',
-          'Constraints: 4 options only; exactly one correct; difficulty must be easy|medium|hard; all math in LaTeX \( ... \).'
+          'Constraints: 4 options only; exactly one correct; difficulty must be easy|medium|hard; all math in LaTeX \\( ... \\).'
         ].join('\n');
         const headers = { 'Authorization': `Bearer ${openaiKey}`, 'Content-Type':'application/json' };
         const input = [{ role:'system', content: system }];
