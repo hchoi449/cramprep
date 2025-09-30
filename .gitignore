@@ -42,6 +42,8 @@ coverage/
 # Temporary folders
 tmp/
 temp/
+# Uploaded worksheets (server-side)
+render-api/tmp_uploads/
 # Ignore local textbooks PDFs
 textbooks/*.pdf
 

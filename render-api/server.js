@@ -1163,6 +1163,55 @@ async function bootstrap() {
     } catch (e){ console.error(e); return res.status(500).json({ error:'upload_exception' }); }
   });
 
+  // Upload a worksheet PDF (multipart), save to tmp, and optionally kick off OCR process to qsources
+  app.post('/ai/worksheet/upload', async (req, res) => {
+    try {
+      const Busboy = require('busboy');
+      const busboy = Busboy({ headers: req.headers });
+      const tmpDir = path.resolve(__dirname, '../tmp_uploads');
+      try { fs.mkdirSync(tmpDir, { recursive: true }); } catch{}
+      let lessonSlug = '';
+      let storedPath = '';
+      let filename = '';
+      await new Promise((resolve, reject) => {
+        busboy.on('file', (name, file, info) => {
+          filename = info && info.filename ? String(info.filename) : `upload_${Date.now()}.pdf`;
+          const safeName = filename.replace(/[^A-Za-z0-9._-]/g, '_');
+          storedPath = path.join(tmpDir, safeName);
+          const ws = fs.createWriteStream(storedPath);
+          file.pipe(ws);
+          ws.on('error', reject);
+          ws.on('finish', ()=>{});
+        });
+        busboy.on('field', (name, val) => {
+          if (name === 'lessonSlug') lessonSlug = String(val||'').trim();
+        });
+        busboy.on('error', reject);
+        busboy.on('finish', resolve);
+        req.pipe(busboy);
+      });
+      if (!storedPath || !fs.existsSync(storedPath)) return res.status(400).json({ error:'no_file_received' });
+      if (!lessonSlug) return res.status(400).json({ error:'lessonSlug required' });
+      // Build a local file URL served by tmp route
+      const baseUrl = (req.headers['x-forwarded-proto'] ? `${req.headers['x-forwarded-proto']}` : 'https') + '://' + (req.headers['x-forwarded-host'] || req.headers.host);
+      const fileUrl = `${baseUrl}/tmp/uploads/${path.basename(storedPath)}`;
+      // Optionally: kick off OCR process pipeline now
+      return res.json({ ok:true, path: storedPath, url: fileUrl, lessonSlug });
+    } catch(e){ console.error('[worksheet-upload] exception', e); return res.status(500).json({ error:'worksheet_upload_exception', detail:String(e && e.message || e) }); }
+  });
+
+  // Serve uploaded files from tmp (read-only). Use only for subsequent OCR processing.
+  app.get('/tmp/uploads/:name', async (req, res) => {
+    try {
+      const name = String(req.params.name||'').replace(/[^A-Za-z0-9._-]/g, '_');
+      const p = path.resolve(__dirname, '../tmp_uploads', name);
+      if (!p.startsWith(path.resolve(__dirname, '../tmp_uploads'))) return res.status(400).end();
+      if (!fs.existsSync(p)) return res.status(404).end();
+      res.setHeader('Content-Type', 'application/pdf');
+      fs.createReadStream(p).pipe(res);
+    } catch { return res.status(500).end(); }
+  });
+
   // Vector store (URL-based): fetch URL server-side, upload as multipart to OpenAI, attach to lesson store
   app.post('/ai/files/upload-url', async (req, res) => {
     try {
