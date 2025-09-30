@@ -2251,6 +2251,52 @@ async function bootstrap() {
     } catch (e){ console.error('[agent1-from-qsources] exception', e); return res.status(500).json({ error:'agent1_from_qsources_exception', detail: String(e && e.message || e) }); }
   });
 
+  // Promote qsources OCR prompts directly into questionbank as readable items (non-LaTeX OK)
+  app.post('/ai/agent1/promote-qsources', async (req, res) => {
+    try {
+      const lessonSlug = String(req.query.lesson||'').trim();
+      const lessonTitle = String((req.body && req.body.title) || req.query.title || lessonSlug).trim();
+      const limit = Math.max(1, Math.min(100, Number(req.query.limit || req.body && req.body.limit || 20)));
+      if (!lessonSlug) return res.status(400).json({ error:'lesson required' });
+      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+      await client.connect();
+      const qsrc = await getQSourcesCollection(client);
+      const col = await getQuestionCollection(client);
+      // Pull latest qsources items for this lesson
+      const seeds = await qsrc.find({ lessonSlug, sourceType:'worksheet-ocr' }).sort({ createdAt: -1 }).limit(limit).toArray();
+      const nowIso = new Date().toISOString();
+      let inserted = 0; const sample = [];
+      for (const s of seeds){
+        const stemText = String(s.promptLatex || s.prompt || '').trim();
+        if (!stemText) continue;
+        const options = ['(A)','(B)','(C)','(D)'];
+        const doc = {
+          lessonSlug,
+          lessonTitle: lessonTitle || lessonSlug,
+          book: resolveBookForLessonFromRepo(lessonSlug) || null,
+          stem: stemText,
+          options,
+          correct: 0,
+          solution: '',
+          answer: options[0],
+          answerPlain: 'A',
+          citations: [],
+          difficulty: 'medium',
+          sourceHash: sha256Hex(lessonSlug+'|'+stemText),
+          generatedAt: nowIso,
+          generator: 'qsources-promote'
+        };
+        try {
+          await col.insertOne(doc);
+          inserted++;
+          if (sample.length < 5) sample.push({ stem: doc.stem, difficulty: doc.difficulty });
+        } catch {}
+      }
+      await client.close();
+      return res.json({ ok:true, promoted: inserted, sample });
+    } catch (e){ console.error('[promote-qsources] exception', e); return res.status(500).json({ error:'promote_qsources_exception', detail: String(e && e.message || e) }); }
+  });
+
   // Agent 1: Generate and store ≥30 questions for a lesson
   app.post('/ai/agent1/generate', async (req, res) => {
     const lessonSlug = String(req.query.lesson || '').trim();
