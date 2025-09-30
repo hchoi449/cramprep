@@ -2006,11 +2006,15 @@ async function bootstrap() {
       const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
       await client.connect();
       const qsrc = await getQSourcesCollection(client);
-      const docs = await qsrc.find({ lessonSlug, sourceType:'worksheet-ocr' }).sort({ createdAt: -1 }).limit(Math.max(1, Math.min(20, Number(limit)||10))).toArray();
+      const maxN = Math.max(1, Math.min(50, Number(limit)||20));
+      // Prefer items missing promptLatex; otherwise take recent
+      let docs = await qsrc.find({ lessonSlug, sourceType:'worksheet-ocr', $or:[ { promptLatex: { $exists:false } }, { promptLatex: '' } ] }).sort({ createdAt: -1 }).limit(maxN).toArray();
+      if (!docs.length){
+        docs = await qsrc.find({ lessonSlug, sourceType:'worksheet-ocr' }).sort({ createdAt: -1 }).limit(maxN).toArray();
+      }
 
       const OpenAI = require('openai');
       const oai = new OpenAI({ apiKey: openaiKey });
-      const imgB64 = fs.readFileSync(images[0]).toString('base64');
 
       async function transcribeOne(noisy){
         const instruction = 'Transcribe the math expression(s) precisely from the image. Prefer LaTeX. If multiple small expressions are visible for this item, return a single LaTeX line that represents the item clearly.';
@@ -2019,6 +2023,11 @@ async function bootstrap() {
           'Return STRICT JSON: {"latex":"..."}.'
         ].join('\n');
         try {
+          // Choose PNG: prefer per-item path captured during OCR; otherwise first rendered page
+          let pngPath = String(noisy && noisy.pngPath || '').trim();
+          if (!pngPath || !fs.existsSync(pngPath)) pngPath = images[0];
+          if (!pngPath || !fs.existsSync(pngPath)) return null;
+          const imgB64 = fs.readFileSync(pngPath).toString('base64');
           const rsp = await fetch('https://api.openai.com/v1/responses', {
             method:'POST', headers:{ 'Authorization': `Bearer ${openaiKey}`, 'Content-Type':'application/json' },
             body: JSON.stringify({
@@ -2039,18 +2048,22 @@ async function bootstrap() {
         return null;
       }
 
-      let updated = 0; const results = [];
+      let updated = 0; const results = []; let attempted = 0; let missingPng = 0; let failures = 0;
       for (const d of docs){
+        attempted++;
+        if (!d || !d.pngPath || !fs.existsSync(String(d.pngPath))) { missingPng++; continue; }
         const latex = await transcribeOne(d);
         if (latex){
           await qsrc.updateOne({ _id: d._id }, { $set: { promptLatex: latex, updatedAt: new Date().toISOString() } });
           updated++;
           results.push({ id: String(d._id), promptLatex: latex });
+        } else {
+          failures++;
         }
       }
       await client.close();
       try { fs.rmSync(workDir, { recursive:true, force:true }); } catch{}
-      return res.json({ ok:true, updated, results });
+      return res.json({ ok:true, updated, attempted, missingPng, failures, results });
     } catch (e){ console.error('[worksheet-vision-clean] exception', e); return res.status(500).json({ error:'worksheet_vision_clean_exception', detail: String(e && e.message || e) }); }
   });
 
