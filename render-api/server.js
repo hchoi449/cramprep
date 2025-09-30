@@ -2207,9 +2207,13 @@ async function bootstrap() {
         const input = [{ role:'system', content: system }];
         const userContent = [{ type:'input_text', text: userParts }];
         try {
-          if (withImages && seed.pngPath && fs.existsSync(String(seed.pngPath))){
-            const b64 = fs.readFileSync(seed.pngPath).toString('base64');
-            userContent.push({ type:'input_image', image_url:{ url:`data:image/png;base64,${b64}` } });
+          if (withImages){
+            if (seed && seed.imageB64){
+              userContent.push({ type:'input_image', image_url:{ url:`data:image/png;base64,${seed.imageB64}` } });
+            } else if (seed && seed.pngPath && fs.existsSync(String(seed.pngPath))){
+              const b64 = fs.readFileSync(seed.pngPath).toString('base64');
+              userContent.push({ type:'input_image', image_url:{ url:`data:image/png;base64,${b64}` } });
+            }
           }
         } catch{}
         input.push({ role:'user', content: userContent });
@@ -2218,6 +2222,9 @@ async function bootstrap() {
         const j = await rsp.json().catch(()=>({}));
         let txt = '';
         try { txt = String(j.output_text||'').trim(); } catch { txt = ''; }
+        if (!txt || txt === '[object Object]'){
+          try { txt = JSON.stringify(j); } catch { /* ignore */ }
+        }
         let out = {}; try { out = JSON.parse(txt); } catch{}
         let q = out && out.question || {};
         let valid = q && Array.isArray(q.options_latex) && q.options_latex.length === 4 && Number.isFinite(Number(q.answer_index));
