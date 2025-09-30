@@ -1,0 +1,13 @@
+node_modules
+npm-debug.log
+.DS_Store
+.git
+.gitignore
+**/.cache
+**/tmp
+**/dist
+**/build
+**/*.local
+**/*.log
+
+

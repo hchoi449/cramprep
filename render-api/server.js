@@ -2028,12 +2028,56 @@ async function bootstrap() {
     return res.json({ ok:true, route:'/api/vision-clean', status:'ready' });
   });
 
+  // Detect math regions using Detectron2+LayoutParser (Python script)
+  app.post('/ai/layout/detect', async (req, res) => {
+    try {
+      const { imagePath } = req.body || {};
+      if (!imagePath || !fs.existsSync(String(imagePath))) return res.status(400).json({ error:'imagePath required and must exist' });
+      const args = [path.resolve(__dirname, './detect_math_regions.py'), '--image', path.resolve(String(imagePath))];
+      if (process.env.DETECTRON_CONFIG) { args.push('--config', process.env.DETECTRON_CONFIG); }
+      if (process.env.DETECTRON_WEIGHTS) { args.push('--weights', process.env.DETECTRON_WEIGHTS); }
+      if (process.env.DETECTRON_LABELS) { args.push('--labels', process.env.DETECTRON_LABELS); }
+      if (process.env.DETECTRON_SCORE_THRESH) { args.push('--score-thresh', process.env.DETECTRON_SCORE_THRESH); }
+      const r = runCmd('python3', args, { cwd: path.resolve(__dirname) });
+      if (r.code !== 0){ return res.status(500).json({ error:'detect_failed', detail:r.stderr||r.stdout }); }
+      let out = {}; try { out = JSON.parse(r.stdout||'{}'); } catch{}
+      return res.json(out.ok ? out : { ok:false, error:'bad_output', raw:r.stdout });
+    } catch(e){ console.error('[layout-detect] exception', e); return res.status(500).json({ error:'layout_detect_exception', detail:String(e && e.message || e) }); }
+  });
+
+  // Mathpix OCR proxy: transcribe one image (optionally already cropped)
+  app.post('/ai/ocr/mathpix', async (req, res) => {
+    try {
+      const appId = process.env.MATHPIX_APP_ID || process.env.mathpix_app_id;
+      const appKey = process.env.MATHPIX_APP_KEY || process.env.mathpix_app_key;
+      if (!appId || !appKey) return res.status(400).json({ error:'missing_MATHPIX_keys' });
+      const { imagePath, imageB64 } = req.body || {};
+      let b64 = String(imageB64||'').trim();
+      if (!b64 && imagePath && fs.existsSync(String(imagePath))){
+        try { b64 = fs.readFileSync(String(imagePath)).toString('base64'); } catch{}
+      }
+      if (!b64) return res.status(400).json({ error:'image required' });
+      const rsp = await fetch('https://api.mathpix.com/v3/text', {
+        method:'POST', headers:{ 'Content-Type':'application/json', 'app_id': String(appId), 'app_key': String(appKey) },
+        body: JSON.stringify({ src: `data:image/png;base64,${b64}`, formats:['latex_styled','text'], include_latex_style:true })
+      });
+      const j = await rsp.json().catch(()=>({}));
+      return res.json({ ok:true, result:j });
+    } catch(e){ console.error('[mathpix] exception', e); return res.status(500).json({ error:'mathpix_exception', detail:String(e && e.message || e) }); }
+  });
+
   app.post('/ai/worksheet/vision-clean', async (req, res) => {
     try {
+      const mathpixAppId = process.env.MATHPIX_APP_ID || process.env.mathpix_app_id;
+      const mathpixAppKey = process.env.MATHPIX_APP_KEY || process.env.mathpix_app_key;
+      const mathpixParam = String(req.query.mathpix||'').toLowerCase();
+      // Default to Mathpix when keys exist; allow disabling via mathpix=0/false/no
+      const useMathpix = !!(mathpixAppId && mathpixAppKey) && !(mathpixParam==='0' || /false|no/i.test(mathpixParam));
+      const useDetector = String(req.query.detect||'').toLowerCase()==='1' || /true|yes/i.test(String(req.query.detect||''));
       const { url, lessonSlug, limit } = req.body || {};
       if (!lessonSlug) return res.status(400).json({ error:'lessonSlug required' });
       const openaiKey = process.env.OPENAI_API_KEY || process.env.openai_api_key;
-      if (!openaiKey) return res.status(500).json({ error:'missing_OPENAI_API_KEY' });
+      if (!openaiKey && !useMathpix) return res.status(500).json({ error:'missing_OPENAI_API_KEY_or_Mathpix' });
 
       // Optionally download PDF if a URL is provided; otherwise rely on stored imageB64/pngPath
       const workDir = path.resolve(__dirname, `../tmp_vis_${Date.now()}`);
@@ -2088,70 +2132,142 @@ async function bootstrap() {
         docs = await qsrc.find(queryBase).sort({ createdAt: -1 }).limit(maxN).toArray();
       }
 
-      const OpenAI = require('openai');
-      const oai = new OpenAI({ apiKey: openaiKey });
+      let OpenAI, oai;
+      try { if (openaiKey) { OpenAI = require('openai'); oai = new OpenAI({ apiKey: openaiKey }); } } catch{}
 
       async function transcribeOne(noisy){
-        const instruction = 'You are a math vision transcriber. Task: Transcribe exactly the math expression(s) visible for ONE problem from the provided worksheet image. Return STRICT JSON ONLY: {"latex":"..."}. Rules: 1) Prefer canonical LaTeX (\\frac, \\sqrt, ^, _). 2) Return a single-line LaTeX string; wrap inline with \\( ... \\). 3) Do NOT include prose or markdown. 4) If multiple tiny expressions appear, pick the one that matches the hint. 5) If unsure, output best guess as LaTeX.';
-        const user = [
-          noisy && noisy.stem ? `Noisy OCR hint: ${String(noisy.stem).slice(0,200)}` : 'Noisy OCR hint: (none)',
-          'Return STRICT JSON: {"latex":"..."}.'
-        ].join('\n');
-        try {
-          // Choose image: prefer embedded base64; else per-item path; else first rendered page
-          let imgB64 = String(noisy && noisy.imageB64 || '').trim();
-          if (!imgB64){
-            // Try local path
-            let pngPath = String(noisy && noisy.pngPath || '').trim();
+        // Acquire an image for this record
+        let imgB64 = String(noisy && noisy.imageB64 || '').trim();
+        let pngPath = String(noisy && noisy.pngPath || '').trim();
+        if (!imgB64 && pngPath && fs.existsSync(pngPath)){
+          try { imgB64 = fs.readFileSync(pngPath).toString('base64'); } catch{}
+        }
+        if (!imgB64){
+          const pngUrl = String(noisy && noisy.pngUrl || '').trim();
+          if (pngUrl){
+            try { const pr = await fetch(pngUrl); if (pr.ok){ const ab = await pr.arrayBuffer(); imgB64 = Buffer.from(ab).toString('base64'); } } catch{}
+          }
+        }
+        if (!imgB64 && images && images[0]){
+          try { imgB64 = fs.readFileSync(images[0]).toString('base64'); } catch{}
+        }
+        if (!imgB64) return null;
+
+        // Optional: run detector to crop math regions and pick the most confident crop
+        let crops = [];
+        if (useDetector && pngPath && fs.existsSync(pngPath)){
+          try {
+            const args = [path.resolve(__dirname, './detect_math_regions.py'), '--image', pngPath];
+            if (process.env.DETECTRON_CONFIG) { args.push('--config', process.env.DETECTRON_CONFIG); }
+            if (process.env.DETECTRON_WEIGHTS) { args.push('--weights', process.env.DETECTRON_WEIGHTS); }
+            if (process.env.DETECTRON_LABELS) { args.push('--labels', process.env.DETECTRON_LABELS); }
+            if (process.env.DETECTRON_SCORE_THRESH) { args.push('--score-thresh', process.env.DETECTRON_SCORE_THRESH); }
+            const r = runCmd('python3', args);
+            if (r.code === 0){
+              const j = JSON.parse(r.stdout || '{}');
+              if (j && j.ok && Array.isArray(j.boxes)){
+                crops = j.boxes.slice(0, 5);
+              }
+            }
+          } catch{}
+        }
+
+        const useCrops = crops && crops.length ? crops : [{ x:0, y:0, w:0, h:0, score:1 }];
+
+        async function callMathpix(b64, crop){
+          try {
+            // If crop specified, generate cropped b64
+            let payloadB64 = b64;
+            if (crop && crop.w > 0 && crop.h > 0 && pngPath && fs.existsSync(pngPath)){
+              try {
+                const tmpOut = pngPath.replace(/\.png$/i, `.mx_${crop.x}_${crop.y}_${crop.w}x${crop.h}.png`);
+                const r = runCmd('magick', [pngPath, '-crop', `${crop.w}x${crop.h}+${crop.x}+${crop.y}`, '+repage', tmpOut]);
+                if (r.code === 0 && fs.existsSync(tmpOut)){
+                  payloadB64 = fs.readFileSync(tmpOut).toString('base64');
+                }
+              } catch{}
+            }
+            const rsp = await fetch('https://api.mathpix.com/v3/text', {
+              method:'POST',
+              headers:{ 'Content-Type':'application/json', 'app_id': String(mathpixAppId), 'app_key': String(mathpixAppKey) },
+              body: JSON.stringify({ src: `data:image/png;base64,${payloadB64}`, formats:['latex_styled','text'], include_latex_style: true })
+            });
+            const j = await rsp.json().catch(()=>({}));
+            const latex = String(j && (j.latex_styled || j.latex || '') || '').trim();
+            if (latex) return /^\\\(|\\\[/.test(latex) ? latex : `\\(${latex}\\)`;
+          } catch{}
+          return '';
+        }
+
+        async function callOAI(b64){
+          const instruction = 'You are a math vision transcriber. Task: Transcribe exactly the math expression(s) visible for ONE problem from the provided worksheet image. Return STRICT JSON ONLY: {"latex":"..."}. Rules: 1) Prefer canonical LaTeX (\\frac, \\sqrt, ^, _). 2) Return a single-line LaTeX string; wrap inline with \\( ... \\). 3) Do NOT include prose or markdown. 4) If multiple tiny expressions appear, pick the one that matches the hint. 5) If unsure, output best guess as LaTeX.';
+          const user = [
+            noisy && noisy.stem ? `Noisy OCR hint: ${String(noisy.stem).slice(0,200)}` : 'Noisy OCR hint: (none)',
+            'Return STRICT JSON: {"latex":"..."}.'
+          ].join('\n');
+          try {
+            const rsp = await fetch('https://api.openai.com/v1/responses', {
+              method:'POST', headers:{ 'Authorization': `Bearer ${openaiKey}`, 'Content-Type':'application/json' },
+              body: JSON.stringify({
+                model:'gpt-4o', response_format:{ type:'json_object' }, temperature: 0,
+                input:[
+                  { role:'system', content: instruction },
+                  { role:'user', content:[ { type:'input_text', text: user }, { type:'input_image', image_url:{ url:`data:image/png;base64,${b64}` } } ] }
+                ]
+              })
+            });
+            const j = await rsp.json().catch(()=>({}));
+            let txt = '';
+            try { txt = String(j.output_text||'').trim(); } catch { txt = ''; }
+            if (!txt || txt === '[object Object]'){
+              try { txt = JSON.stringify(j); } catch { txt = ''; }
+            }
+            let out = { latex:'' }; try { out = JSON.parse(txt); } catch{}
+            let latex = String(out && out.latex || '').trim();
+            if (!latex){
+              const mBr = txt.match(/\\\(([\s\S]*?)\\\)|\\\[([\s\S]*?)\\\]/);
+              if (mBr){ latex = mBr[0]; }
+              if (!latex){
+                const mJson = txt.match(/"latex"\s*:\s*"([\s\S]*?)"/);
+                if (mJson){ latex = mJson[1]; }
+              }
+              if (!latex){
+                const mDollar = txt.match(/\$\$?([\s\S]*?)\$\$?/);
+                if (mDollar){ latex = `\\(${mDollar[1]}\\)`; }
+              }
+            }
+            if (latex && !/^\\\(|\\\[/.test(latex)) latex = `\\(${latex}\\)`;
+            return latex || '';
+          } catch{}
+          return '';
+        }
+
+        // Try crops in order with Mathpix if enabled, else fall back to OAI
+        if (useMathpix){
+          for (const c of useCrops){
+            const la = await callMathpix(imgB64, c);
+            if (la) return la;
+          }
+        }
+        // Fall back to OAI on full image or best crop
+        if (openaiKey){
+          if (useCrops.length && useCrops[0] && useCrops[0].w>0){
+            // If we have a crop, try cropped first
             if (pngPath && fs.existsSync(pngPath)){
-              try { imgB64 = fs.readFileSync(pngPath).toString('base64'); } catch{}
+              try {
+                const c = useCrops[0];
+                const tmpOut = pngPath.replace(/\.png$/i, `.oai_${c.x}_${c.y}_${c.w}x${c.h}.png`);
+                const r = runCmd('magick', [pngPath, '-crop', `${c.w}x${c.h}+${c.x}+${c.y}`, '+repage', tmpOut]);
+                if (r.code === 0 && fs.existsSync(tmpOut)){
+                  const croppedB64 = fs.readFileSync(tmpOut).toString('base64');
+                  const la = await callOAI(croppedB64);
+                  if (la) return la;
+                }
+              } catch{}
             }
           }
-          if (!imgB64){
-            // Try public URL if available
-            const pngUrl = String(noisy && noisy.pngUrl || '').trim();
-            if (pngUrl){
-              try { const pr = await fetch(pngUrl); if (pr.ok){ const ab = await pr.arrayBuffer(); imgB64 = Buffer.from(ab).toString('base64'); } } catch{}
-            }
-          }
-          if (!imgB64 && images && images[0]){
-            try { imgB64 = fs.readFileSync(images[0]).toString('base64'); } catch{}
-          }
-          if (!imgB64) return null;
-          const rsp = await fetch('https://api.openai.com/v1/responses', {
-            method:'POST', headers:{ 'Authorization': `Bearer ${openaiKey}`, 'Content-Type':'application/json' },
-            body: JSON.stringify({
-              model:'gpt-4o', response_format:{ type:'json_object' }, temperature: 0,
-              input:[
-                { role:'system', content: instruction },
-                { role:'user', content:[ { type:'input_text', text: user }, { type:'input_image', image_url:{ url:`data:image/png;base64,${imgB64}` } } ] }
-              ]
-            })
-          });
-          const j = await rsp.json().catch(()=>({}));
-          let txt = '';
-          try { txt = String(j.output_text||'').trim(); } catch { txt = ''; }
-          if (!txt || txt === '[object Object]'){
-            try { txt = JSON.stringify(j); } catch { txt = ''; }
-          }
-          let out = { latex:'' }; try { out = JSON.parse(txt); } catch{}
-          let latex = String(out && out.latex || '').trim();
-          if (!latex){
-            const mBr = txt.match(/\\\(([\s\S]*?)\\\)|\\\[([\s\S]*?)\\\]/);
-            if (mBr){ latex = mBr[0]; }
-            if (!latex){
-              const mJson = txt.match(/"latex"\s*:\s*"([\s\S]*?)"/);
-              if (mJson){ latex = mJson[1]; }
-            }
-            if (!latex){
-              const mDollar = txt.match(/\$\$?([\s\S]*?)\$\$?/);
-              if (mDollar){ latex = `\\(${mDollar[1]}\\)`; }
-            }
-          }
-          if (latex && !/^\\\(|\\\[/.test(latex)) latex = `\\(${latex}\\)`;
-          if (latex) return latex;
-          console.warn('[vision-clean] empty latex for record', noisy && noisy._id, 'raw=', txt.slice(0,300));
-        } catch{}
+          return await callOAI(imgB64);
+        }
         return null;
       }
 
