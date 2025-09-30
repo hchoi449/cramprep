@@ -2017,7 +2017,7 @@ async function bootstrap() {
       const oai = new OpenAI({ apiKey: openaiKey });
 
       async function transcribeOne(noisy){
-        const instruction = 'Transcribe the math expression(s) precisely from the image. Prefer LaTeX. If multiple small expressions are visible for this item, return a single LaTeX line that represents the item clearly.';
+        const instruction = 'You are a math vision transcriber. Task: Transcribe exactly the math expression(s) visible for ONE problem from the provided worksheet image. Return STRICT JSON ONLY: {"latex":"..."}. Rules: 1) Prefer canonical LaTeX (\\frac, \\sqrt, ^, _). 2) Return a single-line LaTeX string; wrap inline with \\( ... \\). 3) Do NOT include prose or markdown. 4) If multiple tiny expressions appear, pick the one that matches the hint. 5) If unsure, output best guess as LaTeX.';
         const user = [
           noisy && noisy.stem ? `Noisy OCR hint: ${String(noisy.stem).slice(0,200)}` : 'Noisy OCR hint: (none)',
           'Return STRICT JSON: {"latex":"..."}.'
@@ -2031,7 +2031,7 @@ async function bootstrap() {
           const rsp = await fetch('https://api.openai.com/v1/responses', {
             method:'POST', headers:{ 'Authorization': `Bearer ${openaiKey}`, 'Content-Type':'application/json' },
             body: JSON.stringify({
-              model:'gpt-4o', response_format:{ type:'json_object' },
+              model:'gpt-4o', response_format:{ type:'json_object' }, temperature: 0,
               input:[
                 { role:'system', content: instruction },
                 { role:'user', content:[ { type:'input_text', text: user }, { type:'input_image', image_url:{ url:`data:image/png;base64,${imgB64}` } } ] }
@@ -2039,11 +2039,28 @@ async function bootstrap() {
             })
           });
           const j = await rsp.json().catch(()=>({}));
-          const txt = String(j.output_text||'').trim();
+          let txt = '';
+          try { txt = String(j.output_text||'').trim(); } catch { txt = ''; }
+          if (!txt || txt === '[object Object]'){
+            try { txt = JSON.stringify(j); } catch { txt = ''; }
+          }
           let out = { latex:'' }; try { out = JSON.parse(txt); } catch{}
           let latex = String(out && out.latex || '').trim();
+          if (!latex){
+            const mBr = txt.match(/\\\(([\s\S]*?)\\\)|\\\[([\s\S]*?)\\\]/);
+            if (mBr){ latex = mBr[0]; }
+            if (!latex){
+              const mJson = txt.match(/"latex"\s*:\s*"([\s\S]*?)"/);
+              if (mJson){ latex = mJson[1]; }
+            }
+            if (!latex){
+              const mDollar = txt.match(/\$\$?([\s\S]*?)\$\$?/);
+              if (mDollar){ latex = `\\(${mDollar[1]}\\)`; }
+            }
+          }
           if (latex && !/^\\\(|\\\[/.test(latex)) latex = `\\(${latex}\\)`;
           if (latex) return latex;
+          console.warn('[vision-clean] empty latex for record', noisy && noisy._id, 'raw=', txt.slice(0,300));
         } catch{}
         return null;
       }
