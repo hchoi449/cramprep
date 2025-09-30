@@ -2294,6 +2294,27 @@ async function bootstrap() {
         q = fout && fout.question || {};
         valid = q && Array.isArray(q.options_latex) && q.options_latex.length === 4 && Number.isFinite(Number(q.answer_index));
         if (valid) return q;
+        // Fallback: generate from lesson topic if seed is too noisy
+        try {
+          const fallbackSystem = 'You are an expert Algebra II assessment writer. Generate ONE high-quality MCQ for the given lesson. Return STRICT JSON only matching the schema.';
+          const fallbackUser = [
+            `LESSON: ${lessonTitle||lessonSlug}`,
+            'Topic focus: Mixed Domain Applications (functions: domain/range under transformations).',
+            'JSON SCHEMA: {"question":{"stimulus_text":"string","stimulus_latex":"string","options_latex":["string","string","string","string"],"answer_index":0,"answer_plain":"string","rationale_text":"string","rationale_latex":"string","difficulty":"easy|medium|hard"}}',
+            'Constraints: 4 options; exactly one correct; difficulty medium; all math LaTeX in \\(...\\).'
+          ].join('\n');
+          const fbBody = { model:'gpt-4o', response_format:{ type:'json_object' }, input:[ { role:'system', content: fallbackSystem }, { role:'user', content: fallbackUser } ], temperature: 0 };
+          const fbRsp = await fetch('https://api.openai.com/v1/responses', { method:'POST', headers, body: JSON.stringify(fbBody) });
+          const fbJ = await fbRsp.json().catch(()=>({}));
+          let fbTxt = ''; try { fbTxt = String(fbJ.output_text||'').trim(); } catch { fbTxt = ''; }
+          if (!fbTxt || fbTxt === '[object Object]'){
+            try { fbTxt = JSON.stringify(fbJ); } catch {}
+          }
+          let fbOut = {}; try { fbOut = JSON.parse(fbTxt); } catch{}
+          const fbQ = fbOut && fbOut.question || {};
+          const ok = fbQ && Array.isArray(fbQ.options_latex) && fbQ.options_latex.length === 4 && Number.isFinite(Number(fbQ.answer_index));
+          if (ok) return fbQ;
+        } catch{}
         return null;
       }
 
