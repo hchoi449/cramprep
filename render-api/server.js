@@ -1953,7 +1953,7 @@ async function bootstrap() {
       const openaiKey = process.env.OPENAI_API_KEY || process.env.openai_api_key;
       if (!openaiKey) return res.status(500).json({ error:'missing_OPENAI_API_KEY' });
 
-      // Download PDF and render first page to PNG (fast path for single-page worksheets)
+      // Download PDF
       const workDir = path.resolve(__dirname, `../tmp_vis_${Date.now()}`);
       fs.mkdirSync(workDir, { recursive: true });
       const pdfResp = await fetch(url);
@@ -1961,25 +1961,38 @@ async function bootstrap() {
       const pdfBuf = Buffer.from(await pdfResp.arrayBuffer());
       const pdfPath = path.join(workDir, 'ws.pdf');
       fs.writeFileSync(pdfPath, pdfBuf);
+      const { spawnSync } = require('child_process');
       const images = [];
-      try {
-        const pdfjsLib = require('pdfjs-dist');
-        const loadingTask = pdfjsLib.getDocument({ data: pdfBuf });
-        const pdfDoc = await loadingTask.promise;
-        const page = await pdfDoc.getPage(1);
-        const viewport = page.getViewport({ scale: 4.0 });
-        const canvas = createCanvas(viewport.width, viewport.height);
-        const ctx = canvas.getContext('2d');
-        await page.render({ canvasContext: ctx, viewport }).promise;
-        const imgPath = path.join(workDir, `page-1.png`);
-        fs.writeFileSync(imgPath, canvas.toBuffer('image/png'));
-        images.push(imgPath);
-      } catch(e){ try { fs.rmSync(workDir, { recursive:true, force:true }); } catch{}; return res.status(500).json({ error:'render_failed' }); }
+      // Try pdftoppm first
+      const havePdftoppm = spawnSync('pdftoppm', ['-v'], { encoding:'utf8' }).status === 0;
+      if (havePdftoppm){
+        const r = spawnSync('pdftoppm', ['-png', '-r', '400', pdfPath, path.join(workDir, 'page')], { encoding:'utf8' });
+        if (r.status === 0){
+          for (const f of fs.readdirSync(workDir)) if (/page-?\d+\.png$/i.test(f)) images.push(path.join(workDir, f));
+          images.sort();
+        }
+      }
+      // Fallback to pdfjs if pdftoppm failed
+      if (!images.length){
+        try {
+          const pdfjsLib = require('pdfjs-dist');
+          const loadingTask = pdfjsLib.getDocument({ data: pdfBuf });
+          const pdfDoc = await loadingTask.promise;
+          const page = await pdfDoc.getPage(1);
+          const viewport = page.getViewport({ scale: 4.0 });
+          const canvas = createCanvas(viewport.width, viewport.height);
+          const ctx = canvas.getContext('2d');
+          await page.render({ canvasContext: ctx, viewport }).promise;
+          const imgPath = path.join(workDir, `page-1.png`);
+          fs.writeFileSync(imgPath, canvas.toBuffer('image/png'));
+          images.push(imgPath);
+        } catch(e){ try { fs.rmSync(workDir, { recursive:true, force:true }); } catch{}; return res.status(500).json({ error:'render_failed' }); }
+      }
 
       const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
       await client.connect();
-      const col = await getQuestionCollection(client);
-      const docs = await col.find({ lessonSlug, generator:'worksheet-ocr' }).sort({ generatedAt: -1 }).limit(Math.max(1, Math.min(20, Number(limit)||10))).toArray();
+      const qsrc = await getQSourcesCollection(client);
+      const docs = await qsrc.find({ lessonSlug, sourceType:'worksheet-ocr' }).sort({ createdAt: -1 }).limit(Math.max(1, Math.min(20, Number(limit)||10))).toArray();
 
       const OpenAI = require('openai');
       const oai = new OpenAI({ apiKey: openaiKey });
@@ -2016,9 +2029,9 @@ async function bootstrap() {
       for (const d of docs){
         const latex = await transcribeOne(d);
         if (latex){
-          await col.updateOne({ _id: d._id }, { $set: { stem: latex } });
+          await qsrc.updateOne({ _id: d._id }, { $set: { promptLatex: latex, updatedAt: new Date().toISOString() } });
           updated++;
-          results.push({ id: String(d._id), stem: latex });
+          results.push({ id: String(d._id), promptLatex: latex });
         }
       }
       await client.close();
