@@ -1642,6 +1642,15 @@ async function bootstrap() {
           return out;
         }
         anchors.push(lines.length);
+        function bboxFromGroup(group){
+          try {
+            const x1 = Math.min(...group.map(g=> g.left));
+            const y1 = Math.min(...group.map(g=> g.top));
+            const x2 = Math.max(...group.map(g=> g.left + g.width));
+            const y2 = Math.max(...group.map(g=> g.top + g.height));
+            return { x: Math.max(0, Math.floor(x1)), y: Math.max(0, Math.floor(y1)), w: Math.max(1, Math.floor(x2 - x1)), h: Math.max(1, Math.floor(y2 - y1)) };
+          } catch { return null; }
+        }
         for (let ai=0; ai<anchors.length-1; ai++){
           const startIdx = anchors[ai];
           const endIdx = anchors[ai+1];
@@ -1671,7 +1680,8 @@ async function bootstrap() {
             }
           }
           const prompt = group.map(g=> g.text).join(' ').replace(anchorRe, '').trim();
-          out.push({ id: pid++, prompt: prompt.slice(0, 800), answer_fields: answerFields, visual: 'none' });
+          const bbox = bboxFromGroup(group);
+          out.push({ id: pid++, prompt: prompt.slice(0, 800), answer_fields: answerFields, visual: 'none', bbox });
         }
         return out;
       }
@@ -1708,7 +1718,12 @@ async function bootstrap() {
             }
             if (!group.length) continue;
             const prompt = group.map(g=> g.text).join(' ').trim();
-            out.push({ id: pid++, prompt: prompt.slice(0,800), answer_fields: [], visual: 'none', anchor: { left:a.left, top:a.top, width: Math.max(1,a.width), height: Math.max(1,a.height) } });
+            const x1 = Math.min(...group.map(g=> g.left));
+            const y1 = Math.min(...group.map(g=> g.top));
+            const x2 = Math.max(...group.map(g=> g.left + g.width));
+            const y2 = Math.max(...group.map(g=> g.top + g.height));
+            const bbox = { x: Math.max(0, Math.floor(x1)), y: Math.max(0, Math.floor(y1)), w: Math.max(1, Math.floor(x2 - x1)), h: Math.max(1, Math.floor(y2 - y1)) };
+            out.push({ id: pid++, prompt: prompt.slice(0,800), answer_fields: [], visual: 'none', anchor: { left:a.left, top:a.top, width: Math.max(1,a.width), height: Math.max(1,a.height) }, bbox });
           }
           return out;
         } catch { return []; }
@@ -1923,7 +1938,7 @@ async function bootstrap() {
         // Assign visuals per scoring and section rules
         const attachMap = assignVisualsToProblems(pageHeight, visuals, built, (linesWithBbox && linesWithBbox.length ? linesWithBbox : []));
         for (const pr of built){
-          problems.push({ id: pr.id, prompt: pr.prompt, answer_fields: pr.answer_fields||[], visual: pr.visual || tagVisual(pr.prompt), attachments: attachMap.get(pr.id) || [] });
+          problems.push({ id: pr.id, prompt: pr.prompt, answer_fields: pr.answer_fields||[], visual: pr.visual || tagVisual(pr.prompt), attachments: attachMap.get(pr.id) || [], bbox: pr.bbox || null });
         }
       }
 
@@ -1980,7 +1995,7 @@ async function bootstrap() {
             pngUrl = `${baseUrl}/tmp/uploads/${outName}`;
           } catch {}
           // Do NOT insert into questionbank; store only in qsources
-          storedProblems.push({ id: p.id, prompt: p.prompt, answer_fields: Array.isArray(p.answer_fields)? p.answer_fields: [], visual: p.visual||'none', page: runningPage, pngPath, dpi: DPI, pngUrl });
+          storedProblems.push({ id: p.id, prompt: p.prompt, answer_fields: Array.isArray(p.answer_fields)? p.answer_fields: [], visual: p.visual||'none', page: runningPage, pngPath, dpi: DPI, pngUrl, bbox: (p.bbox||null) });
           // Also insert a per-item record into thinkpod.qsources
           try {
             await qsrc.insertOne({
@@ -1999,7 +2014,8 @@ async function bootstrap() {
               pngPath,
               pngUrl,
               dpi: DPI,
-              imageB64
+              imageB64,
+              bbox: (p.bbox||null)
             });
             inserted++;
           } catch {}
@@ -2172,6 +2188,12 @@ async function bootstrap() {
           } catch{}
         }
 
+        // Prefer stored bbox from qsources if present
+        try {
+          if ((!crops || !crops.length) && noisy && noisy.bbox && Number(noisy.bbox.w)>0 && Number(noisy.bbox.h)>0){
+            crops = [ { x:Number(noisy.bbox.x)||0, y:Number(noisy.bbox.y)||0, w:Number(noisy.bbox.w)||0, h:Number(noisy.bbox.h)||0, score:1 } ];
+          }
+        } catch{}
         const useCrops = crops && crops.length ? crops : [{ x:0, y:0, w:0, h:0, score:1 }];
 
         async function callMathpix(b64, crop){
