@@ -1510,9 +1510,12 @@ async function bootstrap() {
 
       // OCR each image: use tesseract CLI if present; otherwise Tesseract.js
       const hasTessCli = runCmd('tesseract', ['-v']).code === 0;
+      // Flag to preserve glyphs (skip text normalization)
+      const preserveGlyphsFlag = (String((req.query && req.query.preserveGlyphs) || (req.body && req.body.preserveGlyphs) || '').trim() === '1');
       const problems = [];
       let pid = 1;
       function normalizeOcrText(input){
+        if (preserveGlyphsFlag) return String(input||'');
         try {
           let s = String(input || '');
           // Normalize common unicode dashes and symbols
