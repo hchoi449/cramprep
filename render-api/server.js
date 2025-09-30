@@ -1914,9 +1914,7 @@ async function bootstrap() {
       for (const p of problems.slice(0, 50)){ // cap for safety
         try {
           const pngPath = images[Math.min(images.length-1, runningPage-1)] || images[0];
-          const doc = { lessonSlug, lessonTitle: lessonTitle||lessonSlug, book: resolveBookForLessonFromRepo(lessonSlug) || null, stem: p.prompt, options: ['\\(A\\)','\\(B\\)','\\(C\\)','\\(D\\)'], correct: 0, solution: '', answer: '\\(A\\)', answerPlain: 'A', graph: p.visual==='graph'?{}:undefined, numberLine: p.visual==='number_line'?{}:undefined, table: p.visual==='table'?{headers:[],rows:[]}:undefined, citations: [], difficulty: 'medium', sourceHash: sha256Hex(lessonSlug+'|'+p.prompt), generatedAt: nowIso, generator: 'worksheet-ocr', worksheetInstruction: worksheetInstruction || undefined, source: { name: sourceName, url }, jobId, page: runningPage, pngPath, dpi: DPI };
-          await col.insertOne(doc);
-          inserted++;
+          // Do NOT insert into questionbank; store only in qsources
           storedProblems.push({ id: p.id, prompt: p.prompt, answer_fields: Array.isArray(p.answer_fields)? p.answer_fields: [], visual: p.visual||'none', page: runningPage, pngPath, dpi: DPI });
           // Also insert a per-item record into thinkpod.qsources
           try {
@@ -1936,6 +1934,7 @@ async function bootstrap() {
               pngPath,
               dpi: DPI
             });
+            inserted++;
           } catch {}
           runningPage = Math.min(perPage, runningPage + 1);
         } catch(e){}
@@ -2084,6 +2083,20 @@ async function bootstrap() {
       try { fs.rmSync(workDir, { recursive:true, force:true }); } catch{}
       return res.json({ ok:true, updated, attempted, missingPng, failures, results });
     } catch (e){ console.error('[worksheet-vision-clean] exception', e); return res.status(500).json({ error:'worksheet_vision_clean_exception', detail: String(e && e.message || e) }); }
+  });
+
+  // Manual fix helper: set promptLatex for a qsources item by lesson and problemId
+  app.post('/ai/worksheet/qsources/set-latex', async (req, res) => {
+    try {
+      const { lessonSlug, problemId, latex } = req.body || {};
+      if (!lessonSlug || !problemId || !latex) return res.status(400).json({ error:'lessonSlug, problemId, latex required' });
+      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+      await client.connect();
+      const qsrc = await getQSourcesCollection(client);
+      const r = await qsrc.updateOne({ lessonSlug, sourceType:'worksheet-ocr', problemId: Number(problemId) }, { $set: { promptLatex: String(latex), updatedAt: new Date().toISOString() } });
+      await client.close();
+      return res.json({ ok:true, matched: r.matchedCount||0, modified: r.modifiedCount||0 });
+    } catch(e){ console.error('[qsources-set-latex] exception', e); return res.status(500).json({ error:'qsources_set_latex_exception', detail:String(e && e.message || e) }); }
   });
 
   // Agent 1: Generate and store ≥30 questions for a lesson
