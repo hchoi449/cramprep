@@ -2190,10 +2190,20 @@ async function bootstrap() {
             const rsp = await fetch('https://api.mathpix.com/v3/text', {
               method:'POST',
               headers:{ 'Content-Type':'application/json', 'app_id': String(mathpixAppId), 'app_key': String(mathpixAppKey) },
-              body: JSON.stringify({ src: `data:image/png;base64,${payloadB64}`, formats:['latex_styled','text'], include_latex_style: true })
+              body: JSON.stringify({ src: `data:image/png;base64,${payloadB64}`, formats:['latex_styled','latex_simplified','text','data'], include_latex_style: true })
             });
             const j = await rsp.json().catch(()=>({}));
-            const latex = String(j && (j.latex_styled || j.latex || '') || '').trim();
+            let latex = String(j && (j.latex_styled || j.latex || '') || '').trim();
+            if (!latex && j && Array.isArray(j.data)){
+              try {
+                const firstLatex = j.data.find(it => String(it && it.type).toLowerCase().includes('latex') && it.value);
+                if (firstLatex && firstLatex.value) latex = String(firstLatex.value).trim();
+              } catch {}
+            }
+            if (!latex && j && typeof j.text === 'string'){
+              const t = j.text.trim();
+              if (/[=^_\\]/.test(t) || /\d/.test(t)) latex = t;
+            }
             if (latex) return /^\\\(|\\\[/.test(latex) ? latex : `\\(${latex}\\)`;
           } catch{}
           return '';
