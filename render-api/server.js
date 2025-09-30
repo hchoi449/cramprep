@@ -2230,9 +2230,12 @@ async function bootstrap() {
             properties: {
               stimulus_text: { type:'string' },
               stimulus_latex: { type:'string' },
+              stimulus_mathjson: { type:'object' },
               options_latex: { type:'array', items:{ type:'string' } },
+              options_mathjson: { type:'array', items:{ type:'object' } },
               answer_index: { type:'number' },
               answer_plain: { type:'string' },
+              answer_mathjson: { type:'object' },
               rationale_text: { type:'string' },
               rationale_latex: { type:'string' },
               difficulty: { type:'string' }
@@ -2276,8 +2279,8 @@ async function bootstrap() {
           seedClean || '(none)',
           'OCR JSON (verbatim):',
           seedVerbatim || '(none)',
-          'JSON SCHEMA: {"question":{"stimulus_text":"string","stimulus_latex":"string","options_latex":["string","string","string","string"],"answer_index":0,"answer_plain":"string","rationale_text":"string","rationale_latex":"string","difficulty":"easy|medium|hard"}}',
-          'Constraints: 4 options only; exactly one correct; difficulty must be easy|medium|hard; all math in LaTeX \\( ... \\).'
+          'JSON SCHEMA: {"question":{"stimulus_text":"string","stimulus_latex":"string","stimulus_mathjson":{},"options_latex":["string","string","string","string"],"options_mathjson":[{},{},{},{}],"answer_index":0,"answer_plain":"string","answer_mathjson":{},"rationale_text":"string","rationale_latex":"string","difficulty":"easy|medium|hard"}}',
+          'Constraints: 4 options only; exactly one correct; difficulty must be easy|medium|hard; all math in LaTeX \\( ... \\); include MathJSON for stimulus, each option, and the correct answer.'
         ].join('\n');
         const headers = { 'Authorization': `Bearer ${openaiKey}`, 'Content-Type':'application/json' };
         const input = [{ role:'system', content: system }];
@@ -2308,8 +2311,8 @@ async function bootstrap() {
         // Fixer: coerce to strict schema
         const fixerSystem = [
           'You produced output that must be corrected to match this JSON schema exactly:',
-          '{"question":{"stimulus_text":"string","stimulus_latex":"string","options_latex":["string","string","string","string"],"answer_index":0,"answer_plain":"string","rationale_text":"string","rationale_latex":"string","difficulty":"easy|medium|hard"}}',
-          'Return STRICT JSON ONLY. Ensure options_latex has exactly 4 entries and answer_index is 0..3.'
+          '{"question":{"stimulus_text":"string","stimulus_latex":"string","stimulus_mathjson":{},"options_latex":["string","string","string","string"],"options_mathjson":[{},{},{},{}],"answer_index":0,"answer_plain":"string","answer_mathjson":{},"rationale_text":"string","rationale_latex":"string","difficulty":"easy|medium|hard"}}',
+          'Return STRICT JSON ONLY. Ensure options_latex has exactly 4 entries and answer_index is 0..3. Include MathJSON fields.'
         ].join(' ');
         const fixBody = { model:'gpt-4o', response_format:{ type:'json_object' }, temperature: 0, input:[ { role:'system', content: fixerSystem }, { role:'user', content:[ { type:'input_text', text: (txt || '(empty)') } ] } ] };
         const fixRsp = await fetch('https://api.openai.com/v1/responses', { method:'POST', headers, body: JSON.stringify(fixBody) });
@@ -2325,8 +2328,8 @@ async function bootstrap() {
           const fallbackUser = [
             `LESSON: ${lessonTitle||lessonSlug}`,
             'Topic focus: Mixed Domain Applications (functions: domain/range under transformations).',
-            'JSON SCHEMA: {"question":{"stimulus_text":"string","stimulus_latex":"string","options_latex":["string","string","string","string"],"answer_index":0,"answer_plain":"string","rationale_text":"string","rationale_latex":"string","difficulty":"easy|medium|hard"}}',
-            'Constraints: 4 options; exactly one correct; difficulty medium; all math LaTeX in \\(...\\).'
+            'JSON SCHEMA: {"question":{"stimulus_text":"string","stimulus_latex":"string","stimulus_mathjson":{},"options_latex":["string","string","string","string"],"options_mathjson":[{},{},{},{}],"answer_index":0,"answer_plain":"string","answer_mathjson":{},"rationale_text":"string","rationale_latex":"string","difficulty":"easy|medium|hard"}}',
+            'Constraints: 4 options; exactly one correct; difficulty medium; all math LaTeX in \\(...\\); include MathJSON for all math fields.'
           ].join('\n');
           const fbBody = { model:'gpt-4o', response_format:{ type:'json_object' }, input:[ { role:'system', content: fallbackSystem }, { role:'user', content: fallbackUser } ], temperature: 0 };
           const fbRsp = await fetch('https://api.openai.com/v1/responses', { method:'POST', headers, body: JSON.stringify(fbBody) });
