@@ -2011,10 +2011,14 @@ async function bootstrap() {
       await client.connect();
       const qsrc = await getQSourcesCollection(client);
       const maxN = Math.max(1, Math.min(50, Number(limit)||20));
-      // Prefer items missing promptLatex; otherwise take recent
-      let docs = await qsrc.find({ lessonSlug, sourceType:'worksheet-ocr', $or:[ { promptLatex: { $exists:false } }, { promptLatex: '' } ] }).sort({ createdAt: -1 }).limit(maxN).toArray();
+      // Discover latest OCR jobId for this lesson
+      const latestJobArr = await qsrc.find({ lessonSlug, sourceType:'worksheet-ocr', jobId: { $exists:true } }).project({ jobId:1, createdAt:1 }).sort({ createdAt:-1 }).limit(1).toArray();
+      const latestJobId = latestJobArr && latestJobArr[0] && latestJobArr[0].jobId;
+      // Prefer items from latest job that are missing promptLatex; otherwise take recent
+      let queryBase = latestJobId ? { lessonSlug, sourceType:'worksheet-ocr', jobId: latestJobId } : { lessonSlug, sourceType:'worksheet-ocr' };
+      let docs = await qsrc.find({ ...queryBase, $or:[ { promptLatex: { $exists:false } }, { promptLatex: '' } ] }).sort({ createdAt: -1 }).limit(maxN).toArray();
       if (!docs.length){
-        docs = await qsrc.find({ lessonSlug, sourceType:'worksheet-ocr' }).sort({ createdAt: -1 }).limit(maxN).toArray();
+        docs = await qsrc.find(queryBase).sort({ createdAt: -1 }).limit(maxN).toArray();
       }
 
       const OpenAI = require('openai');
