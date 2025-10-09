@@ -88,7 +88,7 @@ def main():
             # layoutparser forwards this to Detectron2's cfg.merge_from_list,
             # which expects a flat list of KEY, VALUE pairs, not tuples
             extra_config=[
-                "MODEL.ROI_HEADS.SCORE_THRESH_TEST", score_thresh,
+                "MODEL.ROI_HEADS.SCORE_THRESH_TEST", str(score_thresh),
             ],
             label_map=label_map,
             device=os.environ.get('DETECTRON_DEVICE', 'cuda' if os.environ.get('CUDA_VISIBLE_DEVICES') else 'cpu')
