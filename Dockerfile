@@ -4,6 +4,14 @@ FROM node:18-bullseye
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
+    python3-dev \
+    git \
+    build-essential \
+    cmake \
+    ninja-build \
+    pkg-config \
+    libgl1 \
+    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app/render-api
@@ -21,7 +29,7 @@ RUN pip3 install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu
     torchvision==0.17.2
 # Install Detectron2 wheel compatible with torch 2.2.x and other deps
 RUN pip3 install --no-cache-dir \
-    "detectron2 @ https://dl.fbaipublicfiles.com/detectron2/wheels/cu-none/torch2.2/index.html" \
+    "git+https://github.com/facebookresearch/detectron2.git" \
     layoutparser \
     opencv-python-headless \
     pillow
