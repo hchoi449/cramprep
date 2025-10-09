@@ -17,11 +17,11 @@ RUN npm ci || npm install
 RUN python3 -m pip install --upgrade pip setuptools wheel
 # Install PyTorch CPU wheels from the official CPU index
 RUN pip3 install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu \
-    torch==2.3.1 \
-    torchvision==0.18.1
-# Install Detectron2 wheel compatible with torch 2.3.x and other deps
+    torch==2.2.2 \
+    torchvision==0.17.2
+# Install Detectron2 wheel compatible with torch 2.2.x and other deps
 RUN pip3 install --no-cache-dir \
-    "detectron2 @ https://dl.fbaipublicfiles.com/detectron2/wheels/cu-none/torch2.3/index.html" \
+    "detectron2 @ https://dl.fbaipublicfiles.com/detectron2/wheels/cu-none/torch2.2/index.html" \
     layoutparser \
     opencv-python-headless \
     pillow
