@@ -12,6 +12,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     libgl1 \
     libglib2.0-0 \
+    poppler-utils \
+    imagemagick \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app/render-api

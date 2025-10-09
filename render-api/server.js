@@ -70,8 +70,55 @@ async function bootstrap() {
   const sessionsCol = client.db(SESS_DB).collection(SESS_COL);
   const assetsDir = path.resolve(__dirname, '../assets_ingest');
   try { fs.mkdirSync(assetsDir, { recursive: true }); } catch {}
+  // Serve preprocessed assets
+  app.use('/tmp/uploads', express.static(path.resolve(__dirname, '../tmp_uploads')));
 
   app.get('/auth/ping', (req, res) => res.json({ ok: true, ts: Date.now() }));
+
+  // Preprocess endpoint: accept a PDF or image URL, produce cleaned PNG(s)
+  app.post('/ai/worksheet/preprocess', async (req, res) => {
+    try {
+      const { url, dpi } = req.body || {};
+      if (!url) return res.status(400).json({ error:'url required' });
+      const workDir = path.resolve(__dirname, `../tmp_pre_${Date.now()}`);
+      fs.mkdirSync(workDir, { recursive: true });
+      const r = await fetch(url);
+      if (!r.ok) return res.status(400).json({ error:'fetch_failed' });
+      const ab = await r.arrayBuffer();
+      const buf = Buffer.from(ab);
+      const isPdf = /\.pdf($|\?|#)/i.test(url) || (buf[0]===0x25 && buf[1]===0x50 && buf[2]===0x44 && buf[3]===0x46);
+      const outPngs = [];
+      if (isPdf){
+        const pdfPath = path.join(workDir, 'input.pdf');
+        fs.writeFileSync(pdfPath, buf);
+        const { spawnSync } = require('child_process');
+        const resP = spawnSync('pdftoppm', ['-png', '-r', String(dpi||300), pdfPath, path.join(workDir, 'page')], { encoding:'utf8' });
+        if (resP.status === 0){
+          for (const f of fs.readdirSync(workDir)) if (/page-?\d+\.png$/i.test(f)) outPngs.push(path.join(workDir, f));
+          outPngs.sort();
+        }
+      } else {
+        const imgPath = path.join(workDir, 'input');
+        fs.writeFileSync(imgPath, buf);
+        outPngs.push(imgPath);
+      }
+      // Clean each image (deskew/normalize) best-effort with ImageMagick
+      const publicDir = path.resolve(__dirname, '../tmp_uploads');
+      try { fs.mkdirSync(publicDir, { recursive:true }); } catch{}
+      const urls = [];
+      for (const p of outPngs){
+        try {
+          const base = path.basename(p).replace(/\.[^.]+$/, '') + '.png';
+          const out = path.join(publicDir, `${Date.now()}_${base}`);
+          const { spawnSync } = require('child_process');
+          spawnSync('convert', [p, '-deskew', '40%', '-strip', '-colorspace', 'Gray', '-normalize', out]);
+          const baseUrl = (req.headers['x-forwarded-proto'] ? `${req.headers['x-forwarded-proto']}` : 'https') + '://' + (req.headers['x-forwarded-host'] || req.headers.host);
+          urls.push(`${baseUrl}/tmp/uploads/${path.basename(out)}`);
+        } catch {}
+      }
+      return res.json({ ok:true, images: urls });
+    } catch(e){ console.error('[preprocess] exception', e); return res.status(500).json({ error:'preprocess_exception', detail:String(e && e.message || e) }); }
+  });
 
   // Sessions API for timetable
   app.get('/sessions', async (req, res) => {
