@@ -10,9 +10,6 @@
     <link rel="stylesheet" href="css/index.css?v=1.1" />
     <link rel="stylesheet" href="css/login.css?v=1.0" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" />
-    <style>
-      .header .logo img{height:48px;width:auto}
-    </style>
   </head>
   <body>
     <header class="header">
@@ -62,6 +59,51 @@
             <button id="btnExplain" class="btn" type="button">Explain Step-by-Step</button>
           </div>
           <div id="jarvisOutput" style="min-height:160px; border:1px solid #e5e7eb; border-radius:12px; padding:14px; background:#fff;"></div>
+        </div>
+      </section>
+
+      <!-- Drag & Drop File Uploader -->
+      <section class="settings-card" aria-labelledby="uploadTitle" style="max-width:900px; margin:24px auto 80px;">
+        <div class="settings-head">
+          <h2 id="uploadTitle" class="settings-title">Upload Worksheets</h2>
+          <p class="settings-sub">Drag & drop PDFs or images, or browse to upload. Progress is shown per file.</p>
+        </div>
+        <div style="padding:16px; display:grid; gap:12px;">
+          <div>
+            <label class="setting-label" for="lessonSlugInput">Lesson Slug</label>
+            <input id="lessonSlugInput" type="text" placeholder="e.g., algebra-ii" value="jarvis-uploads" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px" />
+          </div>
+          <div id="tbp-uploader" class="rounded-2xl border border-slate-200 bg-white p-4" style="box-shadow:0 10px 30px rgba(0,0,0,.08);">
+            <div id="tbp-dropzone" class="rounded-2xl border border-dashed border-slate-300" style="padding:24px; text-align:center; background:#f8fafb; cursor:pointer;">
+              <div style="display:inline-flex; align-items:center; justify-content:center; height:64px; width:64px; border-radius:9999px; background:#fff; color:#6b7280; box-shadow:0 1px 4px rgba(0,0,0,.08); margin-bottom:8px;">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden style="height:28px; width:28px;">
+                  <path d="M19.35 10.04a7.49 7.49 0 0 0-14-2.09A5.5 5.5 0 0 0 6.5 21H18a4.5 4.5 0 0 0 1.35-10.96ZM12 13a1 1 0 0 1 1 1v3.586l.293-.293a1 1 0 1 1 1.414 1.414l-2.707 2.707a1 1 0 0 1-1.414 0L7.879 18.707a1 1 0 0 1 1.414-1.414L9.586 17V14a1 1 0 0 1 1-1h1.414Z"/>
+                </svg>
+              </div>
+              <h3 style="margin:4px 0 0; font-size:18px; font-weight:700; color:#1f2937;">Upload files</h3>
+              <p style="margin:2px 0 0; color:#6b7280;">JPEG, PNG, PDF up to 50MB each</p>
+              <div class="rounded-2xl border border-dashed border-slate-300" style="padding:16px; margin-top:12px;">
+                <p style="font-weight:600; color:#1f2937;">Choose a file or drag & drop it here</p>
+                <p style="margin-top:4px; color:#6b7280; font-size:14px;">Click to browse or drop multiple files</p>
+                <div style="margin-top:10px;">
+                  <button id="tbp-browse" type="button" class="btn btn-primary">Browse File</button>
+                </div>
+                <input id="tbp-file-input" type="file" multiple accept="image/jpeg,image/png,application/pdf" style="display:none" />
+              </div>
+            </div>
+
+            <!-- Selected / Upload list -->
+            <div id="tbp-file-list" style="margin-top:16px; display:none;" class="rounded-2xl bg-slate-50 p-4">
+              <div style="display:flex; align-items:center; justify-content:space-between;">
+                <p id="tbp-file-count" style="font-weight:600; color:#334155; font-size:14px;">0 files selected</p>
+                <div style="display:flex; gap:8px;">
+                  <button id="tbp-clear" type="button" class="btn">Clear</button>
+                  <button id="tbp-upload" type="button" class="btn btn-secondary" disabled>Upload</button>
+                </div>
+              </div>
+              <div id="tbp-rows" style="margin-top:8px;"></div>
+            </div>
+          </div>
         </div>
       </section>
     </main>
@@ -114,6 +156,124 @@
         document.getElementById('btnExplain').addEventListener('click', function(){
           const p = val(); if (!p) return; callJarvis('Explain step-by-step, with examples, for:\n\n'+p);
         });
+      })();
+    </script>
+    <script>
+      (function(){
+        const ACCEPT = ['image/jpeg','image/png','application/pdf'];
+        const MAX_MB = 50; const MAX_BYTES = MAX_MB * 1024 * 1024;
+        const els = {
+          drop: document.getElementById('tbp-dropzone'),
+          browse: document.getElementById('tbp-browse'),
+          input: document.getElementById('tbp-file-input'),
+          list: document.getElementById('tbp-file-list'),
+          count: document.getElementById('tbp-file-count'),
+          clear: document.getElementById('tbp-clear'),
+          upload: document.getElementById('tbp-upload'),
+          rows: document.getElementById('tbp-rows'),
+          slug: document.getElementById('lessonSlugInput')
+        };
+        let items = [];
+
+        function fmtBytes(bytes){ if (bytes===0) return '0 B'; const k=1024; const sizes=['B','KB','MB','GB']; const i=Math.floor(Math.log(bytes)/Math.log(k)); return `${(bytes/Math.pow(k,i)).toFixed(i===0?0:2)} ${sizes[i]}`; }
+        function setDragging(on){ els.drop.style.background = on ? '#eff6ff' : '#f8fafb'; }
+        function dedupeKey(f){ return f.name + '|' + f.size; }
+        function render(){
+          els.list.style.display = items.length ? 'block' : 'none';
+          els.count.textContent = `${items.length} file${items.length>1?'s':''} selected`;
+          els.upload.disabled = !items.some(x => x.status==='ready');
+          els.rows.innerHTML = items.map(it => {
+            const badge = it.file.type.includes('pdf')? 'PDF' : (it.file.type.includes('png')?'PNG':'JPG');
+            const barColor = it.status==='error'? '#ef4444' : '#0ea5e9';
+            const showBar = it.status !== 'ready';
+            return `
+              <div class="flex items-start justify-between gap-4 py-3" style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:12px 0;border-top:1px solid #e5e7eb;">
+                <div class="min-w-0 flex-1" style="min-width:0;flex:1;">
+                  <div class="flex items-center gap-2" style="display:flex;align-items:center;gap:8px;">
+                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 text-slate-600" style="display:inline-flex;height:32px;width:32px;border-radius:12px;background:#f1f5f9;color:#475569;align-items:center;justify-content:center;">${badge}</span>
+                    <div class="min-w-0" style="min-width:0;">
+                      <p class="truncate text-sm font-medium text-slate-900" style="margin:0;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${it.file.name}</p>
+                      <p class="text-xs text-slate-500" style="margin:2px 0 0;color:#6b7280;font-size:12px;">${fmtBytes(it.file.size)}</p>
+                    </div>
+                  </div>
+                  ${showBar?`
+                    <div class="mt-2" style="margin-top:8px;">
+                      <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100" style="height:8px;border-radius:9999px;background:#f1f5f9;">
+                        <div style="height:8px;border-radius:9999px;background:${barColor};width:${it.progress||0}%;"></div>
+                      </div>
+                      <p class="mt-1 text-xs text-slate-500" style="margin-top:4px;color:#64748b;font-size:12px;">
+                        ${it.status==='uploading'?`Uploading… ${Math.round(it.progress||0)}%`: it.status==='done'?'Uploaded': it.status==='error'?(it.error||'Upload failed') : 'Ready'}
+                      </p>
+                    </div>
+                  `:''}
+                </div>
+                <button type="button" data-id="${it.id}" class="btn" style="border:1px solid #e5e7eb;border-radius:12px;padding:6px 12px;font-size:12px;" aria-label="Remove ${it.file.name}">Remove</button>
+              </div>
+            `; }).join('');
+          // bind remove buttons
+          els.rows.querySelectorAll('button[data-id]').forEach(btn => {
+            btn.addEventListener('click', function(){ const id=this.getAttribute('data-id'); items = items.filter(x => x.id!==id); render(); });
+          });
+        }
+
+        function addFiles(fileList){
+          if (!fileList) return;
+          const incoming = Array.from(fileList);
+          const existingKeys = new Set(items.map(x => dedupeKey(x.file)));
+          for (const f of incoming){
+            let error;
+            if (!ACCEPT.includes(f.type)) error = 'Unsupported file type';
+            else if (f.size > MAX_BYTES) error = `File exceeds ${MAX_MB}MB`;
+            const key = dedupeKey(f); if (existingKeys.has(key)) continue;
+            items.push({ id: crypto.randomUUID(), file: f, status: error?'error':'ready', error, progress: error?0:1 });
+          }
+          render();
+        }
+
+        // Drag & drop handlers
+        ['dragenter','dragover'].forEach(evt => els.drop.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); setDragging(true); }));
+        ;['dragleave','dragend'].forEach(evt => els.drop.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); setDragging(false); }));
+        els.drop.addEventListener('drop', e => { e.preventDefault(); e.stopPropagation(); setDragging(false); addFiles(e.dataTransfer.files); });
+        els.drop.addEventListener('click', () => els.input.click());
+        els.browse.addEventListener('click', e => { e.stopPropagation(); els.input.click(); });
+        els.input.addEventListener('change', e => addFiles(e.currentTarget.files));
+
+        els.clear.addEventListener('click', () => { items = []; render(); });
+
+        els.upload.addEventListener('click', async function(){
+          const slug = (els.slug.value||'jarvis-uploads').trim();
+          // mark uploading
+          items = items.map(it => it.status==='ready'? { ...it, status:'uploading', progress:5 } : it);
+          render();
+          for (const it of items){
+            if (it.status !== 'uploading') continue;
+            try {
+              await new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', (window.TBP_AUTH_BASE||'') + '/ai/worksheet/upload');
+                xhr.upload.onprogress = (e) => {
+                  if (!e.lengthComputable) return;
+                  const p = Math.round((e.loaded / e.total) * 100);
+                  it.progress = p; render();
+                };
+                xhr.onreadystatechange = function(){
+                  if (xhr.readyState === 4){
+                    try { const j = JSON.parse(xhr.responseText||'{}'); if (xhr.status>=200 && xhr.status<300 && j && j.ok){ it.status='done'; it.progress=100; render(); resolve(null); } else { it.status='error'; it.error=(j&&j.error)||('Upload failed '+xhr.status); render(); reject(new Error(it.error)); } }
+                    catch(e){ it.status='error'; it.error='Invalid server response'; render(); reject(e); }
+                  }
+                };
+                const form = new FormData();
+                form.append('lessonSlug', slug);
+                form.append('file', it.file, it.file.name);
+                xhr.send(form);
+              });
+            } catch { /* already marked */ }
+          }
+          render();
+        });
+
+        // initial render
+        render();
       })();
     </script>
   </body>
