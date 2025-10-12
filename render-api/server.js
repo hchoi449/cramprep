@@ -2091,21 +2091,9 @@ async function bootstrap() {
     return res.json({ ok:true, route:'/api/vision-clean', status:'ready' });
   });
 
-  // Detect math regions using Detectron2+LayoutParser (Python script)
+  // Layout detect route removed (no external detector in Native runtime)
   app.post('/ai/layout/detect', async (req, res) => {
-    try {
-      const { imagePath } = req.body || {};
-      if (!imagePath || !fs.existsSync(String(imagePath))) return res.status(400).json({ error:'imagePath required and must exist' });
-      const args = [path.resolve(__dirname, './detect_math_regions.py'), '--image', path.resolve(String(imagePath))];
-      if (process.env.DETECTRON_CONFIG) { args.push('--config', process.env.DETECTRON_CONFIG); }
-      if (process.env.DETECTRON_WEIGHTS) { args.push('--weights', process.env.DETECTRON_WEIGHTS); }
-      if (process.env.DETECTRON_LABELS) { args.push('--labels', process.env.DETECTRON_LABELS); }
-      if (process.env.DETECTRON_SCORE_THRESH) { args.push('--score-thresh', process.env.DETECTRON_SCORE_THRESH); }
-      const r = runCmd('python3', args, { cwd: path.resolve(__dirname) });
-      if (r.code !== 0){ return res.status(500).json({ error:'detect_failed', detail:r.stderr||r.stdout }); }
-      let out = {}; try { out = JSON.parse(r.stdout||'{}'); } catch{}
-      return res.json(out.ok ? out : { ok:false, error:'bad_output', raw:r.stdout });
-    } catch(e){ console.error('[layout-detect] exception', e); return res.status(500).json({ error:'layout_detect_exception', detail:String(e && e.message || e) }); }
+    return res.status(410).json({ error:'layout_detector_removed' });
   });
 
   // Mathpix OCR proxy: transcribe one image (optionally already cropped)
@@ -2136,8 +2124,7 @@ async function bootstrap() {
       const mathpixParam = String(req.query.mathpix||'').toLowerCase();
       // Default to Mathpix when keys exist; allow disabling via mathpix=0/false/no
       const useMathpix = !!(mathpixAppId && mathpixAppKey) && !(mathpixParam==='0' || /false|no/i.test(mathpixParam));
-      const useDetector = String(req.query.detect||'').toLowerCase()==='1' || /true|yes/i.test(String(req.query.detect||''));
-      const detectorBackend = String(process.env.DETECTOR_BACKEND||'detectron').toLowerCase(); // 'detectron' | 'hf_detr'
+      const useDetector = false; // detector disabled
       const { url, lessonSlug, limit } = req.body || {};
       if (!lessonSlug) return res.status(400).json({ error:'lessonSlug required' });
       const openaiKey = process.env.OPENAI_API_KEY || process.env.openai_api_key;
@@ -2219,30 +2206,7 @@ async function bootstrap() {
 
         // Optional: run detector to crop math regions and pick the most confident crop
         let crops = [];
-        if (useDetector && pngPath && fs.existsSync(pngPath)){
-          try {
-            let r = { code:1, stdout:'', stderr:'' };
-            if (detectorBackend === 'hf_detr'){
-              const args = [path.resolve(__dirname, './detect_layout_hf.py'), '--image', pngPath];
-              if (process.env.DETECTOR_SCORE_THRESH) { args.push('--score-thresh', process.env.DETECTOR_SCORE_THRESH); }
-              if (process.env.HF_DETR_MODEL) { args.push('--model', process.env.HF_DETR_MODEL); }
-              r = runCmd('python3', args);
-            } else {
-              const args = [path.resolve(__dirname, './detect_math_regions.py'), '--image', pngPath];
-              if (process.env.DETECTRON_CONFIG) { args.push('--config', process.env.DETECTRON_CONFIG); }
-              if (process.env.DETECTRON_WEIGHTS) { args.push('--weights', process.env.DETECTRON_WEIGHTS); }
-              if (process.env.DETECTRON_LABELS) { args.push('--labels', process.env.DETECTRON_LABELS); }
-              if (process.env.DETECTRON_SCORE_THRESH) { args.push('--score-thresh', process.env.DETECTRON_SCORE_THRESH); }
-              r = runCmd('python3', args);
-            }
-            if (r.code === 0){
-              const j = JSON.parse(r.stdout || '{}');
-              if (j && j.ok && Array.isArray(j.boxes)){
-                crops = j.boxes.slice(0, 5);
-              }
-            }
-          } catch{}
-        }
+        // detector disabled
 
         // Prefer stored bbox from qsources if present
         try {
