@@ -58,6 +58,40 @@
           <p class="settings-sub">Drag & drop PDFs or images, or browse to upload. Progress is shown per file.</p>
         </div>
         <div style="padding:16px; display:grid; gap:12px;">
+          <div style="display:grid; gap:10px; grid-template-columns:1fr 1fr;">
+            <div>
+              <label class="setting-label" for="schoolInput">School</label>
+              <input id="schoolInput" type="text" placeholder="e.g., Northern Valley Regional High School" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px" />
+            </div>
+            <div>
+              <label class="setting-label" for="courseSelect">Course</label>
+              <select id="courseSelect" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff">
+                <option value="">Select course</option>
+                <option>Pre-Algebra</option>
+                <option>Geometry</option>
+                <option>Algebra I</option>
+                <option>Algebra II</option>
+                <option>Pre-Calculus</option>
+                <option>Calculus AB</option>
+                <option>Calculus BC</option>
+              </select>
+            </div>
+            <div>
+              <label class="setting-label" for="teacherSelect">Teacher</label>
+              <select id="teacherSelect" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff">
+                <option value="">Select teacher</option>
+              </select>
+            </div>
+            <div>
+              <label class="setting-label" for="typeSelect">Worksheet Type</label>
+              <select id="typeSelect" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff">
+                <option value="">Select type</option>
+                <option value="blank">Blank Worksheet</option>
+                <option value="answer">Answer Key</option>
+                <option value="notes">Notes</option>
+              </select>
+            </div>
+          </div>
           <div>
             <label class="setting-label" for="lessonSlugInput">Lesson Slug</label>
             <input id="lessonSlugInput" type="text" placeholder="e.g., algebra-ii" value="jarvis-uploads" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px" />
@@ -229,8 +263,29 @@
 
         els.clear.addEventListener('click', () => { items = []; render(); });
 
+        // Update teacher list when school changes
+        async function refreshTeachers(){
+          const school = (els.slug && '') || (document.getElementById('schoolInput').value||'').trim();
+          const sel = document.getElementById('teacherSelect');
+          sel.innerHTML = '<option value="">Loading…</option>';
+          try{
+            const qs = school ? ('?school='+encodeURIComponent(school)) : '';
+            const r = await fetch((window.TBP_AUTH_BASE||'') + '/ai/teachers'+qs);
+            const j = await r.json().catch(()=>({}));
+            const names = (j && j.teachers) || [];
+            sel.innerHTML = '<option value="">Select teacher</option>' + names.map(n => `<option>${n}</option>`).join('');
+          }catch{ sel.innerHTML = '<option value="">Select teacher</option>'; }
+        }
+        document.getElementById('schoolInput').addEventListener('change', refreshTeachers);
+        document.getElementById('schoolInput').addEventListener('blur', refreshTeachers);
+
         els.upload.addEventListener('click', async function(){
           const slug = (els.slug.value||'jarvis-uploads').trim();
+          const school = (document.getElementById('schoolInput').value||'').trim();
+          const course = (document.getElementById('courseSelect').value||'').trim();
+          const teacher = (document.getElementById('teacherSelect').value||'').trim();
+          const wtype = (document.getElementById('typeSelect').value||'').trim();
+          if (!wtype){ alert('Please select Worksheet Type'); return; }
           // mark uploading
           items = items.map(it => it.status==='ready'? { ...it, status:'uploading', progress:5 } : it);
           render();
@@ -254,6 +309,10 @@
                 const form = new FormData();
                 form.append('lessonSlug', slug);
                 form.append('file', it.file, it.file.name);
+                if (school) form.append('school', school);
+                if (course) form.append('course', course);
+                if (teacher) form.append('teacher', teacher);
+                if (wtype) form.append('worksheetType', wtype);
                 xhr.send(form);
               });
             } catch { /* already marked */ }
@@ -263,6 +322,7 @@
 
         // initial render
         render();
+        refreshTeachers();
       })();
     </script>
   </body>
