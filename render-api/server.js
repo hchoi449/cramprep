@@ -84,14 +84,39 @@ async function bootstrap() {
   app.get('/ai/schools', async (req, res) => {
     try {
       const q = String(req.query.q||'').trim();
+      const limit = Math.max(1, Math.min(50, Number(req.query.limit||50)));
       const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
       await client.connect();
       const col = await getSchoolsCollection(client);
-      const filter = q ? { name: { $regex: q.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), $options:'i' } } : {};
-      const limit = Math.max(1, Math.min(50, Number(req.query.limit||50)));
-      const docs = await col.find(filter).project({ _id:0, name:1 }).sort({ name: 1 }).limit(limit).toArray();
+
+      // Coalesce name from common fields and variations found in datasets
+      const coalescedName = {
+        $ifNull: [
+          "$name",
+          { $ifNull: [
+            "$school.schools.name",
+            { $ifNull: [
+              "$school_name",
+              { $ifNull: [ "$school", "$NAME" ] }
+            ] }
+          ] }
+        ]
+      };
+
+      const pipeline = [
+        { $project: { _id: 0, name: coalescedName } },
+        { $match: { name: { $type: "string", $ne: "" } } },
+      ];
+      if (q) {
+        const rx = q.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+        pipeline.push({ $match: { name: { $regex: rx, $options: 'i' } } });
+      }
+      pipeline.push({ $sort: { name: 1 } });
+      pipeline.push({ $limit: limit });
+
+      const docs = await col.aggregate(pipeline).toArray();
       await client.close();
-      return res.json({ ok:true, schools: docs.map(d => d.name) });
+      return res.json({ ok:true, schools: docs.map(d => d.name || null) });
     } catch (e){ console.error('[schools] exception', e); return res.status(500).json({ error:'schools_exception' }); }
   });
 
