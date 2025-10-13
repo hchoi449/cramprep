@@ -105,11 +105,40 @@ async function bootstrap() {
       const col = await getTeachersCollection(client);
       const filter = {};
       if (school) filter.school = school;
-      if (q) filter.name = { $regex: q.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'), $options:'i' };
+      if (q) filter.name = { $regex: q.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), $options:'i' };
       const names = await col.find(filter).project({ _id:0, name:1 }).limit(50).toArray();
       await client.close();
       return res.json({ ok:true, teachers: names.map(n => n.name) });
     } catch (e){ console.error('[teachers] exception', e); return res.status(500).json({ error:'teachers_exception' }); }
+  });
+
+  // AI fallback: suggest teacher names for a school (best-effort; may be inaccurate)
+  app.post('/ai/teachers/ai', async (req, res) => {
+    try {
+      const school = String((req.body && req.body.school) || req.query.school || '').trim();
+      const subject = String((req.body && req.body.subject) || req.query.subject || 'math').trim();
+      if (!school) return res.status(400).json({ error:'school required' });
+      const openaiKey = process.env.OPENAI_API_KEY || process.env.openai_api_key;
+      if (!openaiKey) return res.status(500).json({ error:'missing_OPENAI_API_KEY' });
+      const OpenAI = require('openai');
+      const oai = new OpenAI({ apiKey: openaiKey });
+      const sys = 'Return only strict JSON: {"teachers":["Name 1","Name 2",...]} with up to 10 entries. If uncertain, return an empty list.';
+      const user = `List ${subject} teachers (or the closest available teacher list) for the school: "${school}". Return JSON as specified.`;
+      let out = { teachers: [] };
+      try {
+        const rsp = await oai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [ { role:'system', content: sys }, { role:'user', content: user } ],
+          temperature: 0.2,
+        });
+        const text = rsp && rsp.choices && rsp.choices[0] && rsp.choices[0].message && rsp.choices[0].message.content || '';
+        try { out = JSON.parse(text); } catch {}
+      } catch (e) {
+        console.error('[teachers-ai] openai', e && e.message || e);
+      }
+      const arr = Array.isArray(out && out.teachers) ? out.teachers.filter(Boolean).map(String).slice(0,10) : [];
+      return res.json({ ok:true, teachers: arr, source:'ai' });
+    } catch (e){ console.error('[teachers-ai] exception', e); return res.status(500).json({ error:'teachers_ai_exception' }); }
   });
 
   // Preprocess endpoint: accept a PDF or image URL, produce cleaned PNG(s)
