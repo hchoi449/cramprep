@@ -128,6 +128,7 @@
       <div style="text-align:center;">
         <div class="tbp-star-spinner" aria-label="Loading" style="margin:0 auto 12px;"></div>
         <div style="font-size:20px;font-weight:800;color:#6b3410;">Custom made Study Guide loading....</div>
+        <div id="jarvisEta" style="margin-top:6px;color:#6b7280;font-weight:600;">Estimated wait ~ 00:00</div>
       </div>
     </div>
 
@@ -198,6 +199,7 @@
           slug: document.getElementById('lessonSlugInput')
         };
         const overlay = document.getElementById('jarvisLoading');
+        const overlayEta = document.getElementById('jarvisEta');
         let items = [];
 
         function fmtBytes(bytes){ if (bytes===0) return '0 B'; const k=1024; const sizes=['B','KB','MB','GB']; const i=Math.floor(Math.log(bytes)/Math.log(k)); return `${(bytes/Math.pow(k,i)).toFixed(i===0?0:2)} ${sizes[i]}`; }
@@ -335,8 +337,22 @@
           const school = (document.getElementById('schoolInput').value||'').trim();
           const course = (document.getElementById('courseSelect').value||'').trim();
           const teacher = (document.getElementById('teacherInput').value||'').trim();
-          // mark uploading & show overlay
           try { overlay.style.display='flex'; } catch{}
+          // ETA countdown (simple heuristic: ~20s per file)
+          const totalToProcess = items.filter(it => it.status==='ready').length || items.length || 1;
+          const PER_FILE_SEC = 20;
+          const t0 = Date.now();
+          function fmt(s){ s=Math.max(0,Math.ceil(s)); const m=Math.floor(s/60); const r=s%60; return `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`; }
+          let timer = null;
+          const tick = ()=>{
+            const done = items.filter(it => it.status==='done').length;
+            const remaining = Math.max(0, totalToProcess - done);
+            const target = remaining * PER_FILE_SEC;
+            const elapsed = (Date.now()-t0)/1000;
+            const eta = Math.max(5, target); // keep at least 5s visible
+            try { overlayEta.textContent = `Estimated wait ~ ${fmt(eta)}`; } catch{}
+          };
+          try { tick(); timer = setInterval(tick, 1000); } catch{}
           items = items.map(it => it.status==='ready'? { ...it, status:'uploading', progress:5 } : it);
           render();
           for (const it of items){
@@ -355,7 +371,6 @@
                     try {
                       const j = JSON.parse(xhr.responseText||'{}');
                       if (xhr.status>=200 && xhr.status<300 && j && j.ok){
-                        // After successful upload, convert to PNGs via preprocess
                         const fileUrl = j.url || '';
                         const doPre = fileUrl ? fetch((window.TBP_AUTH_BASE||'') + '/ai/worksheet/preprocess', {
                           method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ url: fileUrl, dpi: 300 })
@@ -383,7 +398,7 @@
             } catch { /* already marked */ }
           }
           render();
-          try { overlay.style.display='none'; } catch{}
+          try { if (timer) clearInterval(timer); overlay.style.display='none'; } catch{}
         });
 
         // initial render
