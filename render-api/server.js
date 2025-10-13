@@ -70,10 +70,46 @@ async function bootstrap() {
   const sessionsCol = client.db(SESS_DB).collection(SESS_COL);
   const assetsDir = path.resolve(__dirname, '../assets_ingest');
   try { fs.mkdirSync(assetsDir, { recursive: true }); } catch {}
+  // Teachers collection helper
+  const TEACHERS_COL = process.env.MONGODB_COLLECTION_TEACHERS || 'teachers';
+  const SCHOOLS_COL = process.env.MONGODB_COLLECTION_SCHOOLS || 'schools';
+  async function getTeachersCollection(mongoClient){ return mongoClient.db(STUD_DB).collection(TEACHERS_COL); }
+  async function getSchoolsCollection(mongoClient){ return mongoClient.db(STUD_DB).collection(SCHOOLS_COL); }
   // Serve preprocessed assets
   app.use('/tmp/uploads', express.static(path.resolve(__dirname, '../tmp_uploads')));
 
   app.get('/auth/ping', (req, res) => res.json({ ok: true, ts: Date.now() }));
+
+  // Search schools by name (q)
+  app.get('/ai/schools', async (req, res) => {
+    try {
+      const q = String(req.query.q||'').trim();
+      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+      await client.connect();
+      const col = await getSchoolsCollection(client);
+      const filter = q ? { name: { $regex: q.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'), $options:'i' } } : {};
+      const docs = await col.find(filter).project({ _id:0, name:1 }).limit(50).toArray();
+      await client.close();
+      return res.json({ ok:true, schools: docs.map(d => d.name) });
+    } catch (e){ console.error('[schools] exception', e); return res.status(500).json({ error:'schools_exception' }); }
+  });
+
+  // Search teachers by school (and optional query q)
+  app.get('/ai/teachers', async (req, res) => {
+    try {
+      const school = String(req.query.school||'').trim();
+      const q = String(req.query.q||'').trim();
+      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+      await client.connect();
+      const col = await getTeachersCollection(client);
+      const filter = {};
+      if (school) filter.school = school;
+      if (q) filter.name = { $regex: q.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'), $options:'i' };
+      const names = await col.find(filter).project({ _id:0, name:1 }).limit(50).toArray();
+      await client.close();
+      return res.json({ ok:true, teachers: names.map(n => n.name) });
+    } catch (e){ console.error('[teachers] exception', e); return res.status(500).json({ error:'teachers_exception' }); }
+  });
 
   // Preprocess endpoint: accept a PDF or image URL, produce cleaned PNG(s)
   app.post('/ai/worksheet/preprocess', async (req, res) => {
