@@ -123,6 +123,14 @@
       </section>
     </main>
 
+    <!-- Full-screen loading overlay -->
+    <div id="jarvisLoading" style="display:none;position:fixed;inset:0;background:rgba(255,255,255,0.92);backdrop-filter:saturate(140%) blur(2px);z-index:50;align-items:center;justify-content:center;">
+      <div style="text-align:center;">
+        <div class="tbp-star-spinner" aria-label="Loading" style="margin:0 auto 12px;"></div>
+        <div style="font-size:20px;font-weight:800;color:#6b3410;">Custom made Study Guide loading....</div>
+      </div>
+    </div>
+
     <footer class="footer">
       <div class="container">
         <div class="footer-content">
@@ -189,6 +197,7 @@
           rows: document.getElementById('tbp-rows'),
           slug: document.getElementById('lessonSlugInput')
         };
+        const overlay = document.getElementById('jarvisLoading');
         let items = [];
 
         function fmtBytes(bytes){ if (bytes===0) return '0 B'; const k=1024; const sizes=['B','KB','MB','GB']; const i=Math.floor(Math.log(bytes)/Math.log(k)); return `${(bytes/Math.pow(k,i)).toFixed(i===0?0:2)} ${sizes[i]}`; }
@@ -326,7 +335,8 @@
           const school = (document.getElementById('schoolInput').value||'').trim();
           const course = (document.getElementById('courseSelect').value||'').trim();
           const teacher = (document.getElementById('teacherInput').value||'').trim();
-          // mark uploading
+          // mark uploading & show overlay
+          try { overlay.style.display='flex'; } catch{}
           items = items.map(it => it.status==='ready'? { ...it, status:'uploading', progress:5 } : it);
           render();
           for (const it of items){
@@ -373,6 +383,7 @@
             } catch { /* already marked */ }
           }
           render();
+          try { overlay.style.display='none'; } catch{}
         });
 
         // initial render
