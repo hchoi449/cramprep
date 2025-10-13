@@ -81,10 +81,7 @@
             </div>
             <div>
               <label class="setting-label" for="teacherInput">Teacher</label>
-              <div style="position:relative">
-                <input id="teacherInput" type="text" placeholder="Search teacher..." autocomplete="off" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px" />
-                <div id="teacherSuggest" style="position:absolute;left:0;right:0;top:46px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 10px 20px rgba(0,0,0,.08);display:none;max-height:220px;overflow:auto;z-index:20"></div>
-              </div>
+              <input id="teacherInput" type="text" placeholder="ex. Mrs. Smith" autocomplete="off" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px" />
             </div>
             <div>
               <label class="setting-label" for="typeSelect">Worksheet Type</label>
@@ -282,7 +279,7 @@
             el.addEventListener('mousedown', function(e){ // select before blur
               e.preventDefault();
               const i = Number(this.getAttribute('data-i'))||0;
-              const v = schoolOpts[i]||''; document.getElementById('schoolInput').value = v; schoolOpen=false; renderSchoolSuggest(); refreshTeachers();
+              const v = schoolOpts[i]||''; document.getElementById('schoolInput').value = v; schoolOpen=false; renderSchoolSuggest();
             });
           });
         }
@@ -301,45 +298,16 @@
           if (e.key==='ArrowDown'){ if (schoolOpts.length){ schoolOpen=true; schoolIdx = (schoolIdx+1)%schoolOpts.length; renderSchoolSuggest(); e.preventDefault(); } }
           else if (e.key==='ArrowUp'){ if (schoolOpts.length){ schoolOpen=true; schoolIdx = (schoolIdx>0?schoolIdx-1:schoolOpts.length-1); renderSchoolSuggest(); e.preventDefault(); } }
           else if (e.key==='Enter'){
-            if (schoolOpts.length){ const v = schoolOpts[schoolIdx>=0?schoolIdx:0]; this.value = v; schoolOpen=false; renderSchoolSuggest(); refreshTeachers(); e.preventDefault(); }
+            if (schoolOpts.length){ const v = schoolOpts[schoolIdx>=0?schoolIdx:0]; this.value = v; schoolOpen=false; renderSchoolSuggest(); e.preventDefault(); }
           } else if (e.key==='Escape') { schoolOpen=false; renderSchoolSuggest(); }
         });
         document.getElementById('schoolInput').addEventListener('focus', function(){ schoolOpen=true; renderSchoolSuggest(); });
         document.addEventListener('click', function(e){ const box=document.getElementById('schoolSuggest'); const inp=document.getElementById('schoolInput'); if (!box.contains(e.target) && e.target!==inp){ schoolOpen=false; renderSchoolSuggest(); } });
 
-        // Teacher suggestions powered strictly by OpenAI endpoint
-        let teacherIdx=-1; let teacherOpts=[]; let teacherOpen=false; let teacherAll=[];
-        function renderTeacherSuggest(){
-          const box=document.getElementById('teacherSuggest');
-          if (!teacherOpen){ box.style.display='none'; return; }
-          box.style.display='block';
-          const q=(document.getElementById('teacherInput').value||'').trim().toLowerCase();
-          const list=(q? teacherAll.filter(n=>n.toLowerCase().includes(q)) : teacherAll).slice(0,5);
-          teacherOpts=list; if (!list.length){ box.innerHTML='<div style="padding:10px 12px;color:#6b7280;">No results</div>'; return; }
-          box.innerHTML=list.map((s,i)=>`<div data-ti="${i}" style="padding:10px 12px;cursor:pointer;${i===teacherIdx?'background:#f1f5f9':''}">${s}</div>`).join('');
-          Array.from(box.querySelectorAll('div[data-ti]')).forEach(el=>{
-            el.addEventListener('mousedown',function(e){ e.preventDefault(); const i=Number(this.getAttribute('data-ti'))||0; const v=teacherOpts[i]||''; document.getElementById('teacherInput').value=v; teacherOpen=false; renderTeacherSuggest(); });
-          });
-        }
-        async function fetchTeacherAI(){
-          const school=(document.getElementById('schoolInput').value||'').trim(); if (!school){ teacherAll=[]; teacherOpen=false; renderTeacherSuggest(); return; }
-          const subject=(document.getElementById('courseSelect').value||'').trim() || 'math';
-          try{
-            const r=await fetch((window.TBP_AUTH_BASE||'') + '/ai/teachers/ai', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ school, subject }) });
-            const j=await r.json().catch(()=>({}));
-            teacherAll=((j&&j.teachers)||[]).filter(Boolean);
-            teacherIdx=-1; teacherOpen=true; renderTeacherSuggest();
-          }catch{ teacherAll=[]; teacherOpen=true; renderTeacherSuggest(); }
-        }
-        document.getElementById('teacherInput').addEventListener('focus', function(){ fetchTeacherAI(); });
-        document.getElementById('teacherInput').addEventListener('input', function(){ teacherOpen=true; renderTeacherSuggest(); });
-        document.getElementById('teacherInput').addEventListener('keydown', function(e){
-          if (e.key==='ArrowDown'){ if (teacherOpts.length){ teacherOpen=true; teacherIdx=(teacherIdx+1)%teacherOpts.length; renderTeacherSuggest(); e.preventDefault(); } }
-          else if (e.key==='ArrowUp'){ if (teacherOpts.length){ teacherOpen=true; teacherIdx=(teacherIdx>0?teacherIdx-1:teacherOpts.length-1); renderTeacherSuggest(); e.preventDefault(); } }
-          else if (e.key==='Enter'){ if (teacherOpts.length){ const v=teacherOpts[teacherIdx>=0?teacherIdx:0]; this.value=v; teacherOpen=false; renderTeacherSuggest(); e.preventDefault(); } }
-          else if (e.key==='Escape'){ teacherOpen=false; renderTeacherSuggest(); }
-        });
-        document.addEventListener('click', function(e){ const box=document.getElementById('teacherSuggest'); const inp=document.getElementById('teacherInput'); if (!box.contains(e.target) && e.target!==inp){ teacherOpen=false; renderTeacherSuggest(); } });
+        // no teacher auto-fetch; user types manually now
+        document.getElementById('schoolInput').addEventListener('input', function(){ refreshSchools(this.value); });
+        // no teacher auto-fetch; user types manually now
+        document.getElementById('schoolInput').addEventListener('focus', function(){ refreshSchools(this.value || ''); });
 
         els.upload.addEventListener('click', async function(){
           const slug = (els.slug.value||'jarvis-uploads').trim();
@@ -384,7 +352,7 @@
 
         // initial render
         render();
-        refreshTeachers();
+        // teacher suggestions removed
       })();
     </script>
   </body>
