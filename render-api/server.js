@@ -144,17 +144,112 @@ async function bootstrap() {
       const subject = String((req.body && req.body.subject) || req.query.subject || 'math').trim();
       if (!school) return res.status(400).json({ error:'school required' });
       const openaiKey = process.env.OPENAI_API_KEY || process.env.openai_api_key;
+
+      // Enrich school with city/state from DB if available
+      let schoolForPrompt = school;
+      try {
+        const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 8000 });
+        await client.connect();
+        const col = await getSchoolsCollection(client);
+        const coalesceName = { $trim: { input: { $ifNull: [ "$name", { $ifNull: [ "$school.schools.name", { $ifNull: [ "$school_name", { $ifNull: [ "$school", "$NAME" ] } ] } ] } ] } } };
+        const coalesceCity = { $trim: { input: { $ifNull: [ "$city", "$CITY" ] } } };
+        const coalesceState = { $trim: { input: { $ifNull: [ "$state", "$STATE" ] } } };
+        const rx = school.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+        const doc = await col.aggregate([
+          { $addFields: { _name: coalesceName, _city: coalesceCity, _state: coalesceState } },
+          { $match: { _name: { $type: 'string', $ne: '' }, _name: { $regex: rx, $options: 'i' } } },
+          { $project: { _id:0, name: '$_name', city: '$_city', state: '$_state' } },
+          { $limit: 1 }
+        ]).toArray();
+        if (doc && doc[0]){
+          const d = doc[0];
+          const parts = [d.name, d.city || null, d.state || null].filter(Boolean);
+          if (parts.length) schoolForPrompt = parts.join(', ');
+        }
+        await client.close();
+      } catch {}
+
+      // 1) Try web lookup + scrape for a faculty directory and extract Math/Science names
+      async function httpGet(url){
+        try{
+          const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (ThinkBigPrep)' } });
+          if (!r.ok) return '';
+          return await r.text();
+        } catch { return ''; }
+      }
+      function stripTags(html){ return String(html||'').replace(/<script[\s\S]*?<\/script>/gi,' ').replace(/<style[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&[^;]+;/g,' ').replace(/\s+/g,' ').trim(); }
+      function extractTeachersFromText(text){
+        const t = String(text||'').toLowerCase();
+        const keep = /(math|algebra|geometry|calculus|stem|science|biology|chemistry|physics)/i;
+        const out = new Set();
+        // Scan for lines around keywords and pull Title Case names nearby
+        const words = text.split(/\s+/);
+        for (let i=0;i<words.length;i++){
+          const w = words[i];
+          if (keep.test(w)){
+            // search window around keyword for Title Case names (2-3 tokens)
+            for (let j=Math.max(0,i-12); j<Math.min(words.length,i+12); j++){
+              const n1 = words[j], n2 = words[j+1], n3 = words[j+2];
+              const title = (s)=> /^[A-Z][a-z]+$/.test(s||'');
+              if (title(n1) && title(n2)){
+                const name = [n1,n2, (title(n3)? n3: null)].filter(Boolean).join(' ');
+                if (name.length>=5) out.add(name);
+              }
+            }
+          }
+        }
+        // Deduplicate similar names by lowercase
+        return Array.from(out).slice(0,10);
+      }
+      async function searchDirectoryUrls(q){
+        const enc = encodeURIComponent(q + ' faculty staff directory');
+        const html = await httpGet('https://duckduckgo.com/html/?q='+enc);
+        const links = [];
+        html.replace(/<a[^>]+href=\"(https?:[^\"]+)\"[^>]*>([\s\S]*?)<\/a>/gi, (m,href)=>{
+          try{
+            const u = new URL(href);
+            const h = u.hostname.toLowerCase();
+            const p = u.pathname.toLowerCase();
+            if ((/faculty|staff|directory|departments/.test(p) || /faculty|staff|schools/.test(h)) && !/duckduckgo|google|bing/.test(h)){
+              links.push(href);
+            }
+          }catch{}
+          return m;
+        });
+        // Keep a few unique domains
+        const seen = new Set(); const uniq=[];
+        for (const u of links){ const host = (new URL(u)).hostname; if (!seen.has(host)){ seen.add(host); uniq.push(u); } }
+        return uniq.slice(0,4);
+      }
+
+      let scraped = [];
+      try{
+        const cands = await searchDirectoryUrls(schoolForPrompt);
+        for (const url of cands){
+          const html = await httpGet(url);
+          const txt = stripTags(html);
+          const names = extractTeachersFromText(txt);
+          if (names && names.length){ scraped = names; break; }
+        }
+      }catch{}
+      if (scraped.length){ return res.json({ ok:true, teachers: scraped, source:'web', school: schoolForPrompt }); }
+
+      // 2) Fall back to OpenAI JSON-only extraction
       if (!openaiKey) return res.status(500).json({ error:'missing_OPENAI_API_KEY' });
       const OpenAI = require('openai');
       const oai = new OpenAI({ apiKey: openaiKey });
-      const sys = 'Return only strict JSON as specified. No prose, no markdown.';
-      const user = `Use the fed school name and look up school "${school}" and output teacher name and return only strict JSON: {"teachers": ["Name 1","Name 2",...]}. if uncertain, return an empty list.`;
+      const sys = 'Return ONLY strict JSON matching this schema: {"teachers": ["string"]}. No prose, no markdown, no code fences. If uncertain, return {"teachers": []}. Output at most 10 unique names. Use title case full names. Exclude departments, roles, administrators, and non-teachers.';
+      const subjectForPrompt = 'math or science';
+      const user = `Use the fed school name and look up the official faculty/staff directory for: "${schoolForPrompt}". Extract ${subjectForPrompt} teachers' names (first and last). Return ONLY: {"teachers": ["Name 1","Name 2",...]}.`;
+
       let out = { teachers: [] };
       try {
         const rsp = await oai.chat.completions.create({
           model: 'gpt-4o-mini',
           messages: [ { role:'system', content: sys }, { role:'user', content: user } ],
-          temperature: 0.2,
+          temperature: 0,
+          max_tokens: 300,
+          response_format: { type: 'json_object' }
         });
         const text = rsp && rsp.choices && rsp.choices[0] && rsp.choices[0].message && rsp.choices[0].message.content || '';
         try { out = JSON.parse(text); } catch {}
@@ -162,7 +257,7 @@ async function bootstrap() {
         console.error('[teachers-ai] openai', e && e.message || e);
       }
       const arr = Array.isArray(out && out.teachers) ? out.teachers.filter(Boolean).map(String).slice(0,10) : [];
-      return res.json({ ok:true, teachers: arr, source:'ai' });
+      return res.json({ ok:true, teachers: arr, source:'ai', school: schoolForPrompt });
     } catch (e){ console.error('[teachers-ai] exception', e); return res.status(500).json({ error:'teachers_ai_exception' }); }
   });
 
