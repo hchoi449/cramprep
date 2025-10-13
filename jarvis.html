@@ -284,17 +284,21 @@
         document.getElementById('schoolInput').addEventListener('focus', function(){ refreshSchools(this.value || ''); });
 
         // Custom dropdown suggestions for School (limit 5)
-        let schoolIdx = -1; let schoolOpts = [];
+        let schoolIdx = -1; let schoolOpts = []; let schoolOpen = false;
         function renderSchoolSuggest(){
           const box = document.getElementById('schoolSuggest');
-          if (!schoolOpts.length){ box.style.display='none'; box.innerHTML=''; return; }
+          if (!schoolOpen){ box.style.display='none'; return; }
           box.style.display='block';
+          if (!schoolOpts.length){
+            box.innerHTML = `<div style="padding:10px 12px;color:#6b7280;">No results</div>`;
+            return;
+          }
           box.innerHTML = schoolOpts.map((s,i)=> `<div data-i="${i}" style="padding:10px 12px;cursor:pointer;${i===schoolIdx?'background:#f1f5f9':''}">${s}</div>`).join('');
           Array.from(box.querySelectorAll('div[data-i]')).forEach(el=>{
-            el.addEventListener('mousedown', function(e){ // use mousedown to fire before blur
+            el.addEventListener('mousedown', function(e){ // select before blur
               e.preventDefault();
               const i = Number(this.getAttribute('data-i'))||0;
-              const v = schoolOpts[i]||''; document.getElementById('schoolInput').value = v; box.style.display='none'; refreshTeachers();
+              const v = schoolOpts[i]||''; document.getElementById('schoolInput').value = v; schoolOpen=false; renderSchoolSuggest(); refreshTeachers();
             });
           });
         }
@@ -310,13 +314,14 @@
         // Keyboard navigation + Enter autocomplete
         document.getElementById('schoolInput').addEventListener('keydown', function(e){
           const box = document.getElementById('schoolSuggest');
-          if (e.key==='ArrowDown'){ if (schoolOpts.length){ schoolIdx = (schoolIdx+1)%schoolOpts.length; renderSchoolSuggest(); e.preventDefault(); } }
-          else if (e.key==='ArrowUp'){ if (schoolOpts.length){ schoolIdx = (schoolIdx>0?schoolIdx-1:schoolOpts.length-1); renderSchoolSuggest(); e.preventDefault(); } }
+          if (e.key==='ArrowDown'){ if (schoolOpts.length){ schoolOpen=true; schoolIdx = (schoolIdx+1)%schoolOpts.length; renderSchoolSuggest(); e.preventDefault(); } }
+          else if (e.key==='ArrowUp'){ if (schoolOpts.length){ schoolOpen=true; schoolIdx = (schoolIdx>0?schoolIdx-1:schoolOpts.length-1); renderSchoolSuggest(); e.preventDefault(); } }
           else if (e.key==='Enter'){
-            if (schoolOpts.length){ const v = schoolOpts[schoolIdx>=0?schoolIdx:0]; this.value = v; box.style.display='none'; refreshTeachers(); e.preventDefault(); }
-          }
+            if (schoolOpts.length){ const v = schoolOpts[schoolIdx>=0?schoolIdx:0]; this.value = v; schoolOpen=false; renderSchoolSuggest(); refreshTeachers(); e.preventDefault(); }
+          } else if (e.key==='Escape') { schoolOpen=false; renderSchoolSuggest(); }
         });
-        document.addEventListener('click', function(e){ const box=document.getElementById('schoolSuggest'); const inp=document.getElementById('schoolInput'); if (!box.contains(e.target) && e.target!==inp){ box.style.display='none'; } });
+        document.getElementById('schoolInput').addEventListener('focus', function(){ schoolOpen=true; renderSchoolSuggest(); });
+        document.addEventListener('click', function(e){ const box=document.getElementById('schoolSuggest'); const inp=document.getElementById('schoolInput'); if (!box.contains(e.target) && e.target!==inp){ schoolOpen=false; renderSchoolSuggest(); } });
 
         els.upload.addEventListener('click', async function(){
           const slug = (els.slug.value||'jarvis-uploads').trim();
