@@ -61,8 +61,10 @@
           <div style="display:grid; gap:10px; grid-template-columns:1fr 1fr;">
             <div>
               <label class="setting-label" for="schoolInput">School</label>
-              <input id="schoolInput" list="schoolList" type="text" placeholder="Search school..." style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px" />
-              <datalist id="schoolList"></datalist>
+              <div style="position:relative">
+                <input id="schoolInput" type="text" placeholder="Search school..." autocomplete="off" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px" />
+                <div id="schoolSuggest" style="position:absolute;left:0;right:0;top:46px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 10px 20px rgba(0,0,0,.08);display:none;max-height:220px;overflow:auto;z-index:20"></div>
+              </div>
             </div>
             <div>
               <label class="setting-label" for="courseSelect">Course</label>
@@ -279,17 +281,42 @@
         }
         document.getElementById('schoolInput').addEventListener('input', function(){ refreshSchools(this.value); });
         document.getElementById('schoolInput').addEventListener('change', function(){ refreshTeachers(); });
+        document.getElementById('schoolInput').addEventListener('focus', function(){ refreshSchools(this.value || ''); });
 
+        // Custom dropdown suggestions for School (limit 5)
+        let schoolIdx = -1; let schoolOpts = [];
+        function renderSchoolSuggest(){
+          const box = document.getElementById('schoolSuggest');
+          if (!schoolOpts.length){ box.style.display='none'; box.innerHTML=''; return; }
+          box.style.display='block';
+          box.innerHTML = schoolOpts.map((s,i)=> `<div data-i="${i}" style="padding:10px 12px;cursor:pointer;${i===schoolIdx?'background:#f1f5f9':''}">${s}</div>`).join('');
+          Array.from(box.querySelectorAll('div[data-i]')).forEach(el=>{
+            el.addEventListener('mousedown', function(e){ // use mousedown to fire before blur
+              e.preventDefault();
+              const i = Number(this.getAttribute('data-i'))||0;
+              const v = schoolOpts[i]||''; document.getElementById('schoolInput').value = v; box.style.display='none'; refreshTeachers();
+            });
+          });
+        }
         async function refreshSchools(q){
           try{
-            const qs = q ? ('?q='+encodeURIComponent(q)) : '';
+            const qs = (q? ('?q='+encodeURIComponent(q)) : '') + (q? '&' : '?') + 'limit=5';
             const r = await fetch((window.TBP_AUTH_BASE||'') + '/ai/schools'+qs);
             const j = await r.json().catch(()=>({}));
-            const opts = (j && j.schools)||[];
-            const dl = document.getElementById('schoolList');
-            dl.innerHTML = opts.map(s => `<option value="${s}"></option>`).join('');
-          }catch{}
+            schoolOpts = ((j && j.schools) || []).filter(Boolean).slice(0,5);
+            schoolIdx = -1; renderSchoolSuggest();
+          }catch{ schoolOpts=[]; renderSchoolSuggest(); }
         }
+        // Keyboard navigation + Enter autocomplete
+        document.getElementById('schoolInput').addEventListener('keydown', function(e){
+          const box = document.getElementById('schoolSuggest');
+          if (e.key==='ArrowDown'){ if (schoolOpts.length){ schoolIdx = (schoolIdx+1)%schoolOpts.length; renderSchoolSuggest(); e.preventDefault(); } }
+          else if (e.key==='ArrowUp'){ if (schoolOpts.length){ schoolIdx = (schoolIdx>0?schoolIdx-1:schoolOpts.length-1); renderSchoolSuggest(); e.preventDefault(); } }
+          else if (e.key==='Enter'){
+            if (schoolOpts.length){ const v = schoolOpts[schoolIdx>=0?schoolIdx:0]; this.value = v; box.style.display='none'; refreshTeachers(); e.preventDefault(); }
+          }
+        });
+        document.addEventListener('click', function(e){ const box=document.getElementById('schoolSuggest'); const inp=document.getElementById('schoolInput'); if (!box.contains(e.target) && e.target!==inp){ box.style.display='none'; } });
 
         els.upload.addEventListener('click', async function(){
           const slug = (els.slug.value||'jarvis-uploads').trim();
