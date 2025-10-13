@@ -312,9 +312,12 @@
             const r = await fetch((window.TBP_AUTH_BASE||'') + '/ai/schools'+qs);
             const j = await r.json().catch(()=>({}));
             schoolOpts = ((j && j.schools) || []).filter(Boolean).slice(0,5);
-            schoolIdx = -1; renderSchoolSuggest();
-          }catch{ schoolOpts=[]; renderSchoolSuggest(); }
+            schoolIdx = -1; schoolOpen = true; renderSchoolSuggest();
+          }catch{ schoolOpts=[]; schoolOpen = true; renderSchoolSuggest(); }
         }
+        // Debounced fetch for school suggestions
+        let schoolTimer=null;
+        function queueRefreshSchools(q){ if (schoolTimer) clearTimeout(schoolTimer); schoolTimer=setTimeout(()=>refreshSchools(q), 200); }
         // Keyboard navigation + Enter autocomplete
         document.getElementById('schoolInput').addEventListener('keydown', function(e){
           const box = document.getElementById('schoolSuggest');
@@ -324,13 +327,12 @@
             if (schoolOpts.length){ const v = schoolOpts[schoolIdx>=0?schoolIdx:0]; this.value = v; schoolOpen=false; renderSchoolSuggest(); e.preventDefault(); }
           } else if (e.key==='Escape') { schoolOpen=false; renderSchoolSuggest(); }
         });
-        document.getElementById('schoolInput').addEventListener('focus', function(){ schoolOpen=true; renderSchoolSuggest(); });
+        document.getElementById('schoolInput').addEventListener('focus', function(){ schoolOpen=true; queueRefreshSchools(this.value || ''); });
+        document.getElementById('schoolInput').addEventListener('input', function(){ schoolOpen=true; queueRefreshSchools(this.value); });
         document.addEventListener('click', function(e){ const box=document.getElementById('schoolSuggest'); const inp=document.getElementById('schoolInput'); if (!box.contains(e.target) && e.target!==inp){ schoolOpen=false; renderSchoolSuggest(); } });
 
         // no teacher auto-fetch; user types manually now
-        document.getElementById('schoolInput').addEventListener('input', function(){ refreshSchools(this.value); });
         // no teacher auto-fetch; user types manually now
-        document.getElementById('schoolInput').addEventListener('focus', function(){ refreshSchools(this.value || ''); });
 
         els.upload.addEventListener('click', async function(){
           const slug = (els.slug.value||'jarvis-uploads').trim();
