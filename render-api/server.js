@@ -147,8 +147,8 @@ async function bootstrap() {
       if (!openaiKey) return res.status(500).json({ error:'missing_OPENAI_API_KEY' });
       const OpenAI = require('openai');
       const oai = new OpenAI({ apiKey: openaiKey });
-      const sys = 'Return only strict JSON: {"teachers":["Name 1","Name 2",...]} with up to 10 entries. If uncertain, return an empty list.';
-      const user = `List ${subject} teachers (or the closest available teacher list) for the school: "${school}". Return JSON as specified.`;
+      const sys = 'Return only strict JSON as specified. No prose, no markdown.';
+      const user = `Use the fed school name and look up school "${school}" and output teacher name and return only strict JSON: {"teachers": ["Name 1","Name 2",...]}. if uncertain, return an empty list.`;
       let out = { teachers: [] };
       try {
         const rsp = await oai.chat.completions.create({
