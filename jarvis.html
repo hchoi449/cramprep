@@ -177,6 +177,7 @@
       (function(){
         const ACCEPT = ['image/jpeg','image/png','application/pdf'];
         const MAX_MB = 50; const MAX_BYTES = MAX_MB * 1024 * 1024;
+        const MAX_FILES = 5;
         const els = {
           drop: document.getElementById('tbp-dropzone'),
           browse: document.getElementById('tbp-browse'),
@@ -227,6 +228,7 @@
                       <p class="mt-1 text-xs text-slate-500" style="margin-top:4px;color:#64748b;font-size:12px;">
                         ${it.status==='uploading'?`Uploading… ${Math.round(it.progress||0)}%`: it.status==='done'?'Uploaded': it.status==='error'?(it.error||'Upload failed') : 'Ready'}
                       </p>
+                      ${it.pngs && it.pngs.length ? `<p class="text-xs" style="margin-top:2px;color:#475569;">Converted ${it.pngs.length} PNG${it.pngs.length>1?'s':''}</p>` : ''}
                     </div>
                   `:''}
                 </div>
@@ -248,9 +250,12 @@
 
         function addFiles(fileList){
           if (!fileList) return;
-          const incoming = Array.from(fileList);
+          if (items.length >= MAX_FILES){ alert(`You can upload up to ${MAX_FILES} files.`); return; }
+          const remaining = MAX_FILES - items.length;
+          const arr = Array.from(fileList).slice(0, Math.max(0, remaining));
+          const truncated = fileList.length > remaining;
           const existingKeys = new Set(items.map(x => dedupeKey(x.file)));
-          for (const f of incoming){
+          for (const f of arr){
             let error;
             if (!ACCEPT.includes(f.type)) error = 'Unsupported file type';
             else if (f.size > MAX_BYTES) error = `File exceeds ${MAX_MB}MB`;
@@ -258,6 +263,7 @@
             items.push({ id: crypto.randomUUID(), file: f, status: error?'error':'ready', error, progress: error?0:1, wtype: 'blank' });
           }
           render();
+          if (truncated){ alert(`Only ${MAX_FILES} files allowed. Extra files were not added.`); }
         }
 
         // Drag & drop handlers
@@ -336,7 +342,22 @@
                 };
                 xhr.onreadystatechange = function(){
                   if (xhr.readyState === 4){
-                    try { const j = JSON.parse(xhr.responseText||'{}'); if (xhr.status>=200 && xhr.status<300 && j && j.ok){ it.status='done'; it.progress=100; render(); resolve(null); } else { it.status='error'; it.error=(j&&j.error)||('Upload failed '+xhr.status); render(); reject(new Error(it.error)); } }
+                    try {
+                      const j = JSON.parse(xhr.responseText||'{}');
+                      if (xhr.status>=200 && xhr.status<300 && j && j.ok){
+                        // After successful upload, convert to PNGs via preprocess
+                        const fileUrl = j.url || '';
+                        const doPre = fileUrl ? fetch((window.TBP_AUTH_BASE||'') + '/ai/worksheet/preprocess', {
+                          method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ url: fileUrl, dpi: 300 })
+                        }).then(r=>r.json()).catch(()=>({})): Promise.resolve({});
+                        doPre.then(pp=>{
+                          try { it.pngs = (pp && pp.images) || []; } catch {}
+                          it.status='done'; it.progress=100; render(); resolve(null);
+                        }).catch(()=>{ it.status='done'; it.progress=100; render(); resolve(null); });
+                      } else {
+                        it.status='error'; it.error=(j&&j.error)||('Upload failed '+xhr.status); render(); reject(new Error(it.error));
+                      }
+                    }
                     catch(e){ it.status='error'; it.error='Invalid server response'; render(); reject(e); }
                   }
                 };
