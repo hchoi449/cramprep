@@ -89,34 +89,34 @@ async function bootstrap() {
       await client.connect();
       const col = await getSchoolsCollection(client);
 
-      // Coalesce name from common fields and variations found in datasets
-      const coalescedName = {
-        $ifNull: [
-          "$name",
-          { $ifNull: [
-            "$school.schools.name",
-            { $ifNull: [
-              "$school_name",
-              { $ifNull: [ "$school", "$NAME" ] }
-            ] }
-          ] }
-        ]
+      // Coalesce from multiple fields, trim, filter empties, dedupe, sort
+      const coalesce = {
+        $trim: { input: {
+          $ifNull: [
+            "$name",
+            { $ifNull: [ "$school.schools.name", { $ifNull: [ "$school_name", { $ifNull: [ "$school", "$NAME" ] } ] } ] }
+          ]
+        } }
       };
 
       const pipeline = [
-        { $project: { _id: 0, name: coalescedName } },
-        { $match: { name: { $type: "string", $ne: "" } } },
+        { $addFields: { _coalescedName: coalesce } },
+        { $match: { _coalescedName: { $type: "string", $ne: "" } } },
       ];
       if (q) {
         const rx = q.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-        pipeline.push({ $match: { name: { $regex: rx, $options: 'i' } } });
+        pipeline.push({ $match: { _coalescedName: { $regex: rx, $options: 'i' } } });
       }
-      pipeline.push({ $sort: { name: 1 } });
-      pipeline.push({ $limit: limit });
+      pipeline.push(
+        { $group: { _id: "$_coalescedName" } },
+        { $sort: { _id: 1 } },
+        { $limit: limit },
+        { $project: { _id: 0, name: "$_id" } }
+      );
 
       const docs = await col.aggregate(pipeline).toArray();
       await client.close();
-      return res.json({ ok:true, schools: docs.map(d => d.name || null) });
+      return res.json({ ok:true, schools: docs.map(d => d.name) });
     } catch (e){ console.error('[schools] exception', e); return res.status(500).json({ error:'schools_exception' }); }
   });
 
