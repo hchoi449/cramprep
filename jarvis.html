@@ -61,7 +61,8 @@
           <div style="display:grid; gap:10px; grid-template-columns:1fr 1fr;">
             <div>
               <label class="setting-label" for="schoolInput">School</label>
-              <input id="schoolInput" type="text" placeholder="e.g., Northern Valley Regional High School" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px" />
+              <input id="schoolInput" type="text" placeholder="Search school..." style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px" />
+              <select id="schoolSelect" size="4" style="margin-top:6px;width:100%;padding:8px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;max-height:140px;overflow:auto"></select>
             </div>
             <div>
               <label class="setting-label" for="courseSelect">Course</label>
@@ -265,7 +266,7 @@
 
         // Update teacher list when school changes
         async function refreshTeachers(){
-          const school = (els.slug && '') || (document.getElementById('schoolInput').value||'').trim();
+          const school = (document.getElementById('schoolInput').value||'').trim();
           const sel = document.getElementById('teacherSelect');
           sel.innerHTML = '<option value="">Loading…</option>';
           try{
@@ -276,8 +277,20 @@
             sel.innerHTML = '<option value="">Select teacher</option>' + names.map(n => `<option>${n}</option>`).join('');
           }catch{ sel.innerHTML = '<option value="">Select teacher</option>'; }
         }
-        document.getElementById('schoolInput').addEventListener('change', refreshTeachers);
-        document.getElementById('schoolInput').addEventListener('blur', refreshTeachers);
+        document.getElementById('schoolInput').addEventListener('change', function(){ refreshSchools(this.value); });
+        document.getElementById('schoolInput').addEventListener('input', function(){ refreshSchools(this.value); });
+        document.getElementById('schoolSelect').addEventListener('change', function(){ const v=this.value||''; document.getElementById('schoolInput').value=v; refreshTeachers(); });
+
+        async function refreshSchools(q){
+          try{
+            const qs = q ? ('?q='+encodeURIComponent(q)) : '';
+            const r = await fetch((window.TBP_AUTH_BASE||'') + '/ai/schools'+qs);
+            const j = await r.json().catch(()=>({}));
+            const opts = (j && j.schools)||[];
+            const sel = document.getElementById('schoolSelect');
+            sel.innerHTML = opts.map(s => `<option>${s}</option>`).join('');
+          }catch{}
+        }
 
         els.upload.addEventListener('click', async function(){
           const slug = (els.slug.value||'jarvis-uploads').trim();
