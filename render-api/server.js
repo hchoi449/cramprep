@@ -87,8 +87,9 @@ async function bootstrap() {
       const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
       await client.connect();
       const col = await getSchoolsCollection(client);
-      const filter = q ? { name: { $regex: q.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'), $options:'i' } } : {};
-      const docs = await col.find(filter).project({ _id:0, name:1 }).limit(50).toArray();
+      const filter = q ? { name: { $regex: q.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), $options:'i' } } : {};
+      const limit = Math.max(1, Math.min(50, Number(req.query.limit||50)));
+      const docs = await col.find(filter).project({ _id:0, name:1 }).sort({ name: 1 }).limit(limit).toArray();
       await client.close();
       return res.json({ ok:true, schools: docs.map(d => d.name) });
     } catch (e){ console.error('[schools] exception', e); return res.status(500).json({ error:'schools_exception' }); }
