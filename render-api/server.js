@@ -3806,7 +3806,8 @@ async function bootstrap() {
             m.options = Array.isArray(m.options) ? m.options : [];
           }
         }
-        // Cross-check validation when options available
+        // Cross-check validation when options available (temporarily disabled)
+        /*
         if (Array.isArray(m.options) && m.options.length >= 2){
           const numericIdx = tryNumericSolve(m.text, m.options);
           if (numericIdx !== null){
@@ -3827,6 +3828,7 @@ async function bootstrap() {
             }
           }
         }
+        */
         // If still null, leave as null
         validatedDocs.push({
           lessonSlug,
