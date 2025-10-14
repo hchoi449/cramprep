@@ -3658,14 +3658,15 @@ async function bootstrap() {
               properties: {
                 number: { type: 'string' },
                 question_text: { $ref: '#/$defs/TexField' },
+                instruction: { $ref: '#/$defs/TexField' },
                 options: {
-                  type: 'array', minItems: 4, maxItems: 6,
+                  type: 'array', minItems: 0, maxItems: 6,
                   items: { $ref: '#/$defs/TexField' }
                 },
                 answer_index: { type: 'integer', minimum: 0, maximum: 5 },
                 difficulty: { type: 'string', enum: ['easy','medium','hard'] }
               },
-              required: ['question_text','options','answer_index','difficulty']
+              required: ['question_text']
             }
           }
         },
@@ -3755,10 +3756,11 @@ async function bootstrap() {
         for (const p of (block.problems||[])){
           const num = String(p.number||'').trim();
           const text = texFieldToString(p.question_text);
+          const instruction = texFieldToString(p.instruction);
           const options = Array.isArray(p.options) ? p.options.map(texFieldToString).filter(Boolean).slice(0,6) : [];
           const answer_index = Number.isInteger(p.answer_index) ? p.answer_index : 0;
           const difficulty = (p.difficulty||'').toString().toLowerCase();
-          merged.push({ number: num, text, options, answer_index, difficulty });
+          merged.push({ number: num, text, instruction, options, answer_index, difficulty });
         }
       }
 
@@ -3769,13 +3771,16 @@ async function bootstrap() {
         if (!m.text) continue;
         let idx = (Number.isInteger(m.answer_index) ? m.answer_index : null);
         let method = null;
-        // Try numeric solve first
-        const numericIdx = tryNumericSolve(m.text, m.options);
-        if (numericIdx !== null){ idx = numericIdx; method = 'numeric'; }
-        // If still null, ask LLM to pick
-        if (idx === null){
-          const pick = await secondPassPickIndex(m.text, m.options);
-          if (pick !== null){ idx = pick; method = 'second_pass'; }
+        // Only validate if multiple-choice options are present
+        if (Array.isArray(m.options) && m.options.length >= 2){
+          // Try numeric solve first
+          const numericIdx = tryNumericSolve(m.text, m.options);
+          if (numericIdx !== null){ idx = numericIdx; method = 'numeric'; }
+          // If still null, ask LLM to pick
+          if (idx === null){
+            const pick = await secondPassPickIndex(m.text, m.options);
+            if (pick !== null){ idx = pick; method = 'second_pass'; }
+          }
         }
         // If still null, leave as null
         validatedDocs.push({
@@ -3786,7 +3791,8 @@ async function bootstrap() {
           worksheetType: worksheetType || null,
           problemNumber: m.number || null,
           stem: m.text.slice(0, 4000),
-          options: (m.options && m.options.length>=4 ? m.options : ['A','B','C','D']).slice(0,6),
+          instruction: (m.instruction || '')?.slice(0, 2000) || '',
+          options: (Array.isArray(m.options) ? m.options.slice(0,6) : []),
           correct: (idx === null ? null : Math.max(0, Math.min(5, Number(idx)||0))),
           solution: '',
           answer: '',
