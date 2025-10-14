@@ -1,4 +1,3 @@
-// AMC Academy Website JavaScript
 
 // Debug logging
 console.log('AMC Academy Website JavaScript loaded');
@@ -8,18 +7,20 @@ console.log('CSS loaded:', document.styleSheets.length, 'stylesheets');
 // Mobile menu toggle functionality
 function toggleMobileMenu() {
     const mobileMenu = document.getElementById('mobile-menu');
-    const mobileToggle = document.querySelector('.mobile-menu-toggle');
+    if (!mobileMenu) return;
+    const mobileToggle = document.querySelector('.mobile-menu-btn');
     
-    if (mobileMenu.style.display === 'block' || mobileMenu.classList.contains('active')) {
+    const isOpen = mobileMenu.style.display === 'block' || mobileMenu.classList.contains('active');
+    if (isOpen) {
         // Close menu
         mobileMenu.style.display = 'none';
         mobileMenu.classList.remove('active');
-        mobileToggle.classList.remove('active');
+        if (mobileToggle) mobileToggle.classList.remove('active');
     } else {
         // Open menu
         mobileMenu.style.display = 'block';
         mobileMenu.classList.add('active');
-        mobileToggle.classList.add('active');
+        if (mobileToggle) mobileToggle.classList.add('active');
     }
 }
 
@@ -32,7 +33,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Add click event to mobile menu toggle
-    const mobileToggle = document.querySelector('.mobile-menu-toggle');
+    const mobileToggle = document.querySelector('.mobile-menu-btn');
     if (mobileToggle) {
         mobileToggle.addEventListener('click', toggleMobileMenu);
     }
@@ -890,4 +891,3 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
-

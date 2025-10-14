@@ -471,9 +471,11 @@ function showClassDetails(subject, classInfo, tutor, time) {
 // Mobile menu toggle (reuse from index.js)
 function toggleMobileMenu() {
     const mobileMenu = document.getElementById('mobile-menu');
-    const mobileToggle = document.querySelector('.mobile-menu-toggle');
+    if (!mobileMenu) return;
+    const mobileToggle = document.querySelector('.mobile-menu-btn');
     
-    if (mobileMenu.style.display === 'block' || mobileMenu.classList.contains('active')) {
+    const isOpen = mobileMenu.style.display === 'block' || mobileMenu.classList.contains('active');
+    if (isOpen) {
         mobileMenu.style.display = 'none';
         mobileMenu.classList.remove('active');
         if (mobileToggle) mobileToggle.classList.remove('active');
