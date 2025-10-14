@@ -73,8 +73,9 @@ async function bootstrap() {
   // Teachers collection helper
   const TEACHERS_COL = process.env.MONGODB_COLLECTION_TEACHERS || 'teachers';
   const SCHOOLS_COL = process.env.MONGODB_COLLECTION_SCHOOLS || 'schools';
+  const SCHOOLS_DB = process.env.MONGODB_DATABASE_SCHOOLS || 'school';
   async function getTeachersCollection(mongoClient){ return mongoClient.db(STUD_DB).collection(TEACHERS_COL); }
-  async function getSchoolsCollection(mongoClient){ return mongoClient.db(STUD_DB).collection(SCHOOLS_COL); }
+  async function getSchoolsCollection(mongoClient){ return mongoClient.db(SCHOOLS_DB).collection(SCHOOLS_COL); }
   // Serve preprocessed assets
   app.use('/tmp/uploads', express.static(path.resolve(__dirname, '../tmp_uploads')));
 
@@ -3553,6 +3554,159 @@ async function bootstrap() {
       await client.close();
       return res.json({ ok:true, deleted: r && r.deletedCount || 0, filter });
     } catch (e){ console.error(e); return res.status(500).json({ error:'delete_failed' }); }
+  });
+
+  // Extract structured problems from PNG URLs using GPT-4o (Vision) and store in questionbank
+  app.post('/ai/worksheet/extract', async (req, res) => {
+    try {
+      const { lessonSlug, title, school, teacher, worksheetType, images } = req.body || {};
+      if (!lessonSlug) return res.status(400).json({ error:'lessonSlug required' });
+      const urls = Array.isArray(images) ? images.filter(u => typeof u === 'string' && /^https?:\/\//i.test(u)) : [];
+      if (!urls.length) return res.status(400).json({ error:'images (PNG URLs) required' });
+
+      const openaiKey = process.env.OPENAI_API_KEY || process.env.openai_api_key;
+      if (!openaiKey) return res.status(500).json({ error:'missing_OPENAI_API_KEY' });
+      const OpenAI = require('openai');
+      const oai = new OpenAI({ apiKey: openaiKey });
+
+      // System prompt and schema (latex-first with plaintext fallback)
+      const systemPrompt = [
+        'You are an expert educational content parser. Your job is to read scanned or photographed worksheets and convert them into structured JSON that follows the given schema exactly. ',
+        'Never output explanations, text outside JSON, or non-escaped backslashes. Prefer LaTeX in math fields and use plain text for non-math fields. ',
+        'Return ONLY strict JSON that validates against the schema. If uncertain, return an empty but schema-compliant object with minimal required fields.'
+      ].join('');
+
+      const jsonSchema = {
+        type: 'object', additionalProperties: false,
+        properties: {
+          title: { $ref: '#/$defs/TexField' },
+          school: { $ref: '#/$defs/TexField' },
+          teacher: { $ref: '#/$defs/TexField' },
+          problems: {
+            type: 'array', minItems: 1,
+            items: {
+              type: 'object', additionalProperties: false,
+              properties: {
+                number: { type: 'string' },
+                question_text: { $ref: '#/$defs/TexField' },
+                options: {
+                  type: 'array', minItems: 4, maxItems: 6,
+                  items: { $ref: '#/$defs/TexField' }
+                },
+                answer_index: { type: 'integer', minimum: 0, maximum: 5 },
+                difficulty: { type: 'string', enum: ['easy','medium','hard'] }
+              },
+              required: ['question_text','options','answer_index','difficulty']
+            }
+          }
+        },
+        required: ['title','problems'],
+        $defs: {
+          TexField: {
+            type: 'object', additionalProperties: false,
+            oneOf: [ { required: ['latex'] }, { required: ['text'] } ],
+            properties: {
+              latex: { type:'string', minLength:1, description:'LaTeX content WITHOUT surrounding $...$, $$...$$, \\[...\\], or \\(...\\). Use pure LaTeX body.' },
+              text:  { type:'string', minLength:1, description:'Plaintext fallback if LaTeX is not applicable.' }
+            }
+          }
+        }
+      };
+
+      // Helper to choose TexField as plain string (prefer latex, else text)
+      function texFieldToString(tf){
+        if (!tf) return '';
+        if (tf.latex && typeof tf.latex === 'string' && tf.latex.trim()) return String(tf.latex).trim();
+        if (tf.text && typeof tf.text === 'string' && tf.text.trim()) return String(tf.text).trim();
+        return '';
+      }
+
+      // Batch URLs into small chunks (2 per request for recall)
+      const chunks = [];
+      for (let i=0;i<urls.length;i+=2) chunks.push(urls.slice(i, i+2));
+
+      const collected = [];
+      for (const group of chunks){
+        // Build messages with image URLs
+        const messages = [
+          { role: 'system', content: systemPrompt + ' Schema: ' + JSON.stringify(jsonSchema) }
+        ];
+        const content = [];
+        content.push({ type:'text', text: [
+          `Context:`,
+          school ? `School: ${school}` : '',
+          teacher ? `Teacher: ${teacher}` : '',
+          worksheetType ? `Worksheet Type: ${worksheetType}` : '',
+          `Task: Extract title and problems. Prefer LaTeX in TexField.latex; use TexField.text only if LaTeX is not applicable. Return ONLY JSON conforming to the schema.`,
+        ].filter(Boolean).join('\n') });
+        for (const u of group){ content.push({ type:'image_url', image_url: { url: u } }); }
+        messages.push({ role:'user', content });
+
+        // Call OpenAI
+        let parsed = null;
+        try {
+          const rsp = await oai.chat.completions.create({
+            model: 'gpt-4o',
+            temperature: 0,
+            response_format: { type: 'json_object' },
+            messages
+          });
+          const text = rsp && rsp.choices && rsp.choices[0] && rsp.choices[0].message && rsp.choices[0].message.content || '';
+          try { parsed = JSON.parse(text); } catch{ parsed = null; }
+        } catch (e) {
+          parsed = null;
+        }
+        if (parsed && parsed.problems && Array.isArray(parsed.problems)){
+          collected.push(parsed);
+        }
+      }
+
+      // Merge collected results
+      let finalTitle = (title || '').trim();
+      const merged = [];
+      for (const block of collected){
+        if (!finalTitle){ finalTitle = texFieldToString(block.title) || finalTitle; }
+        for (const p of (block.problems||[])){
+          const num = String(p.number||'').trim();
+          const text = texFieldToString(p.question_text);
+          const options = Array.isArray(p.options) ? p.options.map(texFieldToString).filter(Boolean).slice(0,6) : [];
+          const answer_index = Number.isInteger(p.answer_index) ? p.answer_index : 0;
+          const difficulty = (p.difficulty||'').toString().toLowerCase();
+          merged.push({ number: num, text, options, answer_index, difficulty });
+        }
+      }
+
+      // Insert into questionbank
+      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+      await client.connect();
+      const col = await getQuestionCollection(client);
+      const nowIso = new Date().toISOString();
+      const docs = merged
+        .filter(m => m.text)
+        .map((m, idx) => ({
+          lessonSlug,
+          lessonTitle: finalTitle || lessonSlug,
+          school: school || null,
+          teacher: teacher || null,
+          worksheetType: worksheetType || null,
+          stem: m.text.slice(0, 4000),
+          options: (m.options && m.options.length>=4 ? m.options : ['A','B','C','D']).slice(0,6),
+          correct: Math.max(0, Math.min(5, Number(m.answer_index)||0)),
+          solution: '',
+          answer: '',
+          answerPlain: '',
+          difficulty: (/easy|medium|hard/i.test(m.difficulty||'') ? m.difficulty : 'medium'),
+          sourceHash: sha256Hex(`${lessonSlug}|${m.number||''}|${m.text||''}`),
+          generatedAt: nowIso,
+          generator: 'gpt4o-vision'
+        }));
+      let inserted = 0;
+      if (docs.length){
+        try { const r = await col.insertMany(docs, { ordered: false }); inserted = (r && r.insertedCount) || docs.length; } catch { inserted = docs.length; }
+      }
+      await client.close();
+      return res.json({ ok:true, title: finalTitle || null, problems: docs.length, inserted });
+    } catch (e){ console.error('[worksheet-extract] exception', e); return res.status(500).json({ error:'worksheet_extract_exception', detail:String(e && e.message || e) }); }
   });
 }
 
