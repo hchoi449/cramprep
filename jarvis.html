@@ -43,84 +43,97 @@
     </header>
 
     <main class="settings-wrap" style="min-height:calc(100vh - 220px);">
-      <section class="settings-card" aria-labelledby="jarvisTitle" style="max-width:900px; margin:120px auto 0;">
+      <section id="jarvisAuthWarning" class="settings-card" aria-live="polite" style="max-width:900px; margin:120px auto 0;" hidden>
         <div class="settings-head">
-          <h1 id="jarvisTitle" class="settings-title">Jarvis</h1>
-          <p class="settings-sub">Your AI study assistant for fast summaries, practice questions, and explanations.</p>
+          <h1 class="settings-title">Login Required</h1>
+          <p class="settings-sub">Please sign in to your ThinkBigPrep account to access Jarvis and upload study materials.</p>
         </div>
-        
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+          <a href="login.html" class="btn btn-primary student-login-link">Log In</a>
+          <a href="index.html#home" class="btn btn-secondary">Back to Home</a>
+        </div>
       </section>
 
-      <!-- Drag & Drop File Uploader -->
-      <section class="settings-card" aria-labelledby="uploadTitle" style="max-width:900px; margin:24px auto 80px;">
-        <div class="settings-head">
-          <h2 id="uploadTitle" class="settings-title">Upload Worksheets</h2>
-          <p class="settings-sub">Drag & drop PDFs or images, or browse to upload. Progress is shown per file.</p>
-        </div>
-        <div style="padding:16px; display:grid; gap:12px;">
-          <div style="display:grid; gap:10px; grid-template-columns:1fr 1fr;">
-            <div>
-              <label class="setting-label" for="schoolInput">School</label>
-              <div style="position:relative">
-                <input id="schoolInput" type="text" placeholder="Search school..." autocomplete="off" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px" />
-                <div id="schoolSuggest" style="position:absolute;left:0;right:0;top:46px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 10px 20px rgba(0,0,0,.08);display:none;max-height:220px;overflow:auto;z-index:20"></div>
-              </div>
-            </div>
-            <div>
-              <label class="setting-label" for="courseSelect">Course</label>
-              <select id="courseSelect" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff">
-                <option value="">Select course</option>
-                <option>Pre-Algebra</option>
-                <option>Geometry</option>
-                <option>Algebra I</option>
-                <option>Algebra II</option>
-                <option>Pre-Calculus</option>
-                <option>Calculus AB</option>
-                <option>Calculus BC</option>
-              </select>
-            </div>
-            <div>
-              <label class="setting-label" for="teacherInput">Teacher</label>
-              <input id="teacherInput" type="text" placeholder="ex. Mrs. Smith" autocomplete="off" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px" />
-            </div>
+      <div id="jarvisApp">
+        <section class="settings-card" aria-labelledby="jarvisTitle" style="max-width:900px; margin:120px auto 0;">
+          <div class="settings-head">
+            <h1 id="jarvisTitle" class="settings-title">Jarvis</h1>
+            <p class="settings-sub">Your AI study assistant for fast summaries, practice questions, and explanations.</p>
           </div>
-          <div>
-            <label class="setting-label" for="lessonSlugInput">Lesson Slug</label>
-            <input id="lessonSlugInput" type="text" placeholder="e.g., algebra-ii" value="jarvis-uploads" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px" />
-          </div>
-          <div id="tbp-uploader" class="rounded-2xl border border-slate-200 bg-white p-4" style="box-shadow:0 10px 30px rgba(0,0,0,.08);">
-            <div id="tbp-dropzone" class="rounded-2xl border border-dashed border-slate-300" style="padding:24px; text-align:center; background:#f8fafb; cursor:pointer;">
-              <div style="display:inline-flex; align-items:center; justify-content:center; height:64px; width:64px; border-radius:9999px; background:#fff; color:#6b7280; box-shadow:0 1px 4px rgba(0,0,0,.08); margin-bottom:8px;">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden style="height:28px; width:28px;">
-                  <path d="M19.35 10.04a7.49 7.49 0 0 0-14-2.09A5.5 5.5 0 0 0 6.5 21H18a4.5 4.5 0 0 0 1.35-10.96ZM12 13a1 1 0 0 1 1 1v3.586l.293-.293a1 1 0 1 1 1.414 1.414l-2.707 2.707a1 1 0 0 1-1.414 0L7.879 18.707a1 1 0 0 1 1.414-1.414L9.586 17V14a1 1 0 0 1 1-1h1.414Z"/>
-                </svg>
-              </div>
-              <h3 style="margin:4px 0 0; font-size:18px; font-weight:700; color:#1f2937;">Upload files</h3>
-              <p style="margin:2px 0 0; color:#6b7280;">JPEG, PNG, PDF up to 50MB each</p>
-              <div class="rounded-2xl border border-dashed border-slate-300" style="padding:16px; margin-top:12px;">
-                <p style="font-weight:600; color:#1f2937;">Choose a file or drag & drop it here</p>
-                <p style="margin-top:4px; color:#6b7280; font-size:14px;">Click to browse or drop multiple files</p>
-                <div style="margin-top:10px;">
-                  <button id="tbp-browse" type="button" class="btn btn-primary">Browse File</button>
-                </div>
-                <input id="tbp-file-input" type="file" multiple accept="image/jpeg,image/png,application/pdf" style="display:none" />
-              </div>
-            </div>
+          
+        </section>
 
-            <!-- Selected / Upload list -->
-            <div id="tbp-file-list" style="margin-top:16px; display:none;" class="rounded-2xl bg-slate-50 p-4">
-              <div style="display:flex; align-items:center; justify-content:space-between;">
-                <p id="tbp-file-count" style="font-weight:600; color:#334155; font-size:14px;">0 files selected</p>
-                <div style="display:flex; gap:8px;">
-                  <button id="tbp-clear" type="button" class="btn">Clear</button>
-                  <button id="tbp-upload" type="button" class="btn btn-secondary" disabled>Upload</button>
+        <!-- Drag & Drop File Uploader -->
+        <section class="settings-card" aria-labelledby="uploadTitle" style="max-width:900px; margin:24px auto 80px;">
+          <div class="settings-head">
+            <h2 id="uploadTitle" class="settings-title">Upload Worksheets</h2>
+            <p class="settings-sub">Drag & drop PDFs or images, or browse to upload. Progress is shown per file.</p>
+          </div>
+          <div style="padding:16px; display:grid; gap:12px;">
+            <div style="display:grid; gap:10px; grid-template-columns:1fr 1fr;">
+              <div>
+                <label class="setting-label" for="schoolInput">School</label>
+                <div style="position:relative">
+                  <input id="schoolInput" type="text" placeholder="Search school..." autocomplete="off" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px" />
+                  <div id="schoolSuggest" style="position:absolute;left:0;right:0;top:46px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 10px 20px rgba(0,0,0,.08);display:none;max-height:220px;overflow:auto;z-index:20"></div>
                 </div>
               </div>
-              <div id="tbp-rows" style="margin-top:8px;"></div>
+              <div>
+                <label class="setting-label" for="courseSelect">Course</label>
+                <select id="courseSelect" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff">
+                  <option value="">Select course</option>
+                  <option>Pre-Algebra</option>
+                  <option>Geometry</option>
+                  <option>Algebra I</option>
+                  <option>Algebra II</option>
+                  <option>Pre-Calculus</option>
+                  <option>Calculus AB</option>
+                  <option>Calculus BC</option>
+                </select>
+              </div>
+              <div>
+                <label class="setting-label" for="teacherInput">Teacher</label>
+                <input id="teacherInput" type="text" placeholder="ex. Mrs. Smith" autocomplete="off" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px" />
+              </div>
+            </div>
+            <div>
+              <label class="setting-label" for="lessonSlugInput">Lesson Slug</label>
+              <input id="lessonSlugInput" type="text" placeholder="e.g., algebra-ii" value="jarvis-uploads" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px" />
+            </div>
+            <div id="tbp-uploader" class="rounded-2xl border border-slate-200 bg-white p-4" style="box-shadow:0 10px 30px rgba(0,0,0,.08);">
+              <div id="tbp-dropzone" class="rounded-2xl border border-dashed border-slate-300" style="padding:24px; text-align:center; background:#f8fafb; cursor:pointer;">
+                <div style="display:inline-flex; align-items:center; justify-content:center; height:64px; width:64px; border-radius:9999px; background:#fff; color:#6b7280; box-shadow:0 1px 4px rgba(0,0,0,.08); margin-bottom:8px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden style="height:28px; width:28px;">
+                    <path d="M19.35 10.04a7.49 7.49 0 0 0-14-2.09A5.5 5.5 0 0 0 6.5 21H18a4.5 4.5 0 0 0 1.35-10.96ZM12 13a1 1 0 0 1 1 1v3.586l.293-.293a1 1 0 1 1 1.414 1.414l-2.707 2.707a1 1 0 0 1-1.414 0L7.879 18.707a1 1 0 0 1 1.414-1.414L9.586 17V14a1 1 0 0 1 1-1h1.414Z"/>
+                  </svg>
+                </div>
+                <h3 style="margin:4px 0 0; font-size:18px; font-weight:700; color:#1f2937;">Upload files</h3>
+                <p style="margin:2px 0 0; color:#6b7280;">JPEG, PNG, PDF up to 50MB each</p>
+                <div class="rounded-2xl border border-dashed border-slate-300" style="padding:16px; margin-top:12px;">
+                  <p style="font-weight:600; color:#1f2937;">Choose a file or drag & drop it here</p>
+                  <p style="margin-top:4px; color:#6b7280; font-size:14px;">Click to browse or drop multiple files</p>
+                  <div style="margin-top:10px;">
+                    <button id="tbp-browse" type="button" class="btn btn-primary">Browse File</button>
+                  </div>
+                  <input id="tbp-file-input" type="file" multiple accept="image/jpeg,image/png,application/pdf" style="display:none" />
+                </div>
+              </div>
+
+              <!-- Selected / Upload list -->
+              <div id="tbp-file-list" style="margin-top:16px; display:none;" class="rounded-2xl bg-slate-50 p-4">
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                  <p id="tbp-file-count" style="font-weight:600; color:#334155; font-size:14px;">0 files selected</p>
+                  <div style="display:flex; gap:8px;">
+                    <button id="tbp-clear" type="button" class="btn">Clear</button>
+                    <button id="tbp-upload" type="button" class="btn btn-secondary" disabled>Upload</button>
+                  </div>
+                </div>
+                <div id="tbp-rows" style="margin-top:8px;"></div>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
     </main>
 
     <!-- Full-screen loading overlay -->
@@ -156,6 +169,63 @@
     <script>window.TBP_AUTH_BASE='https://cramprep.onrender.com';</script>
     <script src="index.js"></script>
     <script src="login.js?v=1.0"></script>
+    <script>
+      (function(){
+        const jarvisApp = document.getElementById('jarvisApp');
+        const warning = document.getElementById('jarvisAuthWarning');
+        if (!jarvisApp || !warning) return;
+
+        function setState(authenticated) {
+          jarvisApp.hidden = !authenticated;
+          warning.hidden = authenticated;
+          if (authenticated) jarvisApp.removeAttribute('aria-hidden');
+          else jarvisApp.setAttribute('aria-hidden', 'true');
+        }
+
+        async function verifyAuth() {
+          let token = null;
+          try { token = localStorage.getItem('tbp_token'); } catch {}
+          if (!token) {
+            setState(false);
+            return;
+          }
+          const base = (window.TBP_AUTH_BASE || '').replace(/\/$/,'');
+          const url = base ? `${base}/auth/me` : '/auth/me';
+          try {
+            const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data && data.authenticated) {
+              setState(true);
+              return;
+            }
+            if (res.status === 401 || res.status === 403) {
+              try {
+                localStorage.removeItem('tbp_token');
+                localStorage.removeItem('tbp_user');
+              } catch {}
+            }
+          } catch (err) {
+            console.warn('Jarvis auth verification failed', err);
+          }
+          setState(false);
+        }
+
+        function init() {
+          jarvisApp.hidden = true;
+          warning.hidden = true;
+          verifyAuth();
+        }
+
+        init();
+        window.addEventListener('tbp:auth:login', verifyAuth);
+        window.addEventListener('storage', function(e){
+          if (!e) return;
+          if (e.key === 'tbp_token' || e.key === 'tbp_user') {
+            verifyAuth();
+          }
+        });
+      })();
+    </script>
     <script>
       (function(){
         function val(){ return (document.getElementById('jarvisPrompt').value||'').trim(); }
@@ -430,5 +500,3 @@
     </script>
   </body>
   </html>
-
-
