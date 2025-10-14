@@ -3559,7 +3559,7 @@ async function bootstrap() {
   // Extract structured problems from PNG URLs using GPT-4o (Vision) and store in questionbank
   app.post('/ai/worksheet/extract', async (req, res) => {
     try {
-      const { lessonSlug, title, school, teacher, worksheetType, images } = req.body || {};
+      const { lessonSlug, title, school, teacher, worksheetType, images, studentFullName, studentEmail } = req.body || {};
       if (!lessonSlug) return res.status(400).json({ error:'lessonSlug required' });
       const urls = Array.isArray(images) ? images.filter(u => typeof u === 'string' && /^https?:\/\//i.test(u)) : [];
       if (!urls.length) return res.status(400).json({ error:'images (PNG URLs) required' });
@@ -3568,6 +3568,9 @@ async function bootstrap() {
       if (!openaiKey) return res.status(500).json({ error:'missing_OPENAI_API_KEY' });
       const OpenAI = require('openai');
       const oai = new OpenAI({ apiKey: openaiKey });
+
+      const normalizedStudentName = (studentFullName || '').toString().trim();
+      const normalizedStudentEmail = (studentEmail || '').toString().trim();
 
       // Utility: LLM second-pass to pick the correct option index strictly
       async function secondPassPickIndex(stem, options){
@@ -3679,6 +3682,8 @@ async function bootstrap() {
           title: { $ref: '#/$defs/TexField' },
           school: { $ref: '#/$defs/TexField' },
           teacher: { $ref: '#/$defs/TexField' },
+          student_full_name: { type: 'string', description: 'Student full name associated with this worksheet.', default: '' },
+          student_email: { type: 'string', description: 'Student email address associated with this worksheet.', default: '' },
           problems: {
             type: 'array', minItems: 1,
             items: {
@@ -3753,7 +3758,10 @@ async function bootstrap() {
           school ? `School: ${school}` : '',
           teacher ? `Teacher: ${teacher}` : '',
           worksheetType ? `Worksheet Type: ${worksheetType}` : '',
+          normalizedStudentName ? `Student Full Name: ${normalizedStudentName}` : '',
+          normalizedStudentEmail ? `Student Email: ${normalizedStudentEmail}` : '',
           `Task: Extract title and problems. Prefer LaTeX in TexField.latex; use TexField.text only if LaTeX is not applicable. Return ONLY JSON conforming to the schema.`,
+          `When outputting JSON, copy the provided student name and email into "student_full_name" and "student_email" (use an empty string if not provided).`
         ].filter(Boolean).join('\n') });
         for (const u of group){ content.push({ type:'image_url', image_url: { url: u } }); }
         messages.push({ role:'user', content });
@@ -3779,9 +3787,19 @@ async function bootstrap() {
 
       // Merge collected results
       let finalTitle = (title || '').trim();
+      let finalStudentName = normalizedStudentName;
+      let finalStudentEmail = normalizedStudentEmail;
       const merged = [];
       for (const block of collected){
         if (!finalTitle){ finalTitle = texFieldToString(block.title) || finalTitle; }
+        if (!finalStudentName){
+          const extractedName = texFieldToString(block.student_full_name);
+          if (extractedName) finalStudentName = extractedName;
+        }
+        if (!finalStudentEmail){
+          const extractedEmail = texFieldToString(block.student_email);
+          if (extractedEmail) finalStudentEmail = extractedEmail;
+        }
         for (const p of (block.problems||[])){
           const num = String(p.number||'').trim();
           const text = texFieldToString(p.question_text);
@@ -3795,6 +3813,8 @@ async function bootstrap() {
 
       // Validate and prepare docs
       const nowIso = new Date().toISOString();
+      const storedStudentName = (finalStudentName || normalizedStudentName || '').toString().trim();
+      const storedStudentEmail = (finalStudentEmail || normalizedStudentEmail || '').toString().trim();
       const validatedDocs = [];
       for (const m of merged){
         if (!m.text) continue;
@@ -3842,6 +3862,8 @@ async function bootstrap() {
           school: school || null,
           teacher: teacher || null,
           worksheetType: worksheetType || null,
+          studentFullName: storedStudentName || null,
+          studentEmail: storedStudentEmail || null,
           problemNumber: m.number || null,
           stem: m.text.slice(0, 4000),
           instruction: (m.instruction || '')?.slice(0, 2000) || '',
@@ -3868,7 +3890,14 @@ async function bootstrap() {
         try { const r = await col.insertMany(validatedDocs, { ordered: false }); inserted = (r && r.insertedCount) || validatedDocs.length; } catch { inserted = validatedDocs.length; }
       }
       await client.close();
-      return res.json({ ok:true, title: finalTitle || null, problems: validatedDocs.length, inserted });
+      return res.json({
+        ok: true,
+        title: finalTitle || null,
+        problems: validatedDocs.length,
+        inserted,
+        studentFullName: storedStudentName || null,
+        studentEmail: storedStudentEmail || null
+      });
     } catch (e){ console.error('[worksheet-extract] exception', e); return res.status(500).json({ error:'worksheet_extract_exception', detail:String(e && e.message || e) }); }
   });
 }

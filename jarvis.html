@@ -474,13 +474,25 @@
             const allPngs = items.flatMap(x => Array.isArray(x.pngs) ? x.pngs : []).filter(Boolean);
             if (allPngs.length){
               overlayEta.textContent = 'Extracting problems...';
+              let studentFullName = '';
+              let studentEmail = '';
+              try {
+                const storedUser = JSON.parse(localStorage.getItem('tbp_user') || 'null');
+                if (storedUser && typeof storedUser === 'object') {
+                  studentFullName = (storedUser.fullName || '').toString();
+                  studentEmail = (storedUser.email || '').toString();
+                }
+              } catch {}
+
               const payload = {
                 lessonSlug: slug || `jarvis-${Date.now()}`,
                 title: 'Worksheet',
                 school,
                 teacher,
                 worksheetType: '',
-                images: allPngs
+                images: allPngs,
+                studentFullName,
+                studentEmail
               };
               const extRes = await fetch((window.TBP_AUTH_BASE||'') + '/ai/worksheet/extract', {
                 method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload)
