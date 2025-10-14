@@ -16,11 +16,8 @@
     <style>
       .ps-container{display:grid;grid-template-columns:360px minmax(0,1fr);gap:28px;width:min(96vw,1400px);margin:48px auto;padding:0 16px;}
       .ps-sidebar{position:sticky;top:110px;align-self:start;height:calc(100vh - 150px);overflow:auto;border:1px solid #e5e7eb;border-radius:12px;padding:14px;background:#fff;}
-      .ps-section-title{font-size:1.1rem;font-weight:800;color:#8B4513;margin:8px 0 6px;}
-      .ps-lesson{display:flex;align-items:center;justify-content:space-between;border:1px solid #eee;border-radius:10px;padding:8px 10px;margin:6px 0;background:#F5E6D3;color:#6b3410;cursor:pointer;width:100%;text-align:left;font:inherit;font-weight:600;gap:8px;}
-      .ps-lesson .status{font-size:.75rem;background:#fff;border:1px solid #e5e7eb;border-radius:9999px;padding:2px 8px;color:#6b7280;}
+      .ps-lesson{display:flex;align-items:center;justify-content:space-between;border:1px solid #eee;border-radius:10px;padding:10px 12px;margin:6px 0;background:#F5E6D3;color:#6b3410;cursor:pointer;width:100%;text-align:left;font:inherit;font-weight:600;gap:10px;}
       .ps-lesson.active{background:#8B4513;color:#fff;border-color:#8B4513;}
-      .ps-lesson.active .status{background:rgba(255,255,255,0.15);border-color:rgba(255,255,255,0.35);color:#fff;}
       .ps-lesson:focus-visible{outline:2px solid #8B4513;outline-offset:2px;}
       .ps-outline-empty{padding:14px;border-radius:10px;border:1px dashed #e5e7eb;color:#6b7280;background:#fff;margin-top:10px;text-align:center;font-size:.95rem;}
       .ps-exam-meta{margin-bottom:16px;padding:14px;border:1px solid #f0e2d0;border-radius:12px;background:#fbf5ee;color:#6b3410;}
@@ -30,10 +27,8 @@
       .ps-breadcrumb{color:#6b7280;font-size:.9rem;margin-bottom:6px;}
       .ps-title{font-size:1.6rem;font-weight:800;color:#1a1a1a;margin:6px 0 14px;}
       .ps-body{line-height:1.7;color:#1a1a1a;}
-      .ps-qmeta{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
-      .ps-qid{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#6b7280;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:2px 6px;}
-      .ps-question-stem{font-size:1.1rem;font-weight:600;margin-bottom:12px;}
-      .ps-instruction{font-size:1rem;color:#4b5563;margin-bottom:14px;}
+      .ps-question-stem{font-size:1.2rem;font-weight:700;margin-bottom:12px;}
+      .ps-instruction{font-size:1rem;color:#4b5563;margin-bottom:12px;white-space:pre-wrap;}
       .ps-opts{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;}
       .ps-opt{display:flex;align-items:flex-start;gap:10px;border:1px solid #efe7dc;border-radius:10px;padding:12px 14px;background:#fbf5ee;color:#1f2937;}
       .ps-opt-label{font-weight:700;min-width:24px;}
@@ -41,10 +36,7 @@
       .ps-solution{margin-top:18px;padding:14px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;}
       .ps-solution h4{margin:0 0 8px;font-size:1rem;color:#8B4513;}
       .ps-answer{margin-top:14px;font-weight:600;color:#4b5563;}
-      @media(max-width:1000px){
-        .ps-container{grid-template-columns:1fr;gap:20px;margin:32px auto;}
-        .ps-sidebar{position:relative;top:auto;height:auto;overflow:visible;}
-      }
+      @media(max-width:1000px){.ps-container{grid-template-columns:1fr;gap:20px;margin:32px auto;}.ps-sidebar{position:relative;top:auto;height:auto;overflow:visible;}}
     </style>
   </head>
   <body>
@@ -96,7 +88,6 @@
             <h1 id="jarvisTitle" class="settings-title">Jarvis</h1>
             <p class="settings-sub">Your AI study assistant for fast summaries, practice questions, and explanations.</p>
           </div>
-          
         </section>
 
         <section id="jarvisResults" class="ps-container">
@@ -117,99 +108,8 @@
             </div>
           </section>
         </section>
-
-        <!-- Drag & Drop File Uploader -->
-        <section id="jarvisUploader" class="settings-card" aria-labelledby="uploadTitle" style="max-width:900px; margin:24px auto 80px;">
-          <div class="settings-head">
-            <h2 id="uploadTitle" class="settings-title">Upload Worksheets</h2>
-            <p class="settings-sub">Drag & drop PDFs or images, or browse to upload. Progress is shown per file.</p>
-          </div>
-          <div style="padding:16px; display:grid; gap:12px;">
-            <div style="display:grid; gap:10px; grid-template-columns:1fr 1fr;">
-              <div>
-                <label class="setting-label" for="schoolInput">School</label>
-                <div style="position:relative">
-                  <input id="schoolInput" type="text" placeholder="Search school..." autocomplete="off" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px" />
-                  <div id="schoolSuggest" style="position:absolute;left:0;right:0;top:46px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 10px 20px rgba(0,0,0,.08);display:none;max-height:220px;overflow:auto;z-index:20"></div>
-                </div>
-              </div>
-              <div>
-                <label class="setting-label" for="courseSelect">Course</label>
-                <select id="courseSelect" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff">
-                  <option value="">Select course</option>
-                  <option>Pre-Algebra</option>
-                  <option>Geometry</option>
-                  <option>Algebra I</option>
-                  <option>Algebra II</option>
-                  <option>Pre-Calculus</option>
-                  <option>Calculus AB</option>
-                  <option>Calculus BC</option>
-                </select>
-              </div>
-              <div>
-                <label class="setting-label" for="teacherInput">Teacher</label>
-                <input id="teacherInput" type="text" placeholder="ex. Mrs. Smith" autocomplete="off" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px" />
-              </div>
-              <div>
-                <label class="setting-label" for="examSelect">Exams / Quizzes</label>
-                <select id="examSelect" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff">
-                  <option value="" disabled selected>Loading exams…</option>
-                </select>
-                <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
-                  <input id="examCustomInput" type="text" placeholder="Add custom exam title" style="flex:1;padding:10px;border:1px solid #e5e7eb;border-radius:8px" />
-                  <button type="button" id="examAddBtn" class="btn btn-secondary" style="flex:0 0 auto;white-space:nowrap;">Add</button>
-                </div>
-              </div>
-            </div>
-            <div>
-              <label class="setting-label" for="lessonSlugInput">Lesson Slug</label>
-              <input id="lessonSlugInput" type="text" placeholder="e.g., algebra-ii" value="jarvis-uploads" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px" />
-            </div>
-            <div id="tbp-uploader" class="rounded-2xl border border-slate-200 bg-white p-4" style="box-shadow:0 10px 30px rgba(0,0,0,.08);">
-              <div id="tbp-dropzone" class="rounded-2xl border border-dashed border-slate-300" style="padding:24px; text-align:center; background:#f8fafb; cursor:pointer;">
-                <div style="display:inline-flex; align-items:center; justify-content:center; height:64px; width:64px; border-radius:9999px; background:#fff; color:#6b7280; box-shadow:0 1px 4px rgba(0,0,0,.08); margin-bottom:8px;">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden style="height:28px; width:28px;">
-                    <path d="M19.35 10.04a7.49 7.49 0 0 0-14-2.09A5.5 5.5 0 0 0 6.5 21H18a4.5 4.5 0 0 0 1.35-10.96ZM12 13a1 1 0 0 1 1 1v3.586l.293-.293a1 1 0 1 1 1.414 1.414l-2.707 2.707a1 1 0 0 1-1.414 0L7.879 18.707a1 1 0 0 1 1.414-1.414L9.586 17V14a1 1 0 0 1 1-1h1.414Z"/>
-                  </svg>
-                </div>
-                <h3 style="margin:4px 0 0; font-size:18px; font-weight:700; color:#1f2937;">Upload files</h3>
-                <p style="margin:2px 0 0; color:#6b7280;">JPEG, PNG, PDF up to 50MB each</p>
-                <div class="rounded-2xl border border-dashed border-slate-300" style="padding:16px; margin-top:12px;">
-                  <p style="font-weight:600; color:#1f2937;">Choose a file or drag & drop it here</p>
-                  <p style="margin-top:4px; color:#6b7280; font-size:14px;">Click to browse or drop multiple files</p>
-                  <div style="margin-top:10px;">
-                    <button id="tbp-browse" type="button" class="btn btn-primary">Browse File</button>
-                  </div>
-                  <input id="tbp-file-input" type="file" multiple accept="image/jpeg,image/png,application/pdf" style="display:none" />
-                </div>
-              </div>
-
-              <!-- Selected / Upload list -->
-              <div id="tbp-file-list" style="margin-top:16px; display:none;" class="rounded-2xl bg-slate-50 p-4">
-                <div style="display:flex; align-items:center; justify-content:space-between;">
-                  <p id="tbp-file-count" style="font-weight:600; color:#334155; font-size:14px;">0 files selected</p>
-                  <div style="display:flex; gap:8px;">
-                    <button id="tbp-clear" type="button" class="btn">Clear</button>
-                    <button id="tbp-upload" type="button" class="btn btn-secondary" disabled>Upload</button>
-                  </div>
-                </div>
-                <div id="tbp-rows" style="margin-top:8px;"></div>
-              </div>
-            </div>
-          </div>
-        </section>
-
       </div>
     </main>
-
-    <!-- Full-screen loading overlay -->
-    <div id="jarvisLoading" style="display:none;position:fixed;inset:0;background:rgba(255,255,255,0.92);backdrop-filter:saturate(140%) blur(2px);z-index:50;align-items:center;justify-content:center;">
-      <div style="text-align:center;">
-        <div class="tbp-star-spinner" aria-label="Loading" style="margin:0 auto 12px;"></div>
-        <div style="font-size:20px;font-weight:800;color:#6b3410;">Custom made Study Guide loading....</div>
-        <div id="jarvisEta" style="margin-top:6px;color:#6b7280;font-weight:600;">Estimated wait ~ 00:00</div>
-      </div>
-    </div>
 
     <footer class="footer">
       <div class="container">
@@ -264,7 +164,7 @@
             setState(false);
             return;
           }
-          const base = (window.TBP_AUTH_BASE || '').replace(/\/$/,'');
+          const base = (window.TBP_AUTH_BASE || '').replace(/\/$/, '');
           const url = base ? `${base}/auth/me` : '/auth/me';
           try {
             const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
@@ -295,6 +195,9 @@
         window.addEventListener('tbp:auth:login', verifyAuth);
         window.addEventListener('storage', function(e){
           if (!e) return;
+          if (e.key === 'jarvisGuides') {
+            try { window.dispatchEvent(new CustomEvent('tbp:jarvis:guides-updated')); } catch {}
+          }
           if (e.key === 'tbp_token' || e.key === 'tbp_user') {
             verifyAuth();
           }
@@ -303,292 +206,7 @@
     </script>
     <script>
       (function(){
-        const examSelect = document.getElementById('examSelect');
-        const customInput = document.getElementById('examCustomInput');
-        const addBtn = document.getElementById('examAddBtn');
-        const resultsSection = document.getElementById('jarvisResults');
         const makeGuideBtn = document.getElementById('jarvisMakeGuideBtn');
-        if (!examSelect) return;
-
-        let loaded = false;
-        let loading = false;
-
-        function notify(message, type) {
-          if (typeof showNotification === 'function') {
-            showNotification(message, type || 'info', type === 'success' ? 3800 : 2600);
-          } else {
-            if (type === 'error') console.error(message);
-            else console.log(message);
-          }
-        }
-
-        function setPlaceholder(message, opts) {
-          opts = opts || {};
-          examSelect.innerHTML = '';
-          const placeholder = new Option(message, '');
-          placeholder.disabled = true;
-          placeholder.selected = true;
-          examSelect.appendChild(placeholder);
-          if (typeof opts.disabled !== 'undefined') {
-            examSelect.disabled = !!opts.disabled;
-          }
-        }
-
-        function ensureDefaultOption() {
-          if (examSelect.options.length === 0 || examSelect.options[0].value !== '') {
-            const opt = new Option('Select exam or quiz', '');
-            opt.disabled = true;
-            opt.selected = true;
-            examSelect.insertBefore(opt, examSelect.firstChild);
-          }
-        }
-
-        function handleCustomAdd() {
-          if (!customInput) return;
-          const text = customInput.value.trim();
-          if (!text) {
-            notify('Please enter a title before adding.', 'error');
-            return;
-          }
-          const existing = Array.from(examSelect.options).find(opt => !opt.disabled && opt.value === text);
-          let target = existing;
-          if (!existing) {
-            const option = new Option(text, text, true, true);
-            option.dataset.examDate = '';
-            examSelect.appendChild(option);
-            target = option;
-          } else {
-            existing.selected = true;
-          }
-          examSelect.disabled = false;
-          if (target) target.selected = true;
-          examSelect.dispatchEvent(new Event('change', { bubbles: true }));
-          customInput.value = '';
-          notify('Custom exam added to the list.', 'success');
-        }
-
-        if (addBtn) addBtn.addEventListener('click', handleCustomAdd);
-        if (customInput) {
-          customInput.addEventListener('keydown', function(e){
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              handleCustomAdd();
-            }
-          });
-        }
-
-        if (makeGuideBtn) {
-          makeGuideBtn.addEventListener('click', function(){
-            const target = document.getElementById('jarvisUploader');
-            if (target && typeof target.scrollIntoView === 'function') {
-              target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-          });
-        }
-
-        function decodeIcsText(text) {
-          return String(text || '').replace(/\\n/g, '\n').replace(/\\,/g, ',').replace(/\\;/g, ';');
-        }
-
-        function icsToDate(raw) {
-          if (!raw) return null;
-          if (/^\d{8}$/.test(raw)) {
-            const y = Number(raw.slice(0, 4));
-            const m = Number(raw.slice(4, 6));
-            const d = Number(raw.slice(6, 8));
-            return new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
-          }
-          if (/^\d{8}T\d{6}Z$/.test(raw)) {
-            const y = Number(raw.slice(0, 4));
-            const m = Number(raw.slice(4, 6));
-            const d = Number(raw.slice(6, 8));
-            const hh = Number(raw.slice(9, 11));
-            const mm = Number(raw.slice(11, 13));
-            const ss = Number(raw.slice(13, 15));
-            return new Date(Date.UTC(y, m - 1, d, hh, mm, ss));
-          }
-          const dt = new Date(raw);
-          return isNaN(dt.getTime()) ? null : dt;
-        }
-
-        function parseIcs(text) {
-          const events = [];
-          if (!text) return events;
-          const lines = text.split(/\r?\n/);
-          const unfolded = [];
-          for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            if (/^\s/.test(line) && unfolded.length) {
-              unfolded[unfolded.length - 1] += line.trim();
-            } else {
-              unfolded.push(line);
-            }
-          }
-          let current = null;
-          for (const raw of unfolded) {
-            const line = raw.trim();
-            if (line === 'BEGIN:VEVENT') {
-              current = {};
-              continue;
-            }
-            if (line === 'END:VEVENT') {
-              if (current) {
-                events.push(current);
-                current = null;
-              }
-              continue;
-            }
-            if (!current) continue;
-            const idx = line.indexOf(':');
-            if (idx < 0) continue;
-            const keyPart = line.slice(0, idx);
-            const val = line.slice(idx + 1);
-            const key = keyPart.split(';')[0];
-            if (key === 'DTSTART' || key.startsWith('DTSTART')) current.DTSTART = val;
-            else if (key === 'DTEND' || key.startsWith('DTEND')) current.DTEND = val;
-            else if (key === 'SUMMARY') current.SUMMARY = decodeIcsText(val);
-            else if (key === 'DESCRIPTION') current.DESCRIPTION = decodeIcsText(val);
-          }
-          return events.map(ev => ({
-            title: ev.SUMMARY || 'Assessment',
-            description: ev.DESCRIPTION || '',
-            start: icsToDate(ev.DTSTART),
-            end: icsToDate(ev.DTEND || ev.DTSTART)
-          })).filter(ev => !!ev.start);
-        }
-
-        function isAssessmentEvent(ev) {
-          const text = `${ev.title || ''}\n${ev.description || ''}`.toLowerCase();
-          return /\b(exam|test|assessment|quiz)\b/.test(text);
-        }
-
-        function dedupeEvents(events) {
-          const map = new Map();
-          events.forEach(ev => {
-            const key = `${(ev.title || '').trim().toLowerCase()}|${ev.start ? ev.start.toISOString().slice(0, 10) : ''}`;
-            if (!map.has(key)) map.set(key, ev);
-          });
-          return Array.from(map.values()).sort((a, b) => {
-            const aTime = a.start ? a.start.getTime() : 0;
-            const bTime = b.start ? b.start.getTime() : 0;
-            return aTime - bTime;
-          });
-        }
-
-        function formatExamLabel(ev) {
-          const title = ev.title || 'Assessment';
-          if (!ev.start) return title;
-          const formatter = new Intl.DateTimeFormat(undefined, { weekday:'long', month:'short', day:'numeric' });
-          return `${formatter.format(ev.start)} — ${title}`;
-        }
-
-        async function loadExamOptions() {
-          if (loading || loaded) return;
-          loading = true;
-          setPlaceholder('Loading exams…', { disabled: true });
-          try {
-            let token = null;
-            try { token = localStorage.getItem('tbp_token'); } catch {}
-            if (!token) {
-              setPlaceholder('Please log in to access exams.', { disabled: true });
-              return;
-            }
-            const base = (window.TBP_AUTH_BASE || '').replace(/\/$/, '');
-            const profileRes = await fetch(`${base}/auth/profile`, { headers: { 'Authorization': `Bearer ${token}` } });
-            const profileJson = await profileRes.json().catch(() => ({}));
-            const profile = profileRes.ok && profileJson && profileJson.profile ? profileJson.profile : null;
-            const icsUrl = profile && profile.icsUrl ? String(profile.icsUrl).trim() : '';
-            if (!icsUrl) {
-              setPlaceholder('Please fill out the iCal (ics) URL in settings.', { disabled: false });
-              examSelect.disabled = false;
-              loaded = true;
-              return;
-            }
-            const icsRes = await fetch(`${base}/auth/ics?url=${encodeURIComponent(icsUrl)}`, { headers: { 'Authorization': `Bearer ${token}` } });
-            if (!icsRes.ok) throw new Error('ics_fetch_failed');
-            const icsText = await icsRes.text();
-            const allAssessments = parseIcs(icsText).filter(isAssessmentEvent);
-            const today = new Date(); today.setHours(0, 0, 0, 0);
-            const upcoming = allAssessments.filter(ev => ev.start && ev.start >= today);
-            const events = dedupeEvents(upcoming);
-            if (!events.length) {
-              setPlaceholder('No upcoming exams found. Add your own below.', { disabled: false });
-              examSelect.disabled = false;
-              loaded = true;
-              return;
-            }
-            examSelect.innerHTML = '';
-            ensureDefaultOption();
-            events.forEach(ev => {
-              const value = (ev.title || '').trim() || formatExamLabel(ev);
-              const option = new Option(formatExamLabel(ev), value);
-              option.dataset.examDate = ev.start ? ev.start.toISOString() : '';
-              examSelect.appendChild(option);
-            });
-            examSelect.disabled = false;
-            loaded = true;
-          } catch (err) {
-            console.warn('Failed to load exam options', err);
-            setPlaceholder('Unable to load exams. Add your own below.', { disabled: false });
-            examSelect.disabled = false;
-            loaded = true;
-          } finally {
-            loading = false;
-          }
-        }
-
-        window.addEventListener('tbp:jarvis:authenticated', loadExamOptions);
-        window.addEventListener('tbp:jarvis:unauthenticated', function(){
-          loaded = false;
-          setPlaceholder('Please log in to access exams.', { disabled: true });
-        });
-      })();
-    </script>
-    <script>
-      (function(){
-        function val(){ return (document.getElementById('jarvisPrompt').value||'').trim(); }
-        function setOut(html){ document.getElementById('jarvisOutput').innerHTML = html; }
-        async function callJarvis(prompt){
-          try{
-            setOut('<div class="tbp-star-spinner" aria-label="Loading"></div>');
-            const res = await fetch((window.TBP_AUTH_BASE||'') + '/ai/agent1/generate-assist-v2?lesson=ad-hoc', {
-              method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ user: prompt })
-            });
-            const j = await res.json().catch(()=>({}));
-            if (!res.ok || !j || !j.ok){ throw new Error((j && j.error)||'Jarvis failed'); }
-            setOut('<pre style="white-space:pre-wrap">'+ (j.preview||'') +'</pre>');
-          }catch(e){ setOut('<div style="color:#b00">'+ String(e && e.message || e) +'</div>'); }
-        }
-        document.getElementById('btnSummary').addEventListener('click', function(){
-          const p = val(); if (!p) return; callJarvis('Give a concise study summary:\n\n'+p);
-        });
-        document.getElementById('btnQuestions').addEventListener('click', function(){
-          const p = val(); if (!p) return; callJarvis('Create 5 practice questions with answers based on this content:\n\n'+p);
-        });
-        document.getElementById('btnExplain').addEventListener('click', function(){
-          const p = val(); if (!p) return; callJarvis('Explain step-by-step, with examples, for:\n\n'+p);
-        });
-      })();
-    </script>
-    <script>
-      (function(){
-        const ACCEPT = ['image/jpeg','image/png','application/pdf'];
-        const MAX_MB = 50; const MAX_BYTES = MAX_MB * 1024 * 1024;
-        const MAX_FILES = 5;
-        const els = {
-          drop: document.getElementById('tbp-dropzone'),
-          browse: document.getElementById('tbp-browse'),
-          input: document.getElementById('tbp-file-input'),
-          list: document.getElementById('tbp-file-list'),
-          count: document.getElementById('tbp-file-count'),
-          clear: document.getElementById('tbp-clear'),
-          upload: document.getElementById('tbp-upload'),
-          rows: document.getElementById('tbp-rows'),
-          slug: document.getElementById('lessonSlugInput')
-        };
-        const overlay = document.getElementById('jarvisLoading');
-        const overlayEta = document.getElementById('jarvisEta');
-        const resultsSection = document.getElementById('jarvisResults');
         const resultsOutline = document.getElementById('jarvisResultsOutline');
         const resultsEmpty = document.getElementById('jarvisResultsEmpty');
         const resultsExamTitle = document.getElementById('jarvisExamTitle');
@@ -596,12 +214,23 @@
         const resultsBreadcrumb = document.getElementById('jarvisResultBreadcrumb');
         const resultsTitle = document.getElementById('jarvisResultTitle');
         const resultsBody = document.getElementById('jarvisResultBody');
-        let items = [];
-        let currentQuestions = [];
-        let currentQuestionIndex = 0;
-        let currentExamTitle = '';
-        let currentExamDate = '';
-        let currentLessonSlug = '';
+
+        if (makeGuideBtn) makeGuideBtn.addEventListener('click', () => { window.location.href = 'jarvis-upload.html'; });
+
+        let storedGuides = [];
+        const questionCache = {};
+        let currentGuideSlug = null;
+
+        function loadStoredGuides(){
+          try {
+            const raw = localStorage.getItem('jarvisGuides');
+            const arr = raw ? JSON.parse(raw) : [];
+            if (!Array.isArray(arr)) return [];
+            return arr.filter(g => g && g.slug).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+          } catch {
+            return [];
+          }
+        }
 
         function formatExamDateLabel(iso){
           if (!iso) return '';
@@ -610,15 +239,29 @@
           return new Intl.DateTimeFormat(undefined, { weekday:'long', month:'short', day:'numeric' }).format(date);
         }
 
-        function updateExamMeta(){
-          if (!resultsSection) return;
-          const title = (currentExamTitle || '').trim() || 'Your Study Guides';
+        function formatGuideLabel(guide){
+          const title = (guide.title || guide.slug || 'Study Guide').trim();
+          const dateLabel = formatExamDateLabel(guide.examDate);
+          return dateLabel ? `${title} — ${dateLabel}` : title;
+        }
+
+        function highlightSelected(){
+          if (!resultsOutline) return;
+          Array.from(resultsOutline.querySelectorAll('button[data-slug]')).forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.slug === currentGuideSlug);
+          });
+        }
+
+        function updateMetaForGuide(guide){
+          if (!guide) return;
+          const title = (guide.title || guide.slug || 'Study Guide').trim();
+          const dateLabel = formatExamDateLabel(guide.examDate);
           if (resultsExamTitle) resultsExamTitle.textContent = title;
           if (resultsBreadcrumb) resultsBreadcrumb.textContent = title;
+          if (resultsTitle) resultsTitle.textContent = title;
           if (resultsExamDate) {
-            const label = formatExamDateLabel(currentExamDate);
-            if (label) {
-              resultsExamDate.textContent = label;
+            if (dateLabel) {
+              resultsExamDate.textContent = dateLabel;
               resultsExamDate.style.display = '';
             } else {
               resultsExamDate.textContent = '';
@@ -627,132 +270,115 @@
           }
         }
 
-        function renderResultsOutline(){
-          if (!resultsSection || !resultsOutline) return;
+        function renderGuideList(){
+          if (!resultsOutline) return;
+          storedGuides = loadStoredGuides();
           resultsOutline.innerHTML = '';
-          if (!currentQuestions.length){
+          if (!storedGuides.length){
             if (resultsEmpty) {
-            resultsEmpty.style.display = '';
-            resultsEmpty.textContent = 'Use "Make a Study Guide" to upload worksheets and populate this list.';
+              resultsEmpty.style.display = '';
+              resultsEmpty.textContent = 'Use "Make a Study Guide" to upload worksheets and populate this list.';
             }
-            if (resultsBody) {
-            resultsBody.innerHTML = '<p class="ps-outline-empty" style="border:none;background:none;padding:0;text-align:left;">Use "Make a Study Guide" to upload worksheets and populate this list.</p>';
-            }
+            if (resultsExamTitle) resultsExamTitle.textContent = 'Your Study Guides';
+            if (resultsExamDate) resultsExamDate.style.display = 'none';
+            if (resultsBreadcrumb) resultsBreadcrumb.textContent = 'Your Study Guides';
             if (resultsTitle) resultsTitle.textContent = 'No problems yet';
+            if (resultsBody) {
+              resultsBody.innerHTML = '<p class="ps-instruction">Upload a worksheet to generate tailored problems. They will appear here once ready.</p>';
+            }
+            currentGuideSlug = null;
+            highlightSelected();
             return;
           }
+
           if (resultsEmpty) resultsEmpty.style.display = 'none';
-          currentQuestions.forEach((q, idx) => {
+          storedGuides.forEach(guide => {
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'ps-lesson';
-            btn.dataset.index = String(idx);
-            const label = document.createElement('span');
-            label.textContent = `Problem ${idx + 1}`;
-            btn.appendChild(label);
-            const status = document.createElement('span');
-            status.className = 'status';
-            const diff = (q.difficulty || '').toString();
-            status.textContent = diff ? diff.charAt(0).toUpperCase() + diff.slice(1) : '—';
-            btn.appendChild(status);
-            btn.addEventListener('click', () => selectQuestion(idx));
+            btn.dataset.slug = guide.slug;
+            btn.textContent = formatGuideLabel(guide);
+            btn.addEventListener('click', () => openGuide(guide.slug));
             resultsOutline.appendChild(btn);
           });
+          highlightSelected();
         }
 
-        function selectQuestion(index){
-          if (!resultsSection || !currentQuestions[index]) return;
-          currentQuestionIndex = index;
-          if (resultsOutline){
-            Array.from(resultsOutline.querySelectorAll('[data-index]')).forEach(el => {
-              el.classList.toggle('active', Number(el.dataset.index) === index);
-            });
-          }
-          const q = currentQuestions[index];
-          const title = `Problem ${index + 1}`;
-          if (resultsTitle) resultsTitle.textContent = title;
-          updateExamMeta();
+        function renderGuideContent(guide, questions){
+          updateMetaForGuide(guide);
           if (!resultsBody) return;
           resultsBody.innerHTML = '';
-
-          const meta = document.createElement('div');
-          meta.className = 'ps-qmeta';
-          if (currentLessonSlug){
-            const slugBadge = document.createElement('span');
-            slugBadge.className = 'ps-qid';
-            slugBadge.textContent = currentLessonSlug;
-            meta.appendChild(slugBadge);
-          }
-          const difficulty = (q.difficulty || '').toString();
-          if (difficulty){
-            const diffBadge = document.createElement('span');
-            diffBadge.className = 'ps-qid';
-            diffBadge.textContent = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
-            meta.appendChild(diffBadge);
-          }
-          if (meta.children.length) resultsBody.appendChild(meta);
-
-          if (q.instruction){
-            const instruction = document.createElement('p');
-            instruction.className = 'ps-instruction';
-            instruction.textContent = q.instruction;
-            resultsBody.appendChild(instruction);
+          if (!Array.isArray(questions) || !questions.length){
+            resultsBody.innerHTML = '<p class="ps-outline-empty" style="border:none;background:none;padding:0;text-align:left;">No problems available yet for this study guide.</p>';
+            return;
           }
 
-          if (q.stem){
-            const stem = document.createElement('p');
-            stem.className = 'ps-question-stem';
-            stem.textContent = q.stem;
-            resultsBody.appendChild(stem);
-          }
-          if (!q.stem && !q.instruction){
-            const placeholder = document.createElement('p');
-            placeholder.className = 'ps-instruction';
-            placeholder.textContent = 'Problem text unavailable.';
-            resultsBody.appendChild(placeholder);
-          }
+          questions.forEach((q, idx) => {
+            const wrapper = document.createElement('article');
+            wrapper.className = 'ps-q-card';
+            wrapper.style.marginBottom = '26px';
 
-          if (Array.isArray(q.options) && q.options.length){
-            const optsWrap = document.createElement('div');
-            optsWrap.className = 'ps-opts';
-            q.options.forEach((opt, optIdx) => {
-              const row = document.createElement('div');
-              row.className = 'ps-opt';
-              const label = document.createElement('span');
-              label.className = 'ps-opt-label';
-              label.textContent = `${String.fromCharCode(65 + optIdx)}.`;
-              const text = document.createElement('span');
-              text.className = 'ps-explain';
-              text.textContent = opt;
-              row.appendChild(label);
-              row.appendChild(text);
-              optsWrap.appendChild(row);
-            });
-            resultsBody.appendChild(optsWrap);
-          }
+            const heading = document.createElement('h3');
+            heading.className = 'ps-question-stem';
+            heading.textContent = `Problem ${idx + 1}`;
+            wrapper.appendChild(heading);
 
-          if (q.solution){
-            const sol = document.createElement('div');
-            sol.className = 'ps-solution';
-            const heading = document.createElement('h4');
-            heading.textContent = 'Solution';
-            const solBody = document.createElement('p');
-            solBody.textContent = q.solution;
-            sol.appendChild(heading);
-            sol.appendChild(solBody);
-            if (q.answer){
-              const answer = document.createElement('p');
-              answer.className = 'ps-answer';
-              answer.textContent = `Answer: ${q.answer}`;
-              sol.appendChild(answer);
+            if (q.instruction){
+              const instruct = document.createElement('p');
+              instruct.className = 'ps-instruction';
+              instruct.textContent = q.instruction;
+              wrapper.appendChild(instruct);
             }
-            resultsBody.appendChild(sol);
-          } else if (q.answer){
-            const answer = document.createElement('p');
-            answer.className = 'ps-answer';
-            answer.textContent = `Answer: ${q.answer}`;
-            resultsBody.appendChild(answer);
-          }
+
+            if (q.stem){
+              const stem = document.createElement('p');
+              stem.className = 'ps-instruction';
+              stem.style.fontWeight = '600';
+              stem.textContent = q.stem;
+              wrapper.appendChild(stem);
+            }
+
+            if (Array.isArray(q.options) && q.options.length){
+              const opts = document.createElement('div');
+              opts.className = 'ps-opts';
+              q.options.forEach((opt, optIdx) => {
+                const row = document.createElement('div');
+                row.className = 'ps-opt';
+                const label = document.createElement('span');
+                label.className = 'ps-opt-label';
+                label.textContent = `${String.fromCharCode(65 + optIdx)}.`;
+                const text = document.createElement('span');
+                text.className = 'ps-explain';
+                text.textContent = opt;
+                row.appendChild(label);
+                row.appendChild(text);
+                opts.appendChild(row);
+              });
+              wrapper.appendChild(opts);
+            }
+
+            if (q.solution || q.answer){
+              const sol = document.createElement('div');
+              sol.className = 'ps-solution';
+              const headingSol = document.createElement('h4');
+              headingSol.textContent = 'Solution';
+              sol.appendChild(headingSol);
+              if (q.solution){
+                const solBody = document.createElement('p');
+                solBody.textContent = q.solution;
+                sol.appendChild(solBody);
+              }
+              if (q.answer){
+                const answer = document.createElement('p');
+                answer.className = 'ps-answer';
+                answer.textContent = `Answer: ${q.answer}`;
+                sol.appendChild(answer);
+              }
+              wrapper.appendChild(sol);
+            }
+
+            resultsBody.appendChild(wrapper);
+          });
 
           try {
             if (window.renderMathInElement) {
@@ -771,307 +397,57 @@
           }
         }
 
-        async function loadQuestionsAndRender(lessonSlug, examTitle, examDate){
-          if (!resultsSection) return;
-          currentLessonSlug = lessonSlug || '';
-          currentExamTitle = (examTitle || '').trim();
-          currentExamDate = examDate || '';
-          currentQuestions = [];
-          updateExamMeta();
-          if (resultsOutline) resultsOutline.innerHTML = '';
-          if (resultsEmpty) {
-            resultsEmpty.style.display = '';
-            resultsEmpty.textContent = 'Loading problems…';
-          }
-          if (resultsBody) resultsBody.innerHTML = '<p class="ps-outline-empty" style="border:none;background:none;padding:0;text-align:left;">Loading problems…</p>';
-          if (resultsTitle) resultsTitle.textContent = 'Loading…';
-          try {
-            const base = (window.TBP_AUTH_BASE || '').replace(/\/$/,'');
-            let token = null;
-            try { token = localStorage.getItem('tbp_token'); } catch {}
-            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-            const res = await fetch(`${base}/ai/agent2/questions?lesson=${encodeURIComponent(lessonSlug)}&ordered=1&n=40`, { headers });
-            const data = await res.json().catch(() => ({}));
-            if (res.ok && data && Array.isArray(data.questions) && data.questions.length){
-              currentQuestions = data.questions;
-              renderResultsOutline();
-              selectQuestion(0);
-            } else {
-              currentQuestions = [];
-              if (resultsEmpty) {
-                resultsEmpty.style.display = '';
-                resultsEmpty.textContent = 'No extracted problems available yet.';
-              }
-              if (resultsBody) resultsBody.innerHTML = '<p class="ps-outline-empty" style="border:none;background:none;padding:0;text-align:left;">No extracted problems available yet.</p>';
-              if (resultsTitle) resultsTitle.textContent = 'No problems yet';
-            }
-          } catch (err) {
-            console.warn('Failed to load worksheet questions', err);
-            currentQuestions = [];
-            if (resultsEmpty) {
-              resultsEmpty.style.display = '';
-              resultsEmpty.textContent = 'Unable to load problems.';
-            }
-            if (resultsBody) resultsBody.innerHTML = '<p class="ps-outline-empty" style="border:none;background:none;padding:0;text-align:left;">Unable to load problems.</p>';
-            if (resultsTitle) resultsTitle.textContent = 'No problems yet';
-          }
+        async function fetchGuideQuestions(slug){
+          const base = (window.TBP_AUTH_BASE || '').replace(/\/$/, '');
+          let token = null;
+          try { token = localStorage.getItem('tbp_token'); } catch {}
+          const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+          const res = await fetch(`${base}/ai/agent2/questions?lesson=${encodeURIComponent(slug)}&ordered=1&n=40`, { headers });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data || !Array.isArray(data.questions)) throw new Error('failed_to_load');
+          return data.questions;
         }
 
-        function fmtBytes(bytes){ if (bytes===0) return '0 B'; const k=1024; const sizes=['B','KB','MB','GB']; const i=Math.floor(Math.log(bytes)/Math.log(k)); return `${(bytes/Math.pow(k,i)).toFixed(i===0?0:2)} ${sizes[i]}`; }
-        function setDragging(on){ els.drop.style.background = on ? '#eff6ff' : '#f8fafb'; }
-        function dedupeKey(f){ return f.name + '|' + f.size; }
-        function render(){
-          els.list.style.display = items.length ? 'block' : 'none';
-          els.count.textContent = `${items.length} file${items.length>1?'s':''} selected`;
-          els.upload.disabled = !items.some(x => x.status==='ready');
-          els.rows.innerHTML = items.map(it => {
-            const badge = it.file.type.includes('pdf')? 'PDF' : (it.file.type.includes('png')?'PNG':'JPG');
-            const barColor = it.status==='error'? '#ef4444' : '#0ea5e9';
-            const showBar = it.status !== 'ready';
-            return `
-              <div class="flex items-start justify-between gap-4 py-3" style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:12px 0;border-top:1px solid #e5e7eb;">
-                <div class="min-w-0 flex-1" style="min-width:0;flex:1;">
-                  <div class="flex items-center gap-2" style="display:flex;align-items:center;gap:8px;">
-                    <span class="inline-flex h-8 w-8 items-center justify-content-center rounded-xl bg-slate-100 text-slate-600" style="display:inline-flex;height:32px;width:32px;border-radius:12px;background:#f1f5f9;color:#475569;align-items:center;justify-content:center;">${badge}</span>
-                    <div class="min-w-0" style="min-width:0;">
-                      <p class="truncate text-sm font-medium text-slate-900" style="margin:0;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${it.file.name}</p>
-                      <p class="text-xs text-slate-500" style="margin:2px 0 0;color:#6b7280;font-size:12px;">${fmtBytes(it.file.size)}</p>
-                    </div>
-                  </div>
-                  <div class="mt-2" style="margin-top:8px;display:flex;align-items:center;gap:8px;">
-                    <label style="font-size:12px;color:#475569;">Type:</label>
-                    <select data-type-for="${it.id}" class="tbp-type" style="padding:6px 8px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;">
-                      <option value="blank" ${it.wtype==='blank'?'selected':''}>Blank Worksheet</option>
-                      <option value="answer" ${it.wtype==='answer'?'selected':''}>Answer Key</option>
-                      <option value="notes" ${it.wtype==='notes'?'selected':''}>Notes</option>
-                    </select>
-                  </div>
-                  ${showBar?`
-                    <div class="mt-2" style="margin-top:8px;">
-                      <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100" style="height:8px;border-radius:9999px;background:#f1f5f9;">
-                        <div style="height:8px;border-radius:9999px;background:${barColor};width:${it.progress||0}%;"></div>
-                      </div>
-                      <p class="mt-1 text-xs text-slate-500" style="margin-top:4px;color:#64748b;font-size:12px;">
-                        ${it.status==='uploading'?`Uploading… ${Math.round(it.progress||0)}%`: it.status==='done'?'Uploaded': it.status==='error'?(it.error||'Upload failed') : 'Ready'}
-                      </p>
-                      ${it.pngs && it.pngs.length ? `<p class="text-xs" style="margin-top:2px;color:#475569;">Converted ${it.pngs.length} PNG${it.pngs.length>1?'s':''}</p>` : ''}
-                    </div>
-                  `:''}
-                </div>
-                <button type="button" data-id="${it.id}" class="btn" style="border:1px solid #e5e7eb;border-radius:12px;padding:6px 12px;font-size:12px;" aria-label="Remove ${it.file.name}">Remove</button>
-              </div>
-            `; }).join('');
-          // bind remove buttons
-          els.rows.querySelectorAll('button[data-id]').forEach(btn => {
-            btn.addEventListener('click', function(){ const id=this.getAttribute('data-id'); items = items.filter(x => x.id!==id); render(); });
-          });
-          // bind per-file type selects
-          els.rows.querySelectorAll('select.tbp-type').forEach(sel => {
-            sel.addEventListener('change', function(){
-              const id = this.getAttribute('data-type-for');
-              items = items.map(x => x.id===id ? ({ ...x, wtype: this.value }) : x);
-            });
-          });
-        }
+        async function openGuide(slug){
+          if (!slug) return;
+          storedGuides = loadStoredGuides();
+          const guide = storedGuides.find(g => g.slug === slug);
+          if (!guide) return;
+          currentGuideSlug = slug;
+          highlightSelected();
+          updateMetaForGuide(guide);
+          localStorage.setItem('jarvisLatestGuide', slug);
 
-        function addFiles(fileList){
-          if (!fileList) return;
-          if (items.length >= MAX_FILES){ alert(`You can upload up to ${MAX_FILES} files.`); return; }
-          const remaining = MAX_FILES - items.length;
-          const arr = Array.from(fileList).slice(0, Math.max(0, remaining));
-          const truncated = fileList.length > remaining;
-          const existingKeys = new Set(items.map(x => dedupeKey(x.file)));
-          for (const f of arr){
-            let error;
-            if (!ACCEPT.includes(f.type)) error = 'Unsupported file type';
-            else if (f.size > MAX_BYTES) error = `File exceeds ${MAX_MB}MB`;
-            const key = dedupeKey(f); if (existingKeys.has(key)) continue;
-            items.push({ id: crypto.randomUUID(), file: f, status: error?'error':'ready', error, progress: error?0:1, wtype: 'blank' });
-          }
-          render();
-          if (truncated){ alert(`Only ${MAX_FILES} files allowed. Extra files were not added.`); }
-        }
-
-        // Drag & drop handlers
-        ['dragenter','dragover'].forEach(evt => els.drop.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); setDragging(true); }));
-        ;['dragleave','dragend'].forEach(evt => els.drop.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); setDragging(false); }));
-        els.drop.addEventListener('drop', e => { e.preventDefault(); e.stopPropagation(); setDragging(false); addFiles(e.dataTransfer.files); });
-        els.drop.addEventListener('click', () => els.input.click());
-        els.browse.addEventListener('click', e => { e.stopPropagation(); els.input.click(); });
-        els.input.addEventListener('change', e => addFiles(e.currentTarget.files));
-
-        els.clear.addEventListener('click', () => { items = []; render(); });
-
-        // Custom dropdown suggestions for School (limit 5)
-        let schoolIdx = -1; let schoolOpts = []; let schoolOpen = false;
-        function renderSchoolSuggest(){
-          const box = document.getElementById('schoolSuggest');
-          if (!schoolOpen){ box.style.display='none'; return; }
-          box.style.display='block';
-          if (!schoolOpts.length){
-            box.innerHTML = `<div style="padding:10px 12px;color:#6b7280;">No results</div>`;
+          if (questionCache[slug]) {
+            renderGuideContent(guide, questionCache[slug]);
             return;
           }
-          box.innerHTML = schoolOpts.map((s,i)=> `<div data-i="${i}" style="padding:10px 12px;cursor:pointer;${i===schoolIdx?'background:#f1f5f9':''}">${s}</div>`).join('');
-          Array.from(box.querySelectorAll('div[data-i]')).forEach(el=>{
-            el.addEventListener('mousedown', function(e){ // select before blur
-              e.preventDefault();
-              const i = Number(this.getAttribute('data-i'))||0;
-              const v = schoolOpts[i]||''; document.getElementById('schoolInput').value = v; schoolOpen=false; renderSchoolSuggest();
-            });
-          });
-        }
-        async function refreshSchools(q){
-          try{
-            const qs = (q? ('?q='+encodeURIComponent(q)) : '') + (q? '&' : '?') + 'limit=5';
-            const r = await fetch((window.TBP_AUTH_BASE||'') + '/ai/schools'+qs);
-            const j = await r.json().catch(()=>({}));
-            schoolOpts = ((j && j.schools) || []).filter(Boolean).slice(0,5);
-            schoolIdx = -1; schoolOpen = true; renderSchoolSuggest();
-          }catch{ schoolOpts=[]; schoolOpen = true; renderSchoolSuggest(); }
-        }
-        // Debounced fetch for school suggestions
-        let schoolTimer=null;
-        function queueRefreshSchools(q){ if (schoolTimer) clearTimeout(schoolTimer); schoolTimer=setTimeout(()=>refreshSchools(q), 200); }
-        // Keyboard navigation + Enter autocomplete
-        document.getElementById('schoolInput').addEventListener('keydown', function(e){
-          const box = document.getElementById('schoolSuggest');
-          if (e.key==='ArrowDown'){ if (schoolOpts.length){ schoolOpen=true; schoolIdx = (schoolIdx+1)%schoolOpts.length; renderSchoolSuggest(); e.preventDefault(); } }
-          else if (e.key==='ArrowUp'){ if (schoolOpts.length){ schoolOpen=true; schoolIdx = (schoolIdx>0?schoolIdx-1:schoolOpts.length-1); renderSchoolSuggest(); e.preventDefault(); } }
-          else if (e.key==='Enter'){
-            if (schoolOpts.length){ const v = schoolOpts[schoolIdx>=0?schoolIdx:0]; this.value = v; schoolOpen=false; renderSchoolSuggest(); e.preventDefault(); }
-          } else if (e.key==='Escape') { schoolOpen=false; renderSchoolSuggest(); }
-        });
-        document.getElementById('schoolInput').addEventListener('focus', function(){ schoolOpen=true; queueRefreshSchools(this.value || ''); });
-        document.getElementById('schoolInput').addEventListener('input', function(){ schoolOpen=true; queueRefreshSchools(this.value); });
-        document.addEventListener('click', function(e){ const box=document.getElementById('schoolSuggest'); const inp=document.getElementById('schoolInput'); if (!box.contains(e.target) && e.target!==inp){ schoolOpen=false; renderSchoolSuggest(); } });
 
-        // no teacher auto-fetch; user types manually now
-        // no teacher auto-fetch; user types manually now
-
-        els.upload.addEventListener('click', async function(){
-          const slug = (els.slug.value||'jarvis-uploads').trim();
-          const school = (document.getElementById('schoolInput').value||'').trim();
-          const course = (document.getElementById('courseSelect').value||'').trim();
-          const teacher = (document.getElementById('teacherInput').value||'').trim();
-          try { overlay.style.display='flex'; } catch{}
-          // ETA countdown (simple heuristic: ~20s per file)
-          const totalToProcess = items.filter(it => it.status==='ready').length || items.length || 1;
-          const PER_FILE_SEC = 20;
-          const t0 = Date.now();
-          function fmt(s){ s=Math.max(0,Math.ceil(s)); const m=Math.floor(s/60); const r=s%60; return `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`; }
-          let timer = null;
-          const tick = ()=>{
-            const done = items.filter(it => it.status==='done').length;
-            const remaining = Math.max(0, totalToProcess - done);
-            const target = remaining * PER_FILE_SEC;
-            const elapsed = (Date.now()-t0)/1000;
-            const eta = Math.max(5, target); // keep at least 5s visible
-            try { overlayEta.textContent = `Estimated wait ~ ${fmt(eta)}`; } catch{}
-          };
-          try { tick(); timer = setInterval(tick, 1000); } catch{}
-          items = items.map(it => it.status==='ready'? { ...it, status:'uploading', progress:5 } : it);
-          render();
-          for (const it of items){
-            if (it.status !== 'uploading') continue;
-            try {
-              await new Promise((resolve, reject) => {
-                const xhr = new XMLHttpRequest();
-                xhr.open('POST', (window.TBP_AUTH_BASE||'') + '/ai/worksheet/upload');
-                xhr.upload.onprogress = (e) => {
-                  if (!e.lengthComputable) return;
-                  const p = Math.round((e.loaded / e.total) * 100);
-                  it.progress = p; render();
-                };
-                xhr.onreadystatechange = function(){
-                  if (xhr.readyState === 4){
-                    try {
-                      const j = JSON.parse(xhr.responseText||'{}');
-                      if (xhr.status>=200 && xhr.status<300 && j && j.ok){
-                        const fileUrl = j.url || '';
-                        const doPre = fileUrl ? fetch((window.TBP_AUTH_BASE||'') + '/ai/worksheet/preprocess', {
-                          method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ url: fileUrl, dpi: 300 })
-                        }).then(r=>r.json()).catch(()=>({})): Promise.resolve({});
-                        doPre.then(pp=>{
-                          try { it.pngs = (pp && pp.images) || []; } catch {}
-                          it.status='done'; it.progress=100; render(); resolve(null);
-                        }).catch(()=>{ it.status='done'; it.progress=100; render(); resolve(null); });
-                      } else {
-                        it.status='error'; it.error=(j&&j.error)||('Upload failed '+xhr.status); render(); reject(new Error(it.error));
-                      }
-                    }
-                    catch(e){ it.status='error'; it.error='Invalid server response'; render(); reject(e); }
-                  }
-                };
-                const form = new FormData();
-                form.append('lessonSlug', slug);
-                form.append('file', it.file, it.file.name);
-                if (school) form.append('school', school);
-                if (course) form.append('course', course);
-                if (teacher) form.append('teacher', teacher);
-                if (it.wtype) form.append('worksheetType', it.wtype);
-                xhr.send(form);
-              });
-            } catch { /* already marked */ }
-          }
-          // After all items processed, aggregate PNG URLs and call extractor once
+          if (resultsBody) resultsBody.innerHTML = '<p class="ps-outline-empty" style="border:none;background:none;padding:0;text-align:left;">Loading problems…</p>';
           try {
-            const allPngs = items.flatMap(x => Array.isArray(x.pngs) ? x.pngs : []).filter(Boolean);
-            if (allPngs.length){
-              overlayEta.textContent = 'Extracting problems...';
-              let studentFullName = '';
-              let studentEmail = '';
-              try {
-                const storedUser = JSON.parse(localStorage.getItem('tbp_user') || 'null');
-                if (storedUser && typeof storedUser === 'object') {
-                  studentFullName = (storedUser.fullName || '').toString();
-                  studentEmail = (storedUser.email || '').toString();
-                }
-              } catch {}
+            const questions = await fetchGuideQuestions(slug);
+            questionCache[slug] = questions;
+            renderGuideContent(guide, questions);
+          } catch (err) {
+            console.warn('Failed to load guide', err);
+            if (resultsBody) resultsBody.innerHTML = '<p class="ps-outline-empty" style="border:none;background:none;padding:0;text-align:left;">Unable to load problems for this guide.</p>';
+          }
+        }
 
-              let examTitle = '';
-              let examDate = '';
-              const examSelectEl = document.getElementById('examSelect');
-              if (examSelectEl && examSelectEl.options.length) {
-                const selected = examSelectEl.options[examSelectEl.selectedIndex];
-                if (selected && !selected.disabled) {
-                  examTitle = (selected.value || selected.textContent || '').trim();
-                  if (selected.dataset && selected.dataset.examDate) {
-                    examDate = selected.dataset.examDate;
-                  }
-                }
-              }
+        function init(){
+          renderGuideList();
+          const params = new URLSearchParams(window.location.search);
+          const initialSlug = params.get('guide') || localStorage.getItem('jarvisLatestGuide');
+          if (initialSlug) openGuide(initialSlug);
+        }
 
-              const payload = {
-                lessonSlug: slug,
-                title: 'Worksheet',
-                school,
-                teacher,
-                worksheetType: '',
-                images: allPngs,
-                studentFullName,
-                studentEmail,
-                examTitle,
-                examDate
-              };
-              const extRes = await fetch((window.TBP_AUTH_BASE||'') + '/ai/worksheet/extract', {
-                method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload)
-              });
-              const extData = await extRes.json().catch(()=>({}));
-              console.log('extract result', extData);
-              await loadQuestionsAndRender(slug, examTitle, examDate);
-            }
-          } catch(e){ console.warn('extract failed', e); }
-          render();
-          try { if (timer) clearInterval(timer); overlay.style.display='none'; } catch{}
+        window.addEventListener('tbp:jarvis:guides-updated', renderGuideList);
+        window.addEventListener('storage', function(e){
+          if (e && e.key === 'jarvisGuides') renderGuideList();
         });
 
-        // initial render
-        render();
-        renderResultsOutline();
-        updateExamMeta();
-        // teacher suggestions removed
+        init();
       })();
     </script>
   </body>
-  </html>
+</html>
