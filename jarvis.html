@@ -399,6 +399,26 @@
               });
             } catch { /* already marked */ }
           }
+          // After all items processed, aggregate PNG URLs and call extractor once
+          try {
+            const allPngs = items.flatMap(x => Array.isArray(x.pngs) ? x.pngs : []).filter(Boolean);
+            if (allPngs.length){
+              overlayEta.textContent = 'Extracting problems...';
+              const payload = {
+                lessonSlug: slug || `jarvis-${Date.now()}`,
+                title: 'Worksheet',
+                school,
+                teacher,
+                worksheetType: '',
+                images: allPngs
+              };
+              const extRes = await fetch((window.TBP_AUTH_BASE||'') + '/ai/worksheet/extract', {
+                method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload)
+              });
+              const extData = await extRes.json().catch(()=>({}));
+              console.log('extract result', extData);
+            }
+          } catch(e){ console.warn('extract failed', e); }
           render();
           try { if (timer) clearInterval(timer); overlay.style.display='none'; } catch{}
         });
