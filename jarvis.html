@@ -10,6 +10,9 @@
     <link rel="stylesheet" href="css/index.css?v=1.1" />
     <link rel="stylesheet" href="css/login.css?v=1.0" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
     <style>
       .ps-container{display:grid;grid-template-columns:360px minmax(0,1fr);gap:28px;width:min(96vw,1400px);margin:48px auto;padding:0 16px;}
       .ps-sidebar{position:sticky;top:110px;align-self:start;height:calc(100vh - 150px);overflow:auto;border:1px solid #e5e7eb;border-radius:12px;padding:14px;background:#fff;}
@@ -749,6 +752,22 @@
             answer.className = 'ps-answer';
             answer.textContent = `Answer: ${q.answer}`;
             resultsBody.appendChild(answer);
+          }
+
+          try {
+            if (window.renderMathInElement) {
+              window.renderMathInElement(resultsBody, {
+                delimiters: [
+                  { left: '\\(', right: '\\)', display: false },
+                  { left: '\\[', right: '\\]', display: true },
+                  { left: '$$', right: '$$', display: true },
+                  { left: '$', right: '$', display: false }
+                ],
+                throwOnError: false
+              });
+            }
+          } catch (err) {
+            console.warn('KaTeX render failed', err);
           }
         }
 
