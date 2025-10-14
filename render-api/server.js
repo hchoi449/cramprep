@@ -3598,12 +3598,17 @@ async function bootstrap() {
 
       // Utility: LLM generator to create MC options (4-5) and the correct index
       async function generateOptionsForProblem(stem){
-        const sys = 'Return ONLY JSON {"options":[TexField...],"answer_index":0-5}. Create 4 or 5 options with exactly ONE correct answer. Prefer LaTeX for math.';
+        const sys = [
+          'Return ONLY JSON {"options":[TexField...],"answer_index":0-5}. ',
+          'First SOLVE the problem to obtain the correct answer. ',
+          'Then generate 3–4 plausible, systematic distractors based on common mistakes (e.g., sign errors, rounding, unit conversion, misapplied identities). ',
+          'Produce 4 or 5 total options with EXACTLY ONE correct choice. Prefer LaTeX for math.'
+        ].join('');
         const schema = { type:'object', additionalProperties:false, properties:{ options:{ type:'array', minItems:4, maxItems:6, items:{ $ref:'#/$defs/TexField' } }, answer_index:{ type:'integer', minimum:0, maximum:5 } }, required:['options','answer_index'] };
         const user = { role:'user', content:[ { type:'text', text: [
-          'Generate multiple-choice options (4 or 5) for this problem. Include exactly one correct choice. ',
-          'Prefer LaTeX in TexField.latex; use TexField.text if LaTeX not applicable. ',
-          'Return ONLY JSON.' , '\nProblem:', stem
+          'Task: Solve the problem, then generate multiple-choice options (4 or 5). Exactly one is correct; others are systematic distractors. ',
+          'Prefer LaTeX in TexField.latex; use TexField.text if LaTeX not applicable. Return ONLY JSON.',
+          '\nProblem:', stem
         ].join('\n') } ] };
         try {
           const r = await oai.chat.completions.create({
@@ -3709,6 +3714,7 @@ async function bootstrap() {
       // Helper to choose TexField as plain string (prefer latex, else text)
       function texFieldToString(tf){
         if (!tf) return '';
+        if (typeof tf === 'string') return tf.trim();
         if (tf.latex && typeof tf.latex === 'string' && tf.latex.trim()) return String(tf.latex).trim();
         if (tf.text && typeof tf.text === 'string' && tf.text.trim()) return String(tf.text).trim();
         return '';
@@ -3803,7 +3809,7 @@ async function bootstrap() {
             idx = Number.isInteger(gen.answer_index) ? gen.answer_index : idx;
             method = 'generated_options';
           } else {
-            m.options = Array.isArray(m.options) ? m.options : [];
+            m.options = Array.isArray(m.options) && m.options.length ? m.options : ['A','B','C','D'];
           }
         }
         // Cross-check validation when options available (temporarily disabled)
