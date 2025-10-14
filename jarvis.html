@@ -95,6 +95,16 @@
                 <label class="setting-label" for="teacherInput">Teacher</label>
                 <input id="teacherInput" type="text" placeholder="ex. Mrs. Smith" autocomplete="off" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px" />
               </div>
+              <div>
+                <label class="setting-label" for="examSelect">Exams / Quizzes</label>
+                <select id="examSelect" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff">
+                  <option value="" disabled selected>Loading exams…</option>
+                </select>
+                <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+                  <input id="examCustomInput" type="text" placeholder="Add custom exam title" style="flex:1;padding:10px;border:1px solid #e5e7eb;border-radius:8px" />
+                  <button type="button" id="examAddBtn" class="btn btn-secondary" style="flex:0 0 auto;white-space:nowrap;">Add</button>
+                </div>
+              </div>
             </div>
             <div>
               <label class="setting-label" for="lessonSlugInput">Lesson Slug</label>
@@ -175,11 +185,20 @@
         const warning = document.getElementById('jarvisAuthWarning');
         if (!jarvisApp || !warning) return;
 
+        let lastAuthState = null;
+
         function setState(authenticated) {
           jarvisApp.hidden = !authenticated;
           warning.hidden = authenticated;
           if (authenticated) jarvisApp.removeAttribute('aria-hidden');
           else jarvisApp.setAttribute('aria-hidden', 'true');
+          if (authenticated && lastAuthState !== true) {
+            try { window.dispatchEvent(new CustomEvent('tbp:jarvis:authenticated')); } catch {}
+          }
+          if (!authenticated && lastAuthState === true) {
+            try { window.dispatchEvent(new CustomEvent('tbp:jarvis:unauthenticated')); } catch {}
+          }
+          lastAuthState = authenticated;
         }
 
         async function verifyAuth() {
@@ -223,6 +242,240 @@
           if (e.key === 'tbp_token' || e.key === 'tbp_user') {
             verifyAuth();
           }
+        });
+      })();
+    </script>
+    <script>
+      (function(){
+        const examSelect = document.getElementById('examSelect');
+        const customInput = document.getElementById('examCustomInput');
+        const addBtn = document.getElementById('examAddBtn');
+        if (!examSelect) return;
+
+        let loaded = false;
+        let loading = false;
+
+        function notify(message, type) {
+          if (typeof showNotification === 'function') {
+            showNotification(message, type || 'info', type === 'success' ? 3800 : 2600);
+          } else {
+            if (type === 'error') console.error(message);
+            else console.log(message);
+          }
+        }
+
+        function setPlaceholder(message, opts) {
+          opts = opts || {};
+          examSelect.innerHTML = '';
+          const placeholder = new Option(message, '');
+          placeholder.disabled = true;
+          placeholder.selected = true;
+          examSelect.appendChild(placeholder);
+          if (typeof opts.disabled !== 'undefined') {
+            examSelect.disabled = !!opts.disabled;
+          }
+        }
+
+        function ensureDefaultOption() {
+          if (examSelect.options.length === 0 || examSelect.options[0].value !== '') {
+            const opt = new Option('Select exam or quiz', '');
+            opt.disabled = true;
+            opt.selected = true;
+            examSelect.insertBefore(opt, examSelect.firstChild);
+          }
+        }
+
+        function handleCustomAdd() {
+          if (!customInput) return;
+          const text = customInput.value.trim();
+          if (!text) {
+            notify('Please enter a title before adding.', 'error');
+            return;
+          }
+          const existing = Array.from(examSelect.options).find(opt => !opt.disabled && opt.value === text);
+          let target = existing;
+          if (!existing) {
+            const option = new Option(text, text, true, true);
+            option.dataset.examDate = '';
+            examSelect.appendChild(option);
+            target = option;
+          } else {
+            existing.selected = true;
+          }
+          examSelect.disabled = false;
+          if (target) target.selected = true;
+          examSelect.dispatchEvent(new Event('change', { bubbles: true }));
+          customInput.value = '';
+          notify('Custom exam added to the list.', 'success');
+        }
+
+        if (addBtn) addBtn.addEventListener('click', handleCustomAdd);
+        if (customInput) {
+          customInput.addEventListener('keydown', function(e){
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleCustomAdd();
+            }
+          });
+        }
+
+        function decodeIcsText(text) {
+          return String(text || '').replace(/\\n/g, '\n').replace(/\\,/g, ',').replace(/\\;/g, ';');
+        }
+
+        function icsToDate(raw) {
+          if (!raw) return null;
+          if (/^\d{8}$/.test(raw)) {
+            const y = Number(raw.slice(0, 4));
+            const m = Number(raw.slice(4, 6));
+            const d = Number(raw.slice(6, 8));
+            return new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+          }
+          if (/^\d{8}T\d{6}Z$/.test(raw)) {
+            const y = Number(raw.slice(0, 4));
+            const m = Number(raw.slice(4, 6));
+            const d = Number(raw.slice(6, 8));
+            const hh = Number(raw.slice(9, 11));
+            const mm = Number(raw.slice(11, 13));
+            const ss = Number(raw.slice(13, 15));
+            return new Date(Date.UTC(y, m - 1, d, hh, mm, ss));
+          }
+          const dt = new Date(raw);
+          return isNaN(dt.getTime()) ? null : dt;
+        }
+
+        function parseIcs(text) {
+          const events = [];
+          if (!text) return events;
+          const lines = text.split(/\r?\n/);
+          const unfolded = [];
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            if (/^\s/.test(line) && unfolded.length) {
+              unfolded[unfolded.length - 1] += line.trim();
+            } else {
+              unfolded.push(line);
+            }
+          }
+          let current = null;
+          for (const raw of unfolded) {
+            const line = raw.trim();
+            if (line === 'BEGIN:VEVENT') {
+              current = {};
+              continue;
+            }
+            if (line === 'END:VEVENT') {
+              if (current) {
+                events.push(current);
+                current = null;
+              }
+              continue;
+            }
+            if (!current) continue;
+            const idx = line.indexOf(':');
+            if (idx < 0) continue;
+            const keyPart = line.slice(0, idx);
+            const val = line.slice(idx + 1);
+            const key = keyPart.split(';')[0];
+            if (key === 'DTSTART' || key.startsWith('DTSTART')) current.DTSTART = val;
+            else if (key === 'DTEND' || key.startsWith('DTEND')) current.DTEND = val;
+            else if (key === 'SUMMARY') current.SUMMARY = decodeIcsText(val);
+            else if (key === 'DESCRIPTION') current.DESCRIPTION = decodeIcsText(val);
+          }
+          return events.map(ev => ({
+            title: ev.SUMMARY || 'Assessment',
+            description: ev.DESCRIPTION || '',
+            start: icsToDate(ev.DTSTART),
+            end: icsToDate(ev.DTEND || ev.DTSTART)
+          })).filter(ev => !!ev.start);
+        }
+
+        function isAssessmentEvent(ev) {
+          const text = `${ev.title || ''}\n${ev.description || ''}`.toLowerCase();
+          return /\b(exam|test|assessment|quiz)\b/.test(text);
+        }
+
+        function dedupeEvents(events) {
+          const map = new Map();
+          events.forEach(ev => {
+            const key = `${(ev.title || '').trim().toLowerCase()}|${ev.start ? ev.start.toISOString().slice(0, 10) : ''}`;
+            if (!map.has(key)) map.set(key, ev);
+          });
+          return Array.from(map.values()).sort((a, b) => {
+            const aTime = a.start ? a.start.getTime() : 0;
+            const bTime = b.start ? b.start.getTime() : 0;
+            return aTime - bTime;
+          });
+        }
+
+        function formatExamLabel(ev) {
+          const title = ev.title || 'Assessment';
+          if (!ev.start) return title;
+          const opts = { month: 'short', day: 'numeric' };
+          if (!(ev.end && ev.start && ev.end - ev.start >= 24 * 3600 * 1000)) {
+            opts.hour = 'numeric';
+            opts.minute = '2-digit';
+          }
+          const formatter = new Intl.DateTimeFormat(undefined, opts);
+          return `${formatter.format(ev.start)} — ${title}`;
+        }
+
+        async function loadExamOptions() {
+          if (loading || loaded) return;
+          loading = true;
+          setPlaceholder('Loading exams…', { disabled: true });
+          try {
+            let token = null;
+            try { token = localStorage.getItem('tbp_token'); } catch {}
+            if (!token) {
+              setPlaceholder('Please log in to access exams.', { disabled: true });
+              return;
+            }
+            const base = (window.TBP_AUTH_BASE || '').replace(/\/$/, '');
+            const profileRes = await fetch(`${base}/auth/profile`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const profileJson = await profileRes.json().catch(() => ({}));
+            const profile = profileRes.ok && profileJson && profileJson.profile ? profileJson.profile : null;
+            const icsUrl = profile && profile.icsUrl ? String(profile.icsUrl).trim() : '';
+            if (!icsUrl) {
+              setPlaceholder('Please fill out the iCal (ics) URL in settings.', { disabled: false });
+              examSelect.disabled = false;
+              loaded = true;
+              return;
+            }
+            const icsRes = await fetch(`${base}/auth/ics?url=${encodeURIComponent(icsUrl)}`, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (!icsRes.ok) throw new Error('ics_fetch_failed');
+            const icsText = await icsRes.text();
+            const events = dedupeEvents(parseIcs(icsText).filter(isAssessmentEvent));
+            if (!events.length) {
+              setPlaceholder('No upcoming exams found. Add your own below.', { disabled: false });
+              examSelect.disabled = false;
+              loaded = true;
+              return;
+            }
+            examSelect.innerHTML = '';
+            ensureDefaultOption();
+            events.forEach(ev => {
+              const value = (ev.title || '').trim() || formatExamLabel(ev);
+              const option = new Option(formatExamLabel(ev), value);
+              option.dataset.examDate = ev.start ? ev.start.toISOString() : '';
+              examSelect.appendChild(option);
+            });
+            examSelect.disabled = false;
+            loaded = true;
+          } catch (err) {
+            console.warn('Failed to load exam options', err);
+            setPlaceholder('Unable to load exams. Add your own below.', { disabled: false });
+            examSelect.disabled = false;
+            loaded = true;
+          } finally {
+            loading = false;
+          }
+        }
+
+        window.addEventListener('tbp:jarvis:authenticated', loadExamOptions);
+        window.addEventListener('tbp:jarvis:unauthenticated', function(){
+          loaded = false;
+          setPlaceholder('Please log in to access exams.', { disabled: true });
         });
       })();
     </script>
@@ -484,6 +737,19 @@
                 }
               } catch {}
 
+              let examTitle = '';
+              let examDate = '';
+              const examSelectEl = document.getElementById('examSelect');
+              if (examSelectEl && examSelectEl.options.length) {
+                const selected = examSelectEl.options[examSelectEl.selectedIndex];
+                if (selected && !selected.disabled) {
+                  examTitle = (selected.value || selected.textContent || '').trim();
+                  if (selected.dataset && selected.dataset.examDate) {
+                    examDate = selected.dataset.examDate;
+                  }
+                }
+              }
+
               const payload = {
                 lessonSlug: slug || `jarvis-${Date.now()}`,
                 title: 'Worksheet',
@@ -492,7 +758,9 @@
                 worksheetType: '',
                 images: allPngs,
                 studentFullName,
-                studentEmail
+                studentEmail,
+                examTitle,
+                examDate
               };
               const extRes = await fetch((window.TBP_AUTH_BASE||'') + '/ai/worksheet/extract', {
                 method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload)
