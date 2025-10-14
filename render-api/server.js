@@ -3596,6 +3596,29 @@ async function bootstrap() {
         return null;
       }
 
+      // Utility: LLM generator to create MC options (4-5) and the correct index
+      async function generateOptionsForProblem(stem){
+        const sys = 'Return ONLY JSON {"options":[TexField...],"answer_index":0-5}. Create 4 or 5 options with exactly ONE correct answer. Prefer LaTeX for math.';
+        const schema = { type:'object', additionalProperties:false, properties:{ options:{ type:'array', minItems:4, maxItems:6, items:{ $ref:'#/$defs/TexField' } }, answer_index:{ type:'integer', minimum:0, maximum:5 } }, required:['options','answer_index'] };
+        const user = { role:'user', content:[ { type:'text', text: [
+          'Generate multiple-choice options (4 or 5) for this problem. Include exactly one correct choice. ',
+          'Prefer LaTeX in TexField.latex; use TexField.text if LaTeX not applicable. ',
+          'Return ONLY JSON.' , '\nProblem:', stem
+        ].join('\n') } ] };
+        try {
+          const r = await oai.chat.completions.create({
+            model:'gpt-4o', temperature:0, response_format:{ type:'json_object' },
+            messages:[ { role:'system', content: sys + ' Schema: ' + JSON.stringify(schema) }, user ]
+          });
+          const txt = r?.choices?.[0]?.message?.content || '';
+          const obj = JSON.parse(txt);
+          if (obj && Array.isArray(obj.options) && obj.options.length >= 4 && Number.isInteger(obj.answer_index)){
+            return obj;
+          }
+        } catch(_e){ /* ignore */ }
+        return null;
+      }
+
       // Utility: very simple numeric evaluation – tries to find a numeric result and match an option
       function tryNumericSolve(stem, options){
         try {
@@ -3771,15 +3794,37 @@ async function bootstrap() {
         if (!m.text) continue;
         let idx = (Number.isInteger(m.answer_index) ? m.answer_index : null);
         let method = null;
-        // Only validate if multiple-choice options are present
+        // Ensure options exist: if fewer than 4, ask LLM to generate them
+        if (!Array.isArray(m.options) || m.options.length < 4){
+          const gen = await generateOptionsForProblem(m.text);
+          if (gen){
+            const genOptions = Array.isArray(gen.options) ? gen.options.map(texFieldToString).filter(Boolean).slice(0,6) : [];
+            m.options = genOptions;
+            idx = Number.isInteger(gen.answer_index) ? gen.answer_index : idx;
+            method = 'generated_options';
+          } else {
+            m.options = Array.isArray(m.options) ? m.options : [];
+          }
+        }
+        // Cross-check validation when options available
         if (Array.isArray(m.options) && m.options.length >= 2){
-          // Try numeric solve first
           const numericIdx = tryNumericSolve(m.text, m.options);
-          if (numericIdx !== null){ idx = numericIdx; method = 'numeric'; }
-          // If still null, ask LLM to pick
-          if (idx === null){
-            const pick = await secondPassPickIndex(m.text, m.options);
-            if (pick !== null){ idx = pick; method = 'second_pass'; }
+          if (numericIdx !== null){
+            if (idx === null){ idx = numericIdx; method = method ? (method+'+numeric') : 'numeric'; }
+            else if (idx === numericIdx){ method = method ? (method+'+numeric_agree') : 'numeric_agree'; }
+            else {
+              // conflict → second pass tie-break
+              const pick = await secondPassPickIndex(m.text, m.options);
+              if (pick === numericIdx){ idx = numericIdx; method = 'numeric+second_pass'; }
+              else if (pick === idx){ method = 'generator+second_pass'; }
+              else { idx = null; method = 'conflict'; }
+            }
+          } else {
+            // no numeric → second pass if needed
+            if (idx === null){
+              const pick = await secondPassPickIndex(m.text, m.options);
+              if (pick !== null){ idx = pick; method = 'second_pass'; }
+            }
           }
         }
         // If still null, leave as null
@@ -3801,7 +3846,7 @@ async function bootstrap() {
           sourceHash: sha256Hex(`${lessonSlug}|${m.number||''}|${m.text||''}`),
           generatedAt: nowIso,
           generator: 'gpt4o-vision',
-          validated: idx !== null,
+          validated: idx !== null && method !== 'generated_options',
           validationMethod: method
         });
       }
