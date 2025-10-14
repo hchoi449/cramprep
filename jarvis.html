@@ -96,6 +96,7 @@
             <div class="ps-exam-meta">
               <h3 id="jarvisExamTitle">Your Study Guides</h3>
               <p id="jarvisExamDate" style="display:none;"></p>
+              <p id="jarvisExamDetails" style="display:none;"></p>
             </div>
             <div id="jarvisResultsOutline"></div>
             <div id="jarvisResultsEmpty" class="ps-outline-empty">Use "Make a Study Guide" to upload worksheets and populate this list.</div>
@@ -214,6 +215,7 @@
         const resultsBreadcrumb = document.getElementById('jarvisResultBreadcrumb');
         const resultsTitle = document.getElementById('jarvisResultTitle');
         const resultsBody = document.getElementById('jarvisResultBody');
+        const resultsExamDetails = document.getElementById('jarvisExamDetails');
 
         if (makeGuideBtn) makeGuideBtn.addEventListener('click', () => { window.location.href = 'jarvis-upload.html'; });
 
@@ -268,6 +270,19 @@
               resultsExamDate.style.display = 'none';
             }
           }
+          if (resultsExamDetails) {
+            const details = [];
+            if (guide.course) details.push(`Course: ${guide.course}`);
+            if (guide.teacher) details.push(`Teacher: ${guide.teacher}`);
+            if (guide.school) details.push(`School: ${guide.school}`);
+            if (details.length) {
+              resultsExamDetails.textContent = details.join(' • ');
+              resultsExamDetails.style.display = '';
+            } else {
+              resultsExamDetails.textContent = '';
+              resultsExamDetails.style.display = 'none';
+            }
+          }
         }
 
         function renderGuideList(){
@@ -281,6 +296,7 @@
             }
             if (resultsExamTitle) resultsExamTitle.textContent = 'Your Study Guides';
             if (resultsExamDate) resultsExamDate.style.display = 'none';
+            if (resultsExamDetails) resultsExamDetails.style.display = 'none';
             if (resultsBreadcrumb) resultsBreadcrumb.textContent = 'Your Study Guides';
             if (resultsTitle) resultsTitle.textContent = 'No problems yet';
             if (resultsBody) {
