@@ -461,12 +461,7 @@
         function formatExamLabel(ev) {
           const title = ev.title || 'Assessment';
           if (!ev.start) return title;
-          const opts = { month: 'short', day: 'numeric' };
-          if (!(ev.end && ev.start && ev.end - ev.start >= 24 * 3600 * 1000)) {
-            opts.hour = 'numeric';
-            opts.minute = '2-digit';
-          }
-          const formatter = new Intl.DateTimeFormat(undefined, opts);
+          const formatter = new Intl.DateTimeFormat(undefined, { weekday:'long', month:'short', day:'numeric' });
           return `${formatter.format(ev.start)} — ${title}`;
         }
 
@@ -496,7 +491,10 @@
             const icsRes = await fetch(`${base}/auth/ics?url=${encodeURIComponent(icsUrl)}`, { headers: { 'Authorization': `Bearer ${token}` } });
             if (!icsRes.ok) throw new Error('ics_fetch_failed');
             const icsText = await icsRes.text();
-            const events = dedupeEvents(parseIcs(icsText).filter(isAssessmentEvent));
+            const allAssessments = parseIcs(icsText).filter(isAssessmentEvent);
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const upcoming = allAssessments.filter(ev => ev.start && ev.start >= today);
+            const events = dedupeEvents(upcoming);
             if (!events.length) {
               setPlaceholder('No upcoming exams found. Add your own below.', { disabled: false });
               examSelect.disabled = false;
