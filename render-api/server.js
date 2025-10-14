@@ -3569,6 +3569,75 @@ async function bootstrap() {
       const OpenAI = require('openai');
       const oai = new OpenAI({ apiKey: openaiKey });
 
+      // Utility: LLM second-pass to pick the correct option index strictly
+      async function secondPassPickIndex(stem, options){
+        const sys = 'Return ONLY JSON {"answer_index": <0-5 integer>} for the correct option index (zero-based). No prose.';
+        const user = {
+          role:'user',
+          content:[
+            { type:'text', text: [
+              'Problem:', stem,
+              '\nOptions (0-based):',
+              options.map((o,i)=>`${i}: ${o}`).join('\n'),
+              '\nTask: Return ONLY JSON of the form {"answer_index": N} with the zero-based correct index.'
+            ].join('\n') }
+          ]
+        };
+        try {
+          const r = await oai.chat.completions.create({
+            model:'gpt-4o', temperature:0, response_format:{ type:'json_object' },
+            messages:[ { role:'system', content: sys }, user ]
+          });
+          const txt = r?.choices?.[0]?.message?.content || '';
+          const obj = JSON.parse(txt);
+          const idx = Number(obj?.answer_index);
+          if (Number.isInteger(idx) && idx >= 0 && idx <= 5) return idx;
+        } catch(_e){ /* ignore */ }
+        return null;
+      }
+
+      // Utility: very simple numeric evaluation – tries to find a numeric result and match an option
+      function tryNumericSolve(stem, options){
+        try {
+          // naive extraction: last line with basic math tokens
+          const m = (stem.match(/[0-9][0-9\s\.+\-*/^()]+/g) || []).pop();
+          if (!m) return null;
+          const value = math.evaluate(m);
+          const num = Number(value);
+          if (!isFinite(num)) return null;
+          // compare with options parsed as numbers (strip LaTeX if present)
+          const parsed = options.map(o => {
+            const s = String(o||'').replace(/\\\(|\\\)|\$\$?|\\\[|\\\]/g,'').trim();
+            const n = Number(s.replace(/[^0-9.+\-eE]/g,''));
+            return isFinite(n) ? n : NaN;
+          });
+          let bestIdx = null; let bestDelta = Infinity;
+          parsed.forEach((n,i)=>{
+            if (!isNaN(n)){
+              const d = Math.abs(n - num);
+              if (d < bestDelta){ bestDelta = d; bestIdx = i; }
+            }
+          });
+          if (bestIdx !== null && bestDelta <= 1e-6) return bestIdx;
+        } catch(_e){ /* ignore */ }
+        return null;
+      }
+
+      // Answer-key extraction: map of { number, answer_index }
+      async function extractAnswerKeyMap(imageUrls){
+        const schema = { type:'object', properties:{ answers:{ type:'array', items:{ type:'object', properties:{ number:{ type:'string' }, answer_index:{ type:'integer', minimum:0, maximum:5 } }, required:['number','answer_index'], additionalProperties:false } } }, required:['answers'], additionalProperties:false };
+        const sys = 'Return ONLY JSON matching schema {"answers":[{"number":"...","answer_index":0-5}]}.';
+        const content = [ { type:'text', text:'Extract answer mapping: problem number to zero-based option index. Return ONLY JSON.' } ];
+        for (const u of imageUrls){ content.push({ type:'image_url', image_url:{ url:u } }); }
+        try {
+          const r = await oai.chat.completions.create({ model:'gpt-4o', temperature:0, response_format:{ type:'json_object' }, messages:[ { role:'system', content: sys + ' Schema: ' + JSON.stringify(schema) }, { role:'user', content } ] });
+          const txt = r?.choices?.[0]?.message?.content || '';
+          const obj = JSON.parse(txt);
+          if (obj && Array.isArray(obj.answers)) return obj.answers;
+        } catch(_e){ /* ignore */ }
+        return [];
+      }
+
       // System prompt and schema (latex-first with plaintext fallback)
       const systemPrompt = [
         'You are an expert educational content parser. Your job is to read scanned or photographed worksheets and convert them into structured JSON that follows the given schema exactly. ',
@@ -3619,6 +3688,23 @@ async function bootstrap() {
         if (tf.latex && typeof tf.latex === 'string' && tf.latex.trim()) return String(tf.latex).trim();
         if (tf.text && typeof tf.text === 'string' && tf.text.trim()) return String(tf.text).trim();
         return '';
+      }
+
+      // If this is an Answer Key batch, extract mapping and update existing questions
+      if ((worksheetType||'').toLowerCase().includes('answer')){
+        const answers = await extractAnswerKeyMap(urls);
+        const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+        await client.connect();
+        const col = await getQuestionCollection(client);
+        let updated = 0;
+        for (const a of answers){
+          const filter = { lessonSlug, problemNumber: String(a.number||'').trim() };
+          const upd = { $set: { correct: Number(a.answer_index)||0, validated:true, validationMethod:'answer_key' } };
+          const r = await col.updateMany(filter, upd);
+          updated += (r?.modifiedCount || 0);
+        }
+        await client.close();
+        return res.json({ ok:true, mode:'answer_key', mapped: answers.length, updated });
       }
 
       // Batch URLs into small chunks (2 per request for recall)
@@ -3676,36 +3762,54 @@ async function bootstrap() {
         }
       }
 
-      // Insert into questionbank
-      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
-      await client.connect();
-      const col = await getQuestionCollection(client);
+      // Validate and prepare docs
       const nowIso = new Date().toISOString();
-      const docs = merged
-        .filter(m => m.text)
-        .map((m, idx) => ({
+      const validatedDocs = [];
+      for (const m of merged){
+        if (!m.text) continue;
+        let idx = (Number.isInteger(m.answer_index) ? m.answer_index : null);
+        let method = null;
+        // Try numeric solve first
+        const numericIdx = tryNumericSolve(m.text, m.options);
+        if (numericIdx !== null){ idx = numericIdx; method = 'numeric'; }
+        // If still null, ask LLM to pick
+        if (idx === null){
+          const pick = await secondPassPickIndex(m.text, m.options);
+          if (pick !== null){ idx = pick; method = 'second_pass'; }
+        }
+        // If still null, leave as null
+        validatedDocs.push({
           lessonSlug,
           lessonTitle: finalTitle || lessonSlug,
           school: school || null,
           teacher: teacher || null,
           worksheetType: worksheetType || null,
+          problemNumber: m.number || null,
           stem: m.text.slice(0, 4000),
           options: (m.options && m.options.length>=4 ? m.options : ['A','B','C','D']).slice(0,6),
-          correct: Math.max(0, Math.min(5, Number(m.answer_index)||0)),
+          correct: (idx === null ? null : Math.max(0, Math.min(5, Number(idx)||0))),
           solution: '',
           answer: '',
           answerPlain: '',
           difficulty: (/easy|medium|hard/i.test(m.difficulty||'') ? m.difficulty : 'medium'),
           sourceHash: sha256Hex(`${lessonSlug}|${m.number||''}|${m.text||''}`),
           generatedAt: nowIso,
-          generator: 'gpt4o-vision'
-        }));
+          generator: 'gpt4o-vision',
+          validated: idx !== null,
+          validationMethod: method
+        });
+      }
+
+      // Insert into questionbank
+      const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+      await client.connect();
+      const col = await getQuestionCollection(client);
       let inserted = 0;
-      if (docs.length){
-        try { const r = await col.insertMany(docs, { ordered: false }); inserted = (r && r.insertedCount) || docs.length; } catch { inserted = docs.length; }
+      if (validatedDocs.length){
+        try { const r = await col.insertMany(validatedDocs, { ordered: false }); inserted = (r && r.insertedCount) || validatedDocs.length; } catch { inserted = validatedDocs.length; }
       }
       await client.close();
-      return res.json({ ok:true, title: finalTitle || null, problems: docs.length, inserted });
+      return res.json({ ok:true, title: finalTitle || null, problems: validatedDocs.length, inserted });
     } catch (e){ console.error('[worksheet-extract] exception', e); return res.status(500).json({ error:'worksheet_extract_exception', detail:String(e && e.message || e) }); }
   });
 }
