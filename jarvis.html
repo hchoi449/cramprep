@@ -10,6 +10,39 @@
     <link rel="stylesheet" href="css/index.css?v=1.1" />
     <link rel="stylesheet" href="css/login.css?v=1.0" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" />
+    <style>
+      .ps-container{display:grid;grid-template-columns:360px minmax(0,1fr);gap:28px;width:min(96vw,1400px);margin:48px auto;padding:0 16px;}
+      .ps-sidebar{position:sticky;top:110px;align-self:start;height:calc(100vh - 150px);overflow:auto;border:1px solid #e5e7eb;border-radius:12px;padding:14px;background:#fff;}
+      .ps-section-title{font-size:1.1rem;font-weight:800;color:#8B4513;margin:8px 0 6px;}
+      .ps-lesson{display:flex;align-items:center;justify-content:space-between;border:1px solid #eee;border-radius:10px;padding:8px 10px;margin:6px 0;background:#F5E6D3;color:#6b3410;cursor:pointer;width:100%;text-align:left;font:inherit;font-weight:600;gap:8px;}
+      .ps-lesson .status{font-size:.75rem;background:#fff;border:1px solid #e5e7eb;border-radius:9999px;padding:2px 8px;color:#6b7280;}
+      .ps-lesson.active{background:#8B4513;color:#fff;border-color:#8B4513;}
+      .ps-lesson.active .status{background:rgba(255,255,255,0.15);border-color:rgba(255,255,255,0.35);color:#fff;}
+      .ps-lesson:focus-visible{outline:2px solid #8B4513;outline-offset:2px;}
+      .ps-outline-empty{padding:14px;border-radius:10px;border:1px dashed #e5e7eb;color:#6b7280;background:#fff;margin-top:10px;text-align:center;font-size:.95rem;}
+      .ps-exam-meta{margin-bottom:16px;padding:14px;border:1px solid #f0e2d0;border-radius:12px;background:#fbf5ee;color:#6b3410;}
+      .ps-exam-meta h3{margin:0;font-size:1.15rem;font-weight:800;color:#6b3410;}
+      .ps-exam-meta p{margin:4px 0 0;font-size:.95rem;color:#6b7280;}
+      .ps-content{border-radius:12px;padding:22px;background:#fff;border:1px solid rgba(0,0,0,0.04);}
+      .ps-breadcrumb{color:#6b7280;font-size:.9rem;margin-bottom:6px;}
+      .ps-title{font-size:1.6rem;font-weight:800;color:#1a1a1a;margin:6px 0 14px;}
+      .ps-body{line-height:1.7;color:#1a1a1a;}
+      .ps-qmeta{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+      .ps-qid{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#6b7280;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:2px 6px;}
+      .ps-question-stem{font-size:1.1rem;font-weight:600;margin-bottom:12px;}
+      .ps-instruction{font-size:1rem;color:#4b5563;margin-bottom:14px;}
+      .ps-opts{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;}
+      .ps-opt{display:flex;align-items:flex-start;gap:10px;border:1px solid #efe7dc;border-radius:10px;padding:12px 14px;background:#fbf5ee;color:#1f2937;}
+      .ps-opt-label{font-weight:700;min-width:24px;}
+      .ps-explain{flex:1;min-width:0;white-space:pre-wrap;}
+      .ps-solution{margin-top:18px;padding:14px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;}
+      .ps-solution h4{margin:0 0 8px;font-size:1rem;color:#8B4513;}
+      .ps-answer{margin-top:14px;font-weight:600;color:#4b5563;}
+      @media(max-width:1000px){
+        .ps-container{grid-template-columns:1fr;gap:20px;margin:32px auto;}
+        .ps-sidebar{position:relative;top:auto;height:auto;overflow:visible;}
+      }
+    </style>
   </head>
   <body>
     <header class="header">
@@ -143,6 +176,22 @@
             </div>
           </div>
         </section>
+
+        <section id="jarvisResults" class="ps-container" style="display:none;">
+          <aside class="ps-sidebar">
+            <div class="ps-exam-meta">
+              <h3 id="jarvisExamTitle">Uploaded Worksheet</h3>
+              <p id="jarvisExamDate" style="display:none;"></p>
+            </div>
+            <div id="jarvisResultsOutline"></div>
+            <div id="jarvisResultsEmpty" class="ps-outline-empty" style="display:none;">Problems will appear here once extraction finishes.</div>
+          </aside>
+          <section class="ps-content">
+            <div class="ps-breadcrumb" id="jarvisResultBreadcrumb"></div>
+            <h2 class="ps-title" id="jarvisResultTitle">Problem</h2>
+            <div class="ps-body" id="jarvisResultBody"></div>
+          </section>
+        </section>
       </div>
     </main>
 
@@ -250,6 +299,7 @@
         const examSelect = document.getElementById('examSelect');
         const customInput = document.getElementById('examCustomInput');
         const addBtn = document.getElementById('examAddBtn');
+        const resultsSection = document.getElementById('jarvisResults');
         if (!examSelect) return;
 
         let loaded = false;
@@ -429,6 +479,7 @@
             try { token = localStorage.getItem('tbp_token'); } catch {}
             if (!token) {
               setPlaceholder('Please log in to access exams.', { disabled: true });
+              if (resultsSection) resultsSection.style.display = 'none';
               return;
             }
             const base = (window.TBP_AUTH_BASE || '').replace(/\/$/, '');
@@ -476,6 +527,7 @@
         window.addEventListener('tbp:jarvis:unauthenticated', function(){
           loaded = false;
           setPlaceholder('Please log in to access exams.', { disabled: true });
+          if (resultsSection) resultsSection.style.display = 'none';
         });
       })();
     </script>
@@ -523,7 +575,219 @@
         };
         const overlay = document.getElementById('jarvisLoading');
         const overlayEta = document.getElementById('jarvisEta');
+        const resultsSection = document.getElementById('jarvisResults');
+        const resultsOutline = document.getElementById('jarvisResultsOutline');
+        const resultsEmpty = document.getElementById('jarvisResultsEmpty');
+        const resultsExamTitle = document.getElementById('jarvisExamTitle');
+        const resultsExamDate = document.getElementById('jarvisExamDate');
+        const resultsBreadcrumb = document.getElementById('jarvisResultBreadcrumb');
+        const resultsTitle = document.getElementById('jarvisResultTitle');
+        const resultsBody = document.getElementById('jarvisResultBody');
         let items = [];
+        let currentQuestions = [];
+        let currentQuestionIndex = 0;
+        let currentExamTitle = '';
+        let currentExamDate = '';
+        let currentLessonSlug = '';
+
+        function formatExamDateLabel(iso){
+          if (!iso) return '';
+          const date = new Date(iso);
+          if (Number.isNaN(date.getTime())) return '';
+          return new Intl.DateTimeFormat(undefined, { weekday:'long', month:'short', day:'numeric' }).format(date);
+        }
+
+        function updateExamMeta(){
+          if (!resultsSection) return;
+          const title = (currentExamTitle || '').trim() || 'Uploaded Worksheet';
+          if (resultsExamTitle) resultsExamTitle.textContent = title;
+          if (resultsBreadcrumb) resultsBreadcrumb.textContent = title;
+          if (resultsExamDate) {
+            const label = formatExamDateLabel(currentExamDate);
+            if (label) {
+              resultsExamDate.textContent = label;
+              resultsExamDate.style.display = '';
+            } else {
+              resultsExamDate.textContent = '';
+              resultsExamDate.style.display = 'none';
+            }
+          }
+        }
+
+        function renderResultsOutline(){
+          if (!resultsSection || !resultsOutline) return;
+          resultsOutline.innerHTML = '';
+          if (!currentQuestions.length){
+            if (resultsEmpty) {
+              resultsEmpty.style.display = '';
+              resultsEmpty.textContent = 'Problems will appear here once extraction finishes.';
+            }
+            if (resultsBody) {
+              resultsBody.innerHTML = '<p class="ps-outline-empty" style="border:none;background:none;padding:0;text-align:left;">Problems will appear here once extraction finishes.</p>';
+            }
+            if (resultsTitle) resultsTitle.textContent = 'No problems yet';
+            return;
+          }
+          if (resultsEmpty) resultsEmpty.style.display = 'none';
+          currentQuestions.forEach((q, idx) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'ps-lesson';
+            btn.dataset.index = String(idx);
+            const label = document.createElement('span');
+            label.textContent = `Problem ${idx + 1}`;
+            btn.appendChild(label);
+            const status = document.createElement('span');
+            status.className = 'status';
+            const diff = (q.difficulty || '').toString();
+            status.textContent = diff ? diff.charAt(0).toUpperCase() + diff.slice(1) : '—';
+            btn.appendChild(status);
+            btn.addEventListener('click', () => selectQuestion(idx));
+            resultsOutline.appendChild(btn);
+          });
+        }
+
+        function selectQuestion(index){
+          if (!resultsSection || !currentQuestions[index]) return;
+          currentQuestionIndex = index;
+          if (resultsOutline){
+            Array.from(resultsOutline.querySelectorAll('[data-index]')).forEach(el => {
+              el.classList.toggle('active', Number(el.dataset.index) === index);
+            });
+          }
+          const q = currentQuestions[index];
+          const title = `Problem ${index + 1}`;
+          if (resultsTitle) resultsTitle.textContent = title;
+          updateExamMeta();
+          if (!resultsBody) return;
+          resultsBody.innerHTML = '';
+
+          const meta = document.createElement('div');
+          meta.className = 'ps-qmeta';
+          if (currentLessonSlug){
+            const slugBadge = document.createElement('span');
+            slugBadge.className = 'ps-qid';
+            slugBadge.textContent = currentLessonSlug;
+            meta.appendChild(slugBadge);
+          }
+          const difficulty = (q.difficulty || '').toString();
+          if (difficulty){
+            const diffBadge = document.createElement('span');
+            diffBadge.className = 'ps-qid';
+            diffBadge.textContent = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
+            meta.appendChild(diffBadge);
+          }
+          if (meta.children.length) resultsBody.appendChild(meta);
+
+          if (q.instruction){
+            const instruction = document.createElement('p');
+            instruction.className = 'ps-instruction';
+            instruction.textContent = q.instruction;
+            resultsBody.appendChild(instruction);
+          }
+
+          if (q.stem){
+            const stem = document.createElement('p');
+            stem.className = 'ps-question-stem';
+            stem.textContent = q.stem;
+            resultsBody.appendChild(stem);
+          }
+          if (!q.stem && !q.instruction){
+            const placeholder = document.createElement('p');
+            placeholder.className = 'ps-instruction';
+            placeholder.textContent = 'Problem text unavailable.';
+            resultsBody.appendChild(placeholder);
+          }
+
+          if (Array.isArray(q.options) && q.options.length){
+            const optsWrap = document.createElement('div');
+            optsWrap.className = 'ps-opts';
+            q.options.forEach((opt, optIdx) => {
+              const row = document.createElement('div');
+              row.className = 'ps-opt';
+              const label = document.createElement('span');
+              label.className = 'ps-opt-label';
+              label.textContent = `${String.fromCharCode(65 + optIdx)}.`;
+              const text = document.createElement('span');
+              text.className = 'ps-explain';
+              text.textContent = opt;
+              row.appendChild(label);
+              row.appendChild(text);
+              optsWrap.appendChild(row);
+            });
+            resultsBody.appendChild(optsWrap);
+          }
+
+          if (q.solution){
+            const sol = document.createElement('div');
+            sol.className = 'ps-solution';
+            const heading = document.createElement('h4');
+            heading.textContent = 'Solution';
+            const solBody = document.createElement('p');
+            solBody.textContent = q.solution;
+            sol.appendChild(heading);
+            sol.appendChild(solBody);
+            if (q.answer){
+              const answer = document.createElement('p');
+              answer.className = 'ps-answer';
+              answer.textContent = `Answer: ${q.answer}`;
+              sol.appendChild(answer);
+            }
+            resultsBody.appendChild(sol);
+          } else if (q.answer){
+            const answer = document.createElement('p');
+            answer.className = 'ps-answer';
+            answer.textContent = `Answer: ${q.answer}`;
+            resultsBody.appendChild(answer);
+          }
+        }
+
+        async function loadQuestionsAndRender(lessonSlug, examTitle, examDate){
+          if (!resultsSection) return;
+          currentLessonSlug = lessonSlug || '';
+          currentExamTitle = (examTitle || '').trim();
+          currentExamDate = examDate || '';
+          currentQuestions = [];
+          updateExamMeta();
+          if (resultsOutline) resultsOutline.innerHTML = '';
+          if (resultsEmpty) {
+            resultsEmpty.style.display = '';
+            resultsEmpty.textContent = 'Loading problems…';
+          }
+          if (resultsBody) resultsBody.innerHTML = '<p class="ps-outline-empty" style="border:none;background:none;padding:0;text-align:left;">Loading problems…</p>';
+          if (resultsTitle) resultsTitle.textContent = 'Loading…';
+          resultsSection.style.display = 'grid';
+          try {
+            const base = (window.TBP_AUTH_BASE || '').replace(/\/$/,'');
+            let token = null;
+            try { token = localStorage.getItem('tbp_token'); } catch {}
+            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+            const res = await fetch(`${base}/ai/agent2/questions?lesson=${encodeURIComponent(lessonSlug)}&ordered=1&n=40`, { headers });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data && Array.isArray(data.questions) && data.questions.length){
+              currentQuestions = data.questions;
+              renderResultsOutline();
+              selectQuestion(0);
+            } else {
+              currentQuestions = [];
+              if (resultsEmpty) {
+                resultsEmpty.style.display = '';
+                resultsEmpty.textContent = 'No extracted problems available yet.';
+              }
+              if (resultsBody) resultsBody.innerHTML = '<p class="ps-outline-empty" style="border:none;background:none;padding:0;text-align:left;">No extracted problems available yet.</p>';
+              if (resultsTitle) resultsTitle.textContent = 'No problems yet';
+            }
+          } catch (err) {
+            console.warn('Failed to load worksheet questions', err);
+            currentQuestions = [];
+            if (resultsEmpty) {
+              resultsEmpty.style.display = '';
+              resultsEmpty.textContent = 'Unable to load problems.';
+            }
+            if (resultsBody) resultsBody.innerHTML = '<p class="ps-outline-empty" style="border:none;background:none;padding:0;text-align:left;">Unable to load problems.</p>';
+            if (resultsTitle) resultsTitle.textContent = 'No problems yet';
+          }
+        }
 
         function fmtBytes(bytes){ if (bytes===0) return '0 B'; const k=1024; const sizes=['B','KB','MB','GB']; const i=Math.floor(Math.log(bytes)/Math.log(k)); return `${(bytes/Math.pow(k,i)).toFixed(i===0?0:2)} ${sizes[i]}`; }
         function setDragging(on){ els.drop.style.background = on ? '#eff6ff' : '#f8fafb'; }
@@ -662,6 +926,7 @@
           const school = (document.getElementById('schoolInput').value||'').trim();
           const course = (document.getElementById('courseSelect').value||'').trim();
           const teacher = (document.getElementById('teacherInput').value||'').trim();
+          if (resultsSection) resultsSection.style.display = 'none';
           try { overlay.style.display='flex'; } catch{}
           // ETA countdown (simple heuristic: ~20s per file)
           const totalToProcess = items.filter(it => it.status==='ready').length || items.length || 1;
@@ -751,7 +1016,7 @@
               }
 
               const payload = {
-                lessonSlug: slug || `jarvis-${Date.now()}`,
+                lessonSlug: slug,
                 title: 'Worksheet',
                 school,
                 teacher,
@@ -767,6 +1032,7 @@
               });
               const extData = await extRes.json().catch(()=>({}));
               console.log('extract result', extData);
+              await loadQuestionsAndRender(slug, examTitle, examDate);
             }
           } catch(e){ console.warn('extract failed', e); }
           render();
