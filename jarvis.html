@@ -96,8 +96,27 @@
           
         </section>
 
+        <section id="jarvisResults" class="ps-container">
+          <aside class="ps-sidebar">
+            <button type="button" id="jarvisMakeGuideBtn" class="btn btn-primary" style="width:100%;margin-bottom:14px;">Make a Study Guide</button>
+            <div class="ps-exam-meta">
+              <h3 id="jarvisExamTitle">Your Study Guides</h3>
+              <p id="jarvisExamDate" style="display:none;"></p>
+            </div>
+            <div id="jarvisResultsOutline"></div>
+            <div id="jarvisResultsEmpty" class="ps-outline-empty">Use "Make a Study Guide" to upload worksheets and populate this list.</div>
+          </aside>
+          <section class="ps-content">
+            <div class="ps-breadcrumb" id="jarvisResultBreadcrumb">Your Study Guides</div>
+            <h2 class="ps-title" id="jarvisResultTitle">No problems yet</h2>
+            <div class="ps-body" id="jarvisResultBody">
+              <p class="ps-instruction">Upload a worksheet to generate tailored problems. They will appear here once ready.</p>
+            </div>
+          </section>
+        </section>
+
         <!-- Drag & Drop File Uploader -->
-        <section class="settings-card" aria-labelledby="uploadTitle" style="max-width:900px; margin:24px auto 80px;">
+        <section id="jarvisUploader" class="settings-card" aria-labelledby="uploadTitle" style="max-width:900px; margin:24px auto 80px;">
           <div class="settings-head">
             <h2 id="uploadTitle" class="settings-title">Upload Worksheets</h2>
             <p class="settings-sub">Drag & drop PDFs or images, or browse to upload. Progress is shown per file.</p>
@@ -177,21 +196,6 @@
           </div>
         </section>
 
-        <section id="jarvisResults" class="ps-container" style="display:none;">
-          <aside class="ps-sidebar">
-            <div class="ps-exam-meta">
-              <h3 id="jarvisExamTitle">Uploaded Worksheet</h3>
-              <p id="jarvisExamDate" style="display:none;"></p>
-            </div>
-            <div id="jarvisResultsOutline"></div>
-            <div id="jarvisResultsEmpty" class="ps-outline-empty" style="display:none;">Problems will appear here once extraction finishes.</div>
-          </aside>
-          <section class="ps-content">
-            <div class="ps-breadcrumb" id="jarvisResultBreadcrumb"></div>
-            <h2 class="ps-title" id="jarvisResultTitle">Problem</h2>
-            <div class="ps-body" id="jarvisResultBody"></div>
-          </section>
-        </section>
       </div>
     </main>
 
@@ -300,6 +304,7 @@
         const customInput = document.getElementById('examCustomInput');
         const addBtn = document.getElementById('examAddBtn');
         const resultsSection = document.getElementById('jarvisResults');
+        const makeGuideBtn = document.getElementById('jarvisMakeGuideBtn');
         if (!examSelect) return;
 
         let loaded = false;
@@ -365,6 +370,15 @@
             if (e.key === 'Enter') {
               e.preventDefault();
               handleCustomAdd();
+            }
+          });
+        }
+
+        if (makeGuideBtn) {
+          makeGuideBtn.addEventListener('click', function(){
+            const target = document.getElementById('jarvisUploader');
+            if (target && typeof target.scrollIntoView === 'function') {
+              target.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
           });
         }
@@ -474,7 +488,6 @@
             try { token = localStorage.getItem('tbp_token'); } catch {}
             if (!token) {
               setPlaceholder('Please log in to access exams.', { disabled: true });
-              if (resultsSection) resultsSection.style.display = 'none';
               return;
             }
             const base = (window.TBP_AUTH_BASE || '').replace(/\/$/, '');
@@ -525,7 +538,6 @@
         window.addEventListener('tbp:jarvis:unauthenticated', function(){
           loaded = false;
           setPlaceholder('Please log in to access exams.', { disabled: true });
-          if (resultsSection) resultsSection.style.display = 'none';
         });
       })();
     </script>
@@ -597,7 +609,7 @@
 
         function updateExamMeta(){
           if (!resultsSection) return;
-          const title = (currentExamTitle || '').trim() || 'Uploaded Worksheet';
+          const title = (currentExamTitle || '').trim() || 'Your Study Guides';
           if (resultsExamTitle) resultsExamTitle.textContent = title;
           if (resultsBreadcrumb) resultsBreadcrumb.textContent = title;
           if (resultsExamDate) {
@@ -617,11 +629,11 @@
           resultsOutline.innerHTML = '';
           if (!currentQuestions.length){
             if (resultsEmpty) {
-              resultsEmpty.style.display = '';
-              resultsEmpty.textContent = 'Problems will appear here once extraction finishes.';
+            resultsEmpty.style.display = '';
+            resultsEmpty.textContent = 'Use "Make a Study Guide" to upload worksheets and populate this list.';
             }
             if (resultsBody) {
-              resultsBody.innerHTML = '<p class="ps-outline-empty" style="border:none;background:none;padding:0;text-align:left;">Problems will appear here once extraction finishes.</p>';
+            resultsBody.innerHTML = '<p class="ps-outline-empty" style="border:none;background:none;padding:0;text-align:left;">Use "Make a Study Guide" to upload worksheets and populate this list.</p>';
             }
             if (resultsTitle) resultsTitle.textContent = 'No problems yet';
             return;
@@ -754,7 +766,6 @@
           }
           if (resultsBody) resultsBody.innerHTML = '<p class="ps-outline-empty" style="border:none;background:none;padding:0;text-align:left;">Loading problems…</p>';
           if (resultsTitle) resultsTitle.textContent = 'Loading…';
-          resultsSection.style.display = 'grid';
           try {
             const base = (window.TBP_AUTH_BASE || '').replace(/\/$/,'');
             let token = null;
@@ -924,7 +935,6 @@
           const school = (document.getElementById('schoolInput').value||'').trim();
           const course = (document.getElementById('courseSelect').value||'').trim();
           const teacher = (document.getElementById('teacherInput').value||'').trim();
-          if (resultsSection) resultsSection.style.display = 'none';
           try { overlay.style.display='flex'; } catch{}
           // ETA countdown (simple heuristic: ~20s per file)
           const totalToProcess = items.filter(it => it.status==='ready').length || items.length || 1;
@@ -1039,6 +1049,8 @@
 
         // initial render
         render();
+        renderResultsOutline();
+        updateExamMeta();
         // teacher suggestions removed
       })();
     </script>
