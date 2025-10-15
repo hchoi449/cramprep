@@ -752,7 +752,7 @@
           let token = null;
           try { token = localStorage.getItem('tbp_token'); } catch {}
           const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-          const res = await fetch(`${base}/ai/agent2/questions?lesson=${encodeURIComponent(slug)}&ordered=1&n=60`, { headers });
+          const res = await fetch(`${base}/ai/agent2/questions?lesson=${encodeURIComponent(slug)}&ordered=1&n=200`, { headers });
           const data = await res.json().catch(() => ({}));
           if (!res.ok || !data || !Array.isArray(data.questions)) throw new Error('failed_to_load');
           return data.questions;
