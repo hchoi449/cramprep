@@ -3767,7 +3767,12 @@ function normalizeLatex(value){
         return res.json({ ok:true, mode:'answer_key', mapped: answers.length, updated });
       }
 
-      const groups = urls.map(u => [u]);
+      const batchSizeRaw = Number(process.env.WORKSHEET_EXTRACT_BATCH || 2);
+      const batchSize = Math.max(1, Math.min(2, Number.isFinite(batchSizeRaw) ? batchSizeRaw : 2));
+      const groups = [];
+      for (let i=0; i<urls.length; i+=batchSize){
+        groups.push(urls.slice(i, i + batchSize));
+      }
       const concurrencyLimit = Math.max(1, Math.min(Number(process.env.WORKSHEET_EXTRACT_CONCURRENCY) || 4, 8));
 
       async function runGroup(group){
