@@ -958,12 +958,19 @@
           const str = (input || '').toString();
           const trimmed = str.trim();
           if (!trimmed) return '';
-          const hasDelimiters = /\\\(|\\\[|\\begin|\$\$?/.test(trimmed);
-          const looksLatex = /\\[a-zA-Z]+|_\\{|\\^\\{|\\frac|\\sqrt|\\pi|\\theta|\\int|\\sum|\\sin|\\cos|\\tan|\\leq|\\geq|\\neq/.test(trimmed);
-          if (looksLatex && !hasDelimiters){
-            return `\\(${trimmed}\\)`;
-          }
-          return str;
+
+          const looksLatex = /\\[a-zA-Z]+|_\\{|\\^\\{|\\frac|\\sqrt|\\pi|\\theta|\\int|\\sum|\\sin|\\cos|\\tan|\\leq|\\geq|\\neq|\\\(|\\\[/.test(trimmed);
+          if (!looksLatex) return str;
+
+          const withoutDelims = trimmed
+            .replace(/^(\$\$?|\\\(|\\\[)/, '')
+            .replace(/(\$\$?|\\\)|\\\])$/, '')
+            .trim();
+
+          const preferDisplay = /\\begin|\\displaystyle|\n/.test(withoutDelims);
+          const left = preferDisplay ? '\\[' : '\\(';
+          const right = preferDisplay ? '\\]' : '\\)';
+          return `${left}${withoutDelims}${right}`;
         }
 
         function applyMath(el){
