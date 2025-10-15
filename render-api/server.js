@@ -2196,7 +2196,7 @@ async function bootstrap() {
       const client3 = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
       await client3.connect();
       const col = await getQuestionCollection(client3);
-      const qsrc = await getQSourcesCollection(client3);
+      const qsrc = ENABLE_TESSERACT ? await getQSourcesCollection(client3) : null;
       const nowIso = new Date().toISOString();
       // Optional wipe of previous OCR docs for this lesson
       try {
@@ -2235,7 +2235,7 @@ async function bootstrap() {
             const baseUrl = (req.headers['x-forwarded-proto'] ? `${req.headers['x-forwarded-proto']}` : 'https') + '://' + (req.headers['x-forwarded-host'] || req.headers.host);
             pngUrl = `${baseUrl}/tmp/uploads/${outName}`;
           } catch {}
-          if (ENABLE_TESSERACT){
+          if (ENABLE_TESSERACT && qsrc){
             storedProblems.push({ id: p.id, prompt: p.prompt, answer_fields: Array.isArray(p.answer_fields)? p.answer_fields: [], visual: p.visual||'none', page: runningPage, pngPath, dpi: DPI, pngUrl, bbox: (p.bbox||null) });
             try {
               await qsrc.insertOne({
@@ -2263,7 +2263,7 @@ async function bootstrap() {
           runningPage = Math.min(perPage, runningPage + 1);
         } catch(e){}
       }
-      if (ENABLE_TESSERACT){
+      if (ENABLE_TESSERACT && qsrc){
         try {
           const imgs = images.map((p,i)=>({ page:i+1, pngPath:p }));
           await qsrc.insertOne({ lessonSlug, lessonTitle: lessonTitle||lessonSlug, sourceUrl: url, sourceName, pages: images.length, dpi: DPI, jobId, images: imgs, problems: storedProblems, createdAt: nowIso, sourceType:'worksheet-ocr' });
