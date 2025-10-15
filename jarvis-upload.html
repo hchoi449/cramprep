@@ -781,11 +781,15 @@
 
           try { overlay.style.display='none'; } catch{}
 
-          const successfulExtracts = pipelineResults.filter(res => res && res.extracted).length;
-          if (pipelineTasks.length && successfulExtracts === 0){
-            alert('We could not extract problems from the uploaded worksheets. Please try again or contact support.');
-          } else if (pipelineTasks.length && successfulExtracts < pipelineTasks.length){
-            alert('Some worksheets were uploaded, but a few could not be parsed into problems. Partial results may appear.');
+          const allFinished = pipelineTasks.length && pipelineResults.length === pipelineTasks.length;
+          const allSucceeded = allFinished && pipelineResults.every(res => res && res.processed && res.extracted);
+          if (!pipelineTasks.length || !allFinished){
+            alert('Upload completed but the extraction pipeline did not finish. Please retry.');
+            return;
+          }
+          if (!allSucceeded){
+            alert('Some worksheets were uploaded, but extraction did not fully complete. Please retry before continuing.');
+            return;
           }
 
           storeGuideMetadata({
