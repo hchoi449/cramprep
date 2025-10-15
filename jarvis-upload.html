@@ -586,6 +586,70 @@
           try { window.dispatchEvent(new CustomEvent('tbp:jarvis:guides-updated')); } catch {}
         }
 
+        function getStoredUser(){
+          try {
+            const raw = localStorage.getItem('tbp_user');
+            if (!raw) return {};
+            const parsed = JSON.parse(raw);
+            return parsed && typeof parsed === 'object' ? parsed : {};
+          } catch {
+            return {};
+          }
+        }
+
+        async function runWorksheetPipeline(opts){
+          const { fileUrl, images, meta } = opts || {};
+          if (!meta || !meta.slug || !fileUrl) return { processed:false, extracted:false };
+          const base = (window.TBP_AUTH_BASE || '').replace(/\/$/, '');
+          const headers = { 'Content-Type': 'application/json' };
+          let token = null;
+          try { token = localStorage.getItem('tbp_token'); } catch {}
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+
+          let processed = false;
+          let extracted = false;
+
+          try {
+            const rsp = await fetch(`${base}/ai/worksheet/process`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({ url: fileUrl, lessonSlug: meta.slug, lessonTitle: meta.guideTitle || meta.slug })
+            });
+            processed = rsp.ok;
+            if (!rsp.ok) console.warn('Worksheet process failed', rsp.status);
+          } catch (err) {
+            console.warn('Worksheet process exception', err);
+          }
+
+          if (Array.isArray(images) && images.length){
+            const payload = {
+              lessonSlug: meta.slug,
+              title: meta.guideTitle || meta.slug,
+              school: meta.school || '',
+              teacher: meta.teacher || '',
+              worksheetType: meta.worksheetType || meta.course || '',
+              images,
+              studentFullName: meta.studentFullName || '',
+              studentEmail: meta.studentEmail || '',
+              examTitle: meta.examTitle || '',
+              examDate: meta.examDate || ''
+            };
+            try {
+              const rsp = await fetch(`${base}/ai/worksheet/extract`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(payload)
+              });
+              extracted = rsp.ok;
+              if (!rsp.ok) console.warn('Worksheet extract failed', rsp.status);
+            } catch (err) {
+              console.warn('Worksheet extract exception', err);
+            }
+          }
+
+          return { processed, extracted };
+        }
+
         function ensureSlug(){
           if (!els.slug) return;
           let current = (els.slug.value || '').trim();
@@ -607,10 +671,27 @@
           const school = (document.getElementById('schoolInput').value||'').trim();
           const course = (document.getElementById('courseSelect').value||'').trim();
           const teacher = (document.getElementById('teacherInput').value||'').trim();
+          const selected = examSelect && examSelect.options[examSelect.selectedIndex];
+          const examTitle = selected && !selected.disabled ? (selected.value || selected.textContent || '').trim() : '';
+          const examDate = selected && selected.dataset ? selected.dataset.examDate || '' : '';
+          const guideTitle = examTitle || (course ? `${course} Study Guide` : slug);
+          const storedUser = getStoredUser();
+          const pipelineMeta = {
+            slug,
+            school,
+            course,
+            teacher,
+            examTitle,
+            examDate,
+            guideTitle,
+            worksheetType: course || '',
+            studentFullName: ((storedUser && (storedUser.fullName || storedUser.name)) || '').trim(),
+            studentEmail: ((storedUser && storedUser.email) || '').trim()
+          };
+
           try { overlay.style.display='flex'; } catch{}
           const totalToProcess = items.filter(it => it.status==='ready').length || items.length || 1;
           const PER_FILE_SEC = 20;
-          const t0 = Date.now();
           function fmt(s){ s=Math.max(0,Math.ceil(s)); const m=Math.floor(s/60); const r=s%60; return `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`; }
           let timer = null;
           const tick = ()=>{
@@ -620,8 +701,11 @@
             try { overlayEta.textContent = `Estimated wait ~ ${fmt(target)}`; } catch{}
           };
           try { tick(); timer = setInterval(tick, 1000); } catch{}
+
+          const pipelineTasks = [];
           items = items.map(it => it.status==='ready'? { ...it, status:'uploading', progress:5 } : it);
           render();
+
           for (const it of items){
             if (it.status !== 'uploading') continue;
             try {
@@ -642,16 +726,23 @@
                         const doPre = fileUrl ? fetch((window.TBP_AUTH_BASE||'') + '/ai/worksheet/preprocess', {
                           method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ url: fileUrl, dpi: 300 })
                         }).then(r=>r.json()).catch(()=>({})): Promise.resolve({});
+                        const schedulePipeline = (pp)=>{
+                          if (!fileUrl) return;
+                          const imgs = pp && Array.isArray(pp.images) ? pp.images : [];
+                          pipelineTasks.push(runWorksheetPipeline({ fileUrl, images: imgs, meta: pipelineMeta }));
+                        };
                         doPre.then(pp=>{
                           it.status='done';
                           it.progress=100;
                           if (pp && pp.images) it.pngs = pp.images;
                           render();
+                          schedulePipeline(pp);
                           resolve(null);
                         }).catch(()=>{
                           it.status='done';
                           it.progress=100;
                           render();
+                          schedulePipeline(null);
                           resolve(null);
                         });
                       } else {
@@ -679,13 +770,24 @@
               });
             } catch { /* already marked */ }
           }
+
           try { if (timer) clearInterval(timer); } catch{}
+
+          let pipelineResults = [];
+          if (pipelineTasks.length){
+            try { overlayEta.textContent = 'Generating problems…'; } catch{}
+            pipelineResults = await Promise.all(pipelineTasks.map(p => p.catch(() => ({ processed:false, extracted:false }))));
+          }
+
           try { overlay.style.display='none'; } catch{}
 
-          const selected = examSelect && examSelect.options[examSelect.selectedIndex];
-          const examTitle = selected && !selected.disabled ? (selected.value || selected.textContent || '').trim() : '';
-          const examDate = selected && selected.dataset ? selected.dataset.examDate || '' : '';
-          const guideTitle = examTitle || (course ? course + ' Study Guide' : slug);
+          const successfulExtracts = pipelineResults.filter(res => res && res.extracted).length;
+          if (pipelineTasks.length && successfulExtracts === 0){
+            alert('We could not extract problems from the uploaded worksheets. Please try again or contact support.');
+          } else if (pipelineTasks.length && successfulExtracts < pipelineTasks.length){
+            alert('Some worksheets were uploaded, but a few could not be parsed into problems. Partial results may appear.');
+          }
+
           storeGuideMetadata({
             slug,
             title: guideTitle,
