@@ -2078,6 +2078,7 @@ async function bootstrap() {
       }
       let worksheetInstruction = '';
       let pageNum = 0;
+      let worksheetInstruction = '';
       if (ENABLE_TESSERACT){
         const allInstructionLines = new Set();
         const allLinesPool = [];
@@ -2181,7 +2182,6 @@ async function bootstrap() {
         }
       } else {
         pageNum = images.length;
-        worksheetInstruction = '';
       }
       // Store minimally to Mongo (raw extraction), keyed to lessonSlug
       const client3 = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
