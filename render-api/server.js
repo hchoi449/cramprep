@@ -3745,13 +3745,10 @@ async function bootstrap() {
         return res.json({ ok:true, mode:'answer_key', mapped: answers.length, updated });
       }
 
-      // Batch URLs into small chunks (2 per request for recall)
-      const chunks = [];
-      for (let i=0;i<urls.length;i+=2) chunks.push(urls.slice(i, i+2));
+      const groups = urls.map(u => [u]);
+      const concurrencyLimit = Math.max(1, Math.min(Number(process.env.WORKSHEET_EXTRACT_CONCURRENCY) || 4, 8));
 
-      const collected = [];
-      for (const group of chunks){
-        // Build messages with image URLs
+      async function runGroup(group){
         const messages = [
           { role: 'system', content: systemPrompt + ' Schema: ' + JSON.stringify(jsonSchema) }
         ];
@@ -3770,8 +3767,6 @@ async function bootstrap() {
         for (const u of group){ content.push({ type:'image_url', image_url: { url: u } }); }
         messages.push({ role:'user', content });
 
-        // Call OpenAI
-        let parsed = null;
         try {
           const rsp = await oai.chat.completions.create({
             model: 'gpt-4o',
@@ -3780,14 +3775,43 @@ async function bootstrap() {
             messages
           });
           const text = rsp && rsp.choices && rsp.choices[0] && rsp.choices[0].message && rsp.choices[0].message.content || '';
-          try { parsed = JSON.parse(text); } catch{ parsed = null; }
-        } catch (e) {
-          parsed = null;
+          try {
+            const parsed = JSON.parse(text);
+            if (parsed && parsed.problems && Array.isArray(parsed.problems)) return parsed;
+          } catch(_err){ /* ignore parse error */ }
+        } catch (err) {
+          console.error('[worksheet-extract] vision request failed', err);
         }
-        if (parsed && parsed.problems && Array.isArray(parsed.problems)){
-          collected.push(parsed);
-        }
+        return null;
       }
+
+      async function runConcurrentGroups(list, limit){
+        if (!list.length) return [];
+        const cappedLimit = Math.max(1, Math.min(limit, list.length));
+        const results = new Array(list.length);
+        let cursor = 0;
+        const workers = Array.from({ length: cappedLimit }, () => (async function worker(){
+          while (true){
+            let idx;
+            if (cursor >= list.length) break;
+            idx = cursor++;
+            try {
+              results[idx] = await runGroup(list[idx]);
+            } catch (err){
+              console.error('[worksheet-extract] group worker error', err);
+              results[idx] = null;
+            }
+          }
+        })());
+        await Promise.all(workers);
+        return results;
+      }
+
+      const collected = [];
+      const groupOutputs = await runConcurrentGroups(groups, concurrencyLimit);
+      groupOutputs.forEach(parsed => {
+        if (parsed && parsed.problems && Array.isArray(parsed.problems)) collected.push(parsed);
+      });
 
       // Merge collected results
       let finalTitle = (title || '').trim();
