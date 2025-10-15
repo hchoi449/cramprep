@@ -76,16 +76,6 @@
         border:1px solid rgba(139,69,19,0.14);
         box-shadow:0 24px 65px -30px rgba(139,69,19,0.45);
       }
-      .upload-warning{
-        padding:26px 30px;
-        border-radius:20px;
-        background:#fff7f5;
-        border:1px solid rgba(208,120,60,0.25);
-        color:#8B4513;
-        display:flex;
-        flex-direction:column;
-        gap:14px;
-      }
       .upload-header h2{
         margin:0;
         font-size:2rem;
@@ -299,17 +289,6 @@
     </header>
 
     <main class="upload-shell">
-      <section id="jarvisAuthWarning" class="upload-warning" aria-live="polite" hidden>
-        <div>
-          <h1 class="settings-title" style="margin:0 0 6px;">Login Required</h1>
-          <p class="settings-sub" style="margin:0;color:#8B4513;">Please sign in to your ThinkBigPrep account to access Jarvis uploads.</p>
-        </div>
-        <div style="display:flex; gap:12px; flex-wrap:wrap;">
-          <a href="login.html" class="btn btn-primary student-login-link">Log In</a>
-          <a href="index.html#home" class="btn-soft">Back to Home</a>
-        </div>
-      </section>
-
       <div id="jarvisApp">
         <nav class="jarvis-nav" aria-label="Jarvis navigation">
           <a href="jarvis.html">
@@ -434,100 +413,6 @@
     <script>window.TBP_AUTH_BASE='https://cramprep.onrender.com';</script>
     <script src="index.js"></script>
     <script src="login.js?v=1.0"></script>
-    <script>
-      (function(){
-        const jarvisApp = document.getElementById('jarvisApp');
-        const warning = document.getElementById('jarvisAuthWarning');
-        if (!jarvisApp || !warning) return;
-
-        function hasCachedToken(){
-          try {
-            const token = localStorage.getItem('tbp_token');
-            return Boolean(token);
-          } catch {
-            return false;
-          }
-        }
-
-        let lastAuthState = null;
-
-        function setState(authenticated) {
-          const effective = authenticated || hasCachedToken();
-          jarvisApp.hidden = !effective;
-          warning.hidden = effective;
-          if (authenticated) {
-            jarvisApp.removeAttribute('aria-hidden');
-            populateSchoolSelect();
-          } else {
-            jarvisApp.setAttribute('aria-hidden', 'true');
-          }
-          if (authenticated && lastAuthState !== true) {
-            try { window.dispatchEvent(new CustomEvent('tbp:jarvis:authenticated')); } catch {}
-          }
-          if (!authenticated && lastAuthState === true) {
-            try { window.dispatchEvent(new CustomEvent('tbp:jarvis:unauthenticated')); } catch {}
-          }
-          lastAuthState = authenticated;
-        }
-
-        async function verifyAuth() {
-          let token = null;
-          try { token = localStorage.getItem('tbp_token'); } catch {}
-          const base = (window.TBP_AUTH_BASE || '').replace(/\/$/, '');
-          const url = base ? `${base}/auth/me` : '/auth/me';
-          try {
-            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-            const res = await fetch(url, { headers, credentials: 'include' });
-            const data = await res.json().catch(() => ({}));
-            if (res.ok) {
-              const authFlag = data && Object.prototype.hasOwnProperty.call(data, 'authenticated')
-                ? Boolean(data.authenticated)
-                : true;
-              if (authFlag) {
-                setState(true);
-                return;
-              }
-            }
-            if (res.status === 401 || res.status === 403 || (res.ok && data && data.authenticated === false)) {
-              try {
-                localStorage.removeItem('tbp_token');
-                localStorage.removeItem('tbp_user');
-              } catch {}
-              setState(false);
-              return;
-            }
-            console.warn('Unexpected auth check response', res.status);
-            setState(true);
-            return;
-          } catch (err) {
-            console.warn('Jarvis auth verification failed', err);
-            setState(true);
-            return;
-          }
-        }
-
-        function init() {
-          const cached = hasCachedToken();
-          jarvisApp.hidden = !cached;
-          warning.hidden = cached;
-          if (cached) jarvisApp.removeAttribute('aria-hidden');
-          else jarvisApp.setAttribute('aria-hidden', 'true');
-          verifyAuth();
-          populateSchoolSelect();
-        }
-
-        init();
-        window.addEventListener('tbp:auth:login', verifyAuth);
-        window.addEventListener('tbp:auth:login', populateSchoolSelect);
-        window.addEventListener('tbp:jarvis:authenticated', populateSchoolSelect);
-        window.addEventListener('storage', function(e){
-          if (!e) return;
-          if (e.key === 'tbp_token' || e.key === 'tbp_user') {
-            verifyAuth();
-          }
-        });
-      })();
-    </script>
     <script>
       (function(){
         const examSelect = document.getElementById('examSelect');
@@ -1204,6 +1089,15 @@
             createdAt: new Date().toISOString()
           });
           window.location.href = `jarvis.html?guide=${encodeURIComponent(slug)}`;
+        });
+
+        populateSchoolSelect();
+        window.addEventListener('tbp:auth:login', populateSchoolSelect);
+        window.addEventListener('storage', function(e){
+          if (!e) return;
+          if (e.key === 'tbp_token' || e.key === 'tbp_user') {
+            populateSchoolSelect();
+          }
         });
 
         render();
