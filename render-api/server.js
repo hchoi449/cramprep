@@ -3029,7 +3029,7 @@ async function bootstrap() {
   // Agent 2: Retrieve random 10 for a lesson
   app.get('/ai/agent2/questions', async (req, res) => {
     const lessonSlug = String(req.query.lesson || '').trim();
-    const n = Math.max(1, Math.min(20, Number(req.query.n || 15)));
+    const n = Math.max(1, Math.min(60, Number(req.query.n || 15)));
     const book = String(req.query.book || '').trim();
     const ordered = String(req.query.ordered || '').trim();
     if (!lessonSlug) return res.status(400).json({ error: 'lesson (slug) is required' });
