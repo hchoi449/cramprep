@@ -1676,10 +1676,99 @@ async function bootstrap() {
   // Worksheet pipeline: PDF -> high-DPI PNGs -> preprocess -> OCR -> simple visual tags -> JSON -> (optionally) GPT-4o -> MongoDB
   app.post('/ai/worksheet/process', async (req, res) => {
     try {
-      const { url, lessonSlug } = req.body || {};
+      const { url, lessonSlug, lessonTitle } = req.body || {};
       if (!url || !lessonSlug) return res.status(400).json({ error:'url and lessonSlug required' });
-      return res.json({ ok:true, pages:0, extracted:0, inserted:0, structured: [], preview: [] });
-    } catch (e){ console.error('[worksheet-process] exception', e); return res.status(500).json({ error:'worksheet_process_exception', detail: String(e && e.message || e) }); }
+
+      const jobId = `ws_${Date.now()}`;
+      const DPI = 400;
+      const baseTmp = String(process.env.TBP_OCR_TMP_DIR || '/tmp/worksheet');
+      try { fs.mkdirSync(baseTmp, { recursive: true }); } catch {}
+      const workDir = path.resolve(baseTmp, jobId);
+      fs.mkdirSync(workDir, { recursive: true });
+
+      // Download source document
+      const pdfResp = await fetch(url);
+      if (!pdfResp.ok) return res.status(400).json({ error:'fetch_failed' });
+      const pdfBuf = Buffer.from(await pdfResp.arrayBuffer());
+      const pdfPath = path.join(workDir, 'ws.pdf');
+      fs.writeFileSync(pdfPath, pdfBuf);
+
+      // Convert to PNG pages using pdftoppm (Poppler) if available
+      const { spawnSync } = require('child_process');
+      function runCmd(cmd, args){
+        const r = spawnSync(cmd, args, { encoding:'utf8' });
+        return { code:r.status, stdout:r.stdout||'', stderr:r.stderr||'' };
+      }
+
+      let images = [];
+      if (runCmd('pdftoppm', ['-v']).code === 0){
+        const out = runCmd('pdftoppm', ['-png', '-r', String(DPI), pdfPath, path.join(workDir, 'page')]);
+        if (out.code !== 0) console.error('[pdftoppm]', out.stderr);
+        images = fs.readdirSync(workDir).filter(f => /page-?\d+\.png$/i.test(f)).map(f => path.join(workDir, f)).sort();
+      }
+
+      // Fallback to pdfjs rendering
+      if (!images.length){
+        try {
+          const pdfjsLib = require('pdfjs-dist');
+          const loadingTask = pdfjsLib.getDocument({ data: pdfBuf });
+          const pdfDoc = await loadingTask.promise;
+          const pageCount = Math.min(pdfDoc.numPages || 1, 40);
+          for (let p=1; p<=pageCount; p++){
+            const page = await pdfDoc.getPage(p);
+            const viewport = page.getViewport({ scale: DPI / 72 }); // 72dpi base
+            const canvas = createCanvas(viewport.width, viewport.height);
+            const ctx = canvas.getContext('2d');
+            await page.render({ canvasContext: ctx, viewport }).promise;
+            const imgPath = path.join(workDir, `page-${p}.png`);
+            fs.writeFileSync(imgPath, canvas.toBuffer('image/png'));
+            images.push(imgPath);
+          }
+        } catch (err){
+          console.error('[pdfjs render]', err);
+        }
+      }
+
+      // Optionally preprocess with ImageMagick for readability
+      const preprocess = String(process.env.WORKSHEET_IMAGE_PREPROCESS || '1').trim() !== '0';
+      if (preprocess){
+        const hasMagick = runCmd('magick', ['-version']).code === 0 || runCmd('convert', ['-version']).code === 0;
+        if (hasMagick){
+          for (const img of images){
+            const processed = img.replace(/\.png$/i, '.proc.png');
+            let r = runCmd('magick', [img, '-deskew', '40%', '-strip', '-colorspace', 'Gray', '-normalize', '-sharpen', '0x1', processed]);
+            if (r.code !== 0){
+              r = runCmd('convert', [img, '-deskew', '40%', '-colorspace', 'Gray', '-normalize', '-sharpen', '0x1', processed]);
+            }
+            if (fs.existsSync(processed)) images[images.indexOf(img)] = processed;
+          }
+        }
+      }
+
+      // Copy PNGs to tmp_uploads for serving
+      const publicDir = path.resolve(__dirname, '../tmp_uploads');
+      try { fs.mkdirSync(publicDir, { recursive: true }); } catch {}
+      const baseUrl = (req.headers['x-forwarded-proto'] ? `${req.headers['x-forwarded-proto']}` : 'https') + '://' + (req.headers['x-forwarded-host'] || req.headers.host);
+      const urls = [];
+      images.forEach((imgPath, idx) => {
+        const name = `ws_${jobId}_p${idx+1}.png`;
+        const outPath = path.join(publicDir, name);
+        try { fs.copyFileSync(imgPath, outPath); } catch (err){ console.error('[worksheet-process] copy fail', err); }
+        urls.push(`${baseUrl}/tmp/uploads/${name}`);
+      });
+
+      return res.json({
+        ok: true,
+        pages: images.length,
+        pngs: urls,
+        lessonSlug,
+        lessonTitle: lessonTitle || lessonSlug,
+        jobId
+      });
+    } catch (e){
+      console.error('[worksheet-process] exception', e);
+      return res.status(500).json({ error:'worksheet_process_exception', detail: String(e && e.message || e) });
+    }
   });
 
   // Vision-based math transcription to clean OCR stems into LaTeX
