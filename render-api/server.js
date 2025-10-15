@@ -3238,6 +3238,16 @@ function normalizeLatex(value){
   }
 }
 
+function ensureInlineLatex(str){
+  const s = String(str || '').trim();
+  if (!s) return '';
+  const alreadyWrapped = /\\\(|\\\[|\\begin|\\end|^\$\$|^\$/.test(s);
+  if (alreadyWrapped) return s;
+  const looksMath = /[\\\^_\{\}]|\\frac|\\sqrt|\\pi|\\theta|\\sigma|\\alpha|\\beta|\\gamma|\\sin|\\cos|\\tan/.test(s);
+  if (looksMath) return `\\(${s}\\)`;
+  return s;
+}
+
       // If this is an Answer Key batch, extract mapping and update existing questions
       if ((worksheetType||'').toLowerCase().includes('answer')){
         const answers = await extractAnswerKeyMap(urls);
@@ -3367,9 +3377,11 @@ function normalizeLatex(value){
       for (const m of merged){
         if (!m.text) continue;
         m.options = [];
-        const normalizedStem = normalizeLatex(m.text || '').slice(0, 4000);
+        const normalizedStemRaw = normalizeLatex(m.text || '').slice(0, 4000);
+        const normalizedStem = ensureInlineLatex(normalizedStemRaw);
         const normalizedInstruction = normalizeLatex(m.instruction || '').slice(0, 2000) || '';
-        const answerText = normalizeLatex(m.answer || '').slice(0, 4000);
+        const answerTextRaw = normalizeLatex(m.answer || '').slice(0, 4000);
+        const answerText = ensureInlineLatex(answerTextRaw);
         const validationMethod = answerText ? 'answer_only' : null;
         const isValidated = !!answerText;
         validatedDocs.push({
