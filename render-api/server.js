@@ -3835,12 +3835,12 @@ async function bootstrap() {
         }
         for (const p of (block.problems||[])){
           const num = String(p.number||'').trim();
-          const text = texFieldToString(p.question_text);
-          const instruction = texFieldToString(p.instruction);
-          const options = Array.isArray(p.options) ? p.options.map(texFieldToString).filter(Boolean).slice(0,6) : [];
+          const text = normalizeLatex(texFieldToString(p.question_text));
+          const instruction = normalizeLatex(texFieldToString(p.instruction));
+          const options = Array.isArray(p.options) ? p.options.map(texFieldToString).map(normalizeLatex).filter(Boolean).slice(0,6) : [];
           const answer_index = Number.isInteger(p.answer_index) ? p.answer_index : 0;
           const difficulty = (p.difficulty||'').toString().toLowerCase();
-          merged.push({ number: num, text, instruction, options, answer_index, difficulty });
+          merged.push({ number: num, text, instruction, options, answer_index, difficulty, rawQuestion:p });
         }
       }
 
@@ -3859,7 +3859,7 @@ async function bootstrap() {
           const gen = await generateOptionsForProblem(m.text);
           if (gen){
             const genOptions = Array.isArray(gen.options) ? gen.options.map(texFieldToString).filter(Boolean).slice(0,6) : [];
-            m.options = genOptions;
+            m.options = genOptions.map(normalizeLatex);
             idx = Number.isInteger(gen.answer_index) ? gen.answer_index : idx;
             method = 'generated_options';
           } else {
@@ -3901,9 +3901,9 @@ async function bootstrap() {
           examTitle: storedExamTitle || null,
           examDate: normalizedExamDate || null,
           problemNumber: m.number || null,
-          stem: m.text.slice(0, 4000),
-          instruction: (m.instruction || '')?.slice(0, 2000) || '',
-          options: (Array.isArray(m.options) ? m.options.slice(0,6) : []),
+          stem: normalizeLatex(m.text || '').slice(0, 4000),
+          instruction: normalizeLatex(m.instruction || '').slice(0, 2000) || '',
+          options: (Array.isArray(m.options) ? m.options.slice(0,6).map(normalizeLatex) : []),
           correct: (idx === null ? null : Math.max(0, Math.min(5, Number(idx)||0))),
           solution: '',
           answer: '',
