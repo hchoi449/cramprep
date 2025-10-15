@@ -2078,7 +2078,6 @@ async function bootstrap() {
       }
       let worksheetInstruction = '';
       let pageNum = 0;
-      let worksheetInstruction = '';
       if (ENABLE_TESSERACT){
         const allInstructionLines = new Set();
         const allLinesPool = [];
