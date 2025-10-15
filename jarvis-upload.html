@@ -641,6 +641,12 @@
           if (!select) return;
           const schools = await loadSchools();
           select.innerHTML = '<option value="">Select school</option>';
+          schools.forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            select.appendChild(opt);
+          });
 
           const token = getAuthToken();
           if (!token){
@@ -648,12 +654,6 @@
             return;
           }
           select.disabled = false;
-          schools.forEach(name => {
-            const opt = document.createElement('option');
-            opt.value = name;
-            opt.textContent = name;
-            select.appendChild(opt);
-          });
 
           const profile = await fetchProfile();
           if (profile && profile.school){
