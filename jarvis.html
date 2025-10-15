@@ -445,6 +445,23 @@
           }
         }
 
+        function getProblemDisplayNumber(question, fallback){
+          const candidates = [
+            question && question.problemNumber,
+            question && question.problem_number,
+            question && question.number,
+            question && question.question_number,
+            question && question.meta && question.meta.problemNumber
+          ];
+          for (const cand of candidates){
+            if (cand === null || typeof cand === 'undefined') continue;
+            const text = String(cand).trim();
+            if (!text) continue;
+            return text.replace(/^Problem\s*/i, '').replace(/^#/, '') || String(fallback);
+          }
+          return String(fallback);
+        }
+
         function renderGuideContent(guide, questions){
           updateMetaForGuide(guide);
           if (!resultsBody) return;
@@ -517,7 +534,8 @@
 
             const heading = document.createElement('h3');
             heading.className = 'ps-question-stem';
-            heading.textContent = `Problem ${index + 1}`;
+            const displayNum = getProblemDisplayNumber(question, index + 1);
+            heading.textContent = `Problem ${displayNum}`;
             card.appendChild(heading);
 
             const instructionText = maybeWrapLatex(formatDisplayText(question.instruction || question.instructions || ''));
