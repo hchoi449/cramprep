@@ -692,11 +692,17 @@
                 localStorage.removeItem('tbp_token');
                 localStorage.removeItem('tbp_user');
               } catch {}
+              setState(false);
+              return;
             }
+            console.warn('Unexpected auth response', res.status, data);
+            setState(true);
+            return;
           } catch (err) {
             console.warn('Jarvis auth verification failed', err);
+            setState(true);
+            return;
           }
-          setState(false);
         }
 
         function init() {
