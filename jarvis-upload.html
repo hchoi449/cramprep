@@ -65,8 +65,9 @@
               <div>
                 <label class="setting-label" for="schoolInput">School</label>
                 <div style="position:relative">
-                  <input id="schoolInput" type="text" placeholder="Search school..." autocomplete="off" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px" />
-                  <div id="schoolSuggest" style="position:absolute;left:0;right:0;top:46px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 10px 20px rgba(0,0,0,.08);display:none;max-height:220px;overflow:auto;z-index:20"></div>
+                  <select id="schoolInput" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff">
+                    <option value="">Select school</option>
+                  </select>
                 </div>
               </div>
               <div>
@@ -222,6 +223,7 @@
           jarvisApp.hidden = true;
           warning.hidden = true;
           verifyAuth();
+          populateSchoolSelect();
         }
 
         init();
@@ -584,6 +586,29 @@
           localStorage.setItem('jarvisGuides', JSON.stringify(guides.slice(0, 50)));
           localStorage.setItem('jarvisLatestGuide', guide.slug);
           try { window.dispatchEvent(new CustomEvent('tbp:jarvis:guides-updated')); } catch {}
+        }
+
+        async function loadSchools(){
+          const base = (window.TBP_AUTH_BASE || '').replace(/\/$/, '');
+          try {
+            const res = await fetch(`${base}/ai/schools`);
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data || !Array.isArray(data.schools)) return [];
+            return data.schools;
+          } catch { return []; }
+        }
+
+        async function populateSchoolSelect(){
+          const select = document.getElementById('schoolInput');
+          if (!select) return;
+          const schools = await loadSchools();
+          select.innerHTML = '<option value="">Select school</option>';
+          schools.forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            select.appendChild(opt);
+          });
         }
 
         function getStoredUser(){
