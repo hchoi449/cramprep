@@ -2235,10 +2235,8 @@ async function bootstrap() {
             const baseUrl = (req.headers['x-forwarded-proto'] ? `${req.headers['x-forwarded-proto']}` : 'https') + '://' + (req.headers['x-forwarded-host'] || req.headers.host);
             pngUrl = `${baseUrl}/tmp/uploads/${outName}`;
           } catch {}
-          // Do NOT insert into questionbank; store only in qsources
-          storedProblems.push({ id: p.id, prompt: p.prompt, answer_fields: Array.isArray(p.answer_fields)? p.answer_fields: [], visual: p.visual||'none', page: runningPage, pngPath, dpi: DPI, pngUrl, bbox: (p.bbox||null) });
-          // Also insert a per-item record into thinkpod.qsources
           if (ENABLE_TESSERACT){
+            storedProblems.push({ id: p.id, prompt: p.prompt, answer_fields: Array.isArray(p.answer_fields)? p.answer_fields: [], visual: p.visual||'none', page: runningPage, pngPath, dpi: DPI, pngUrl, bbox: (p.bbox||null) });
             try {
               await qsrc.insertOne({
                 lessonSlug,
