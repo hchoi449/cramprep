@@ -3684,10 +3684,11 @@ async function bootstrap() {
 
       // System prompt and schema (latex-first with plaintext fallback)
       const systemPrompt = [
-        'You are an expert educational content parser. Your job is to read scanned or photographed worksheets and convert them into structured JSON that follows the given schema exactly. ',
-        'Never output explanations, text outside JSON, or non-escaped backslashes. Prefer LaTeX in math fields and use plain text for non-math fields. ',
-        'Return ONLY strict JSON that validates against the schema. If uncertain, return an empty but schema-compliant object with minimal required fields.'
-      ].join('');
+        'You are an expert educational content parser. Read each worksheet image and convert it into structured JSON that follows the schema exactly.',
+        'Capture the problem number (if present), any instructions, the main question text, and the final answer ONLY.',
+        'Do NOT create or infer multiple-choice options. Prefer LaTeX in math fields and use plain text for non-math fields.',
+        'Return ONLY strict JSON that validates against the schema. If uncertain, produce an empty but schema-compliant object with minimal required fields.'
+      ].join(' ');
 
       const jsonSchema = {
         type: 'object', additionalProperties: false,
@@ -3706,14 +3707,10 @@ async function bootstrap() {
                 number: { type: 'string' },
                 question_text: { $ref: '#/$defs/TexField' },
                 instruction: { $ref: '#/$defs/TexField' },
-                options: {
-                  type: 'array', minItems: 0, maxItems: 6,
-                  items: { $ref: '#/$defs/TexField' }
-                },
-                answer_index: { type: 'integer', minimum: 0, maximum: 5 },
+                answer: { $ref: '#/$defs/TexField' },
                 difficulty: { type: 'string', enum: ['easy','medium','hard'] }
               },
-              required: ['question_text']
+              required: ['question_text','answer']
             }
           }
         },
@@ -3862,10 +3859,9 @@ function normalizeLatex(value){
           const num = String(p.number||'').trim();
           const text = normalizeLatex(texFieldToString(p.question_text));
           const instruction = normalizeLatex(texFieldToString(p.instruction));
-          const options = Array.isArray(p.options) ? p.options.map(texFieldToString).map(normalizeLatex).filter(Boolean).slice(0,6) : [];
-          const answer_index = Number.isInteger(p.answer_index) ? p.answer_index : 0;
+          const answer = normalizeLatex(texFieldToString(p.answer));
           const difficulty = (p.difficulty||'').toString().toLowerCase();
-          merged.push({ number: num, text, instruction, options, answer_index, difficulty, rawQuestion:p });
+          merged.push({ number: num, text, instruction, answer, difficulty, rawQuestion:p });
         }
       }
 
@@ -3877,48 +3873,12 @@ function normalizeLatex(value){
       const validatedDocs = [];
       for (const m of merged){
         if (!m.text) continue;
-        let idx = (Number.isInteger(m.answer_index) ? m.answer_index : null);
-        let method = null;
-        // Ensure options exist: if fewer than 4, ask LLM to generate them
-        if (!Array.isArray(m.options) || m.options.length < 4){
-          const gen = await generateOptionsForProblem(m.text);
-          if (gen){
-            const genOptions = Array.isArray(gen.options) ? gen.options.map(texFieldToString).filter(Boolean).slice(0,6) : [];
-            m.options = genOptions.map(normalizeLatex);
-            idx = Number.isInteger(gen.answer_index) ? gen.answer_index : idx;
-            method = 'generated_options';
-          } else {
-            m.options = Array.isArray(m.options) && m.options.length ? m.options : ['A','B','C','D'];
-          }
-        }
-        // Cross-check validation when options available (temporarily disabled)
-        /*
-        if (Array.isArray(m.options) && m.options.length >= 2){
-          const numericIdx = tryNumericSolve(m.text, m.options);
-          if (numericIdx !== null){
-            if (idx === null){ idx = numericIdx; method = method ? (method+'+numeric') : 'numeric'; }
-            else if (idx === numericIdx){ method = method ? (method+'+numeric_agree') : 'numeric_agree'; }
-            else {
-              // conflict → second pass tie-break
-              const pick = await secondPassPickIndex(m.text, m.options);
-              if (pick === numericIdx){ idx = numericIdx; method = 'numeric+second_pass'; }
-              else if (pick === idx){ method = 'generator+second_pass'; }
-              else { idx = null; method = 'conflict'; }
-            }
-          } else {
-            // no numeric → second pass if needed
-            if (idx === null){
-              const pick = await secondPassPickIndex(m.text, m.options);
-              if (pick !== null){ idx = pick; method = 'second_pass'; }
-            }
-          }
-        }
-        */
-        // If still null, leave as null
+        m.options = [];
         const normalizedStem = normalizeLatex(m.text || '').slice(0, 4000);
         const normalizedInstruction = normalizeLatex(m.instruction || '').slice(0, 2000) || '';
-        const normalizedOptions = (Array.isArray(m.options) ? m.options.slice(0,6).map(normalizeLatex) : []);
-        const correctIndex = (idx === null ? null : Math.max(0, Math.min(5, Number(idx)||0)));
+        const answerText = normalizeLatex(m.answer || '').slice(0, 4000);
+        const validationMethod = answerText ? 'answer_only' : null;
+        const isValidated = !!answerText;
         validatedDocs.push({
           lessonSlug,
           lessonTitle: finalTitle || lessonSlug,
@@ -3932,17 +3892,17 @@ function normalizeLatex(value){
           problemNumber: m.number || null,
           stem: normalizedStem,
           instruction: normalizedInstruction,
-          options: normalizedOptions,
-          correct: correctIndex,
+          options: [],
+          correct: null,
           solution: '',
-          answer: '',
-          answerPlain: '',
+          answer: answerText,
+          answerPlain: stripLatexToPlain(answerText || ''),
           difficulty: (/easy|medium|hard/i.test(m.difficulty||'') ? m.difficulty : 'medium'),
           sourceHash: sha256Hex(`${lessonSlug}|${m.number||''}|${m.text||''}`),
           generatedAt: nowIso,
           generator: 'gpt4o-vision',
-          validated: idx !== null && method !== 'generated_options',
-          validationMethod: method
+          validated: isValidated,
+          validationMethod: validationMethod
         });
       }
 
