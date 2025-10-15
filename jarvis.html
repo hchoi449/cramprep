@@ -1187,9 +1187,25 @@
             headers,
             credentials: 'include'
           });
-          const data = await res.json().catch(() => ({}));
-          if (!res.ok || !data || !Array.isArray(data.questions)) throw new Error('failed_to_load');
-          return data.questions;
+
+          let data = null;
+          let rawText = '';
+          const contentType = res.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            data = await res.json().catch(() => null);
+          } else {
+            rawText = await res.text().catch(() => '');
+          }
+
+          if (res.ok && data && Array.isArray(data.questions)) {
+            return data.questions;
+          }
+
+          const message = (data && (data.error || data.message)) || rawText || `Request failed (${res.status})`;
+          const error = new Error(message || 'failed_to_load');
+          error.status = res.status;
+          error.payload = data || rawText;
+          throw error;
         }
 
         async function openGuide(slug){
@@ -1197,13 +1213,6 @@
           storedGuides = loadStoredGuides();
           const guide = storedGuides.find(g => g.slug === slug);
           if (!guide) return;
-          const token = getAuthToken();
-          if (!token) {
-            if (resultsBody) {
-              resultsBody.innerHTML = '<p class="ps-outline-empty" style="border:none;background:none;padding:0;text-align:left;">Please log in to view the study guide problems.</p>';
-            }
-            return;
-          }
           currentGuideSlug = slug;
           highlightSelected();
           updateMetaForGuide(guide);
@@ -1222,7 +1231,15 @@
             renderGuideContent(guide, questions);
           } catch (err) {
             console.warn('Failed to load guide', err);
-            if (resultsBody) resultsBody.innerHTML = '<p class="ps-outline-empty" style="border:none;background:none;padding:0;text-align:left;">Unable to load problems for this guide.</p>';
+            if (resultsBody) {
+              let message = 'Unable to load problems for this guide.';
+              if (err && (err.status === 401 || err.status === 403)) {
+                message = 'Your session expired. Please log in again to view this study guide.';
+              } else if (err && err.message) {
+                message = `Unable to load problems for this guide. ${err.message}`;
+              }
+              resultsBody.innerHTML = `<p class="ps-outline-empty" style="border:none;background:none;padding:0;text-align:left;">${message}</p>`;
+            }
           }
         }
 
