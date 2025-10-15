@@ -10,6 +10,262 @@
     <link rel="stylesheet" href="css/index.css?v=1.1" />
     <link rel="stylesheet" href="css/login.css?v=1.0" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" />
+    <style>
+      body{
+        background: radial-gradient(120% 120% at 90% 0%, rgba(139,69,19,0.15) 0%, rgba(255,255,255,0) 55%), linear-gradient(135deg, #f8f4ef 0%, #ffffff 60%);
+        min-height: 100vh;
+      }
+      .upload-shell{
+        width:min(1100px, 92vw);
+        margin:120px auto 80px;
+        display:flex;
+        flex-direction:column;
+        gap:28px;
+      }
+      #jarvisApp{
+        display:flex;
+        flex-direction:column;
+        gap:28px;
+      }
+      .jarvis-nav{
+        display:flex;
+        align-items:center;
+        gap:10px;
+        padding:10px;
+        background:rgba(255,255,255,0.9);
+        border-radius:9999px;
+        border:1px solid rgba(139,69,19,0.16);
+        box-shadow:0 22px 55px -32px rgba(90,56,28,0.45);
+        backdrop-filter: blur(18px);
+      }
+      .jarvis-nav a{
+        flex:1;
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        gap:10px;
+        padding:12px 20px;
+        border-radius:9999px;
+        font-weight:600;
+        color:#5f4a32;
+        text-decoration:none;
+        transition:all .18s ease;
+        position:relative;
+      }
+      .jarvis-nav a .bi{
+        font-size:1.1rem;
+      }
+      .jarvis-nav a:hover,
+      .jarvis-nav a:focus-visible{
+        background:rgba(139,69,19,0.08);
+        outline:none;
+      }
+      .jarvis-nav a[aria-current="page"]{
+        background:linear-gradient(135deg, #8B4513 0%, #a25a28 100%);
+        color:#fff;
+        box-shadow:0 22px 36px -24px rgba(139,69,19,0.7);
+      }
+      .jarvis-nav a[aria-current="page"]:hover{
+        background:linear-gradient(135deg, #7f3f12 0%, #9d5625 100%);
+      }
+      .upload-header{
+        padding:28px 32px;
+        border-radius:22px;
+        background:rgba(255,255,255,0.82);
+        backdrop-filter: blur(16px);
+        border:1px solid rgba(139,69,19,0.14);
+        box-shadow:0 24px 65px -30px rgba(139,69,19,0.45);
+      }
+      .upload-warning{
+        padding:26px 30px;
+        border-radius:20px;
+        background:#fff7f5;
+        border:1px solid rgba(208,120,60,0.25);
+        color:#8B4513;
+        display:flex;
+        flex-direction:column;
+        gap:14px;
+      }
+      .upload-header h2{
+        margin:0;
+        font-size:2rem;
+        font-weight:800;
+        color:#4b3115;
+      }
+      .upload-header p{
+        margin:10px 0 0;
+        color:#6b5b4c;
+        max-width:640px;
+      }
+      .upload-grid{
+        display:grid;
+        gap:24px;
+        grid-template-columns:360px 1fr;
+      }
+      .upload-card{
+        background:rgba(255,255,255,0.88);
+        border-radius:22px;
+        border:1px solid rgba(139,69,19,0.12);
+        box-shadow:0 22px 60px -32px rgba(90,56,28,0.35);
+        padding:26px;
+        display:flex;
+        flex-direction:column;
+        gap:18px;
+      }
+      .upload-card h3{
+        margin:0;
+        font-size:1.25rem;
+        font-weight:700;
+        color:#4b3115;
+      }
+      .upload-field{
+        display:flex;
+        flex-direction:column;
+        gap:6px;
+      }
+      .upload-field label{
+        font-weight:600;
+        color:#4b3115;
+      }
+      .upload-field select,
+      .upload-field input{
+        width:100%;
+        padding:11px 12px;
+        border-radius:12px;
+        border:1px solid rgba(139,69,19,0.18);
+        background:#fff;
+        transition:border-color .2s, box-shadow .2s;
+      }
+      .upload-field select:focus,
+      .upload-field input:focus{
+        outline:none;
+        border-color:rgba(139,69,19,0.45);
+        box-shadow:0 0 0 4px rgba(139,69,19,0.12);
+      }
+      .dropzone{
+        border:2px dashed rgba(139,69,19,0.25);
+        border-radius:18px;
+        padding:40px 24px;
+        background:linear-gradient(135deg, rgba(139,69,19,0.08), rgba(139,69,19,0.02));
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        justify-content:center;
+        gap:14px;
+        text-align:center;
+        color:#4b3115;
+        transition:border-color .2s, transform .2s, box-shadow .2s;
+      }
+      .dropzone:hover{
+        border-color:rgba(139,69,19,0.5);
+        transform:translateY(-2px);
+        box-shadow:0 18px 35px -30px rgba(139,69,19,0.55);
+      }
+      .dropzone span{
+        font-weight:600;
+      }
+      .file-list{
+        margin-top:12px;
+        background:#fff;
+        border-radius:16px;
+        border:1px solid rgba(139,69,19,0.12);
+        max-height:280px;
+        overflow:auto;
+      }
+      .file-list-header{
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        padding:14px 18px;
+        border-bottom:1px solid rgba(139,69,19,0.1);
+        font-weight:600;
+        color:#4b3115;
+      }
+      .file-list-body{padding:10px 18px;}
+      .upload-actions{
+        display:flex;
+        justify-content:flex-end;
+        gap:12px;
+      }
+      .btn-soft{
+        border-radius:12px;
+        padding:11px 20px;
+        border:1px solid rgba(139,69,19,0.3);
+        background:#fff;
+        color:#4b3115;
+        font-weight:600;
+        transition:all .2s;
+      }
+      .btn-soft:hover{
+        background:rgba(139,69,19,0.06);
+        border-color:rgba(139,69,19,0.45);
+      }
+      .btn-primary{
+        border-radius:12px;
+        padding:12px 22px;
+        background:linear-gradient(135deg, #8B4513 0%, #a25a28 100%);
+        color:#fff;
+        border:none;
+        font-weight:600;
+        box-shadow:0 16px 35px -26px rgba(139,69,19,0.65);
+        transition:transform .2s, box-shadow .2s;
+      }
+      .btn-primary:disabled{
+        background:rgba(139,69,19,0.35);
+        cursor:not-allowed;
+        box-shadow:none;
+      }
+      .btn-primary:not(:disabled):hover{
+        transform:translateY(-1px);
+        box-shadow:0 22px 40px -30px rgba(139,69,19,0.65);
+      }
+      #jarvisLoading{
+        display:none;
+        position:fixed;
+        inset:0;
+        background:rgba(255,255,255,0.88);
+        backdrop-filter: blur(12px) saturate(140%);
+        z-index:50;
+        align-items:center;
+        justify-content:center;
+      }
+      #jarvisLoading .loading-panel{
+        background:#fff;
+        padding:32px 40px;
+        border-radius:20px;
+        box-shadow:0 24px 55px -32px rgba(139,69,19,0.45);
+        text-align:center;
+      }
+      #jarvisEta{
+        margin-top:8px;
+        color:#6b5b4c;
+        font-weight:600;
+      }
+      @media(max-width:1024px){
+        .upload-grid{
+          grid-template-columns:1fr;
+        }
+      }
+      @media(max-width:640px){
+        .jarvis-nav{
+          flex-direction:column;
+          align-items:stretch;
+        }
+        .jarvis-nav a{
+          width:100%;
+        }
+        .upload-header{
+          padding:24px;
+        }
+        .upload-card{
+          padding:22px;
+        }
+        .upload-actions{
+          flex-direction:column;
+          align-items:stretch;
+        }
+      }
+    </style>
   </head>
   <body>
     <header class="header">
@@ -42,20 +298,31 @@
       </nav>
     </header>
 
-    <main class="settings-wrap" style="min-height:calc(100vh - 220px);">
-      <section id="jarvisAuthWarning" class="settings-card" aria-live="polite" style="max-width:900px; margin:120px auto 0;" hidden>
-        <div class="settings-head">
-          <h1 class="settings-title">Login Required</h1>
-          <p class="settings-sub">Please sign in to your ThinkBigPrep account to access Jarvis uploads.</p>
+    <main class="upload-shell">
+      <section id="jarvisAuthWarning" class="upload-warning" aria-live="polite" hidden>
+        <div>
+          <h1 class="settings-title" style="margin:0 0 6px;">Login Required</h1>
+          <p class="settings-sub" style="margin:0;color:#8B4513;">Please sign in to your ThinkBigPrep account to access Jarvis uploads.</p>
         </div>
         <div style="display:flex; gap:12px; flex-wrap:wrap;">
           <a href="login.html" class="btn btn-primary student-login-link">Log In</a>
-          <a href="index.html#home" class="btn btn-secondary">Back to Home</a>
+          <a href="index.html#home" class="btn-soft">Back to Home</a>
         </div>
       </section>
 
       <div id="jarvisApp">
-        <section class="settings-card" aria-labelledby="uploadTitle" style="max-width:900px; margin:120px auto 80px;">
+        <nav class="jarvis-nav" aria-label="Jarvis navigation">
+          <a href="jarvis.html">
+            <i class="bi bi-stars" aria-hidden="true"></i>
+            <span>Study Guides</span>
+          </a>
+          <a href="jarvis-upload.html" aria-current="page">
+            <i class="bi bi-cloud-arrow-up" aria-hidden="true"></i>
+            <span>Upload Worksheets</span>
+          </a>
+        </nav>
+
+        <section class="settings-card" aria-labelledby="uploadTitle" style="max-width:900px; margin:0 auto 80px;">
           <div class="settings-head">
             <h2 id="uploadTitle" class="settings-title">Upload Worksheets</h2>
             <p class="settings-sub">Drag & drop PDFs or images, or browse to upload. Progress is shown per file.</p>
