@@ -588,6 +588,40 @@
           try { window.dispatchEvent(new CustomEvent('tbp:jarvis:guides-updated')); } catch {}
         }
 
+        function getAuthToken(){
+          try { return localStorage.getItem('tbp_token') || ''; } catch { return ''; }
+        }
+
+        async function fetchProfile(){
+          const token = getAuthToken();
+          if (!token) return null;
+          const base = (window.TBP_AUTH_BASE || '').replace(/\/$/, '');
+          try {
+            const res = await fetch(`${base}/auth/profile`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data || !data.profile) return null;
+            return data.profile;
+          } catch { return null; }
+        }
+
+        async function saveSchoolProfile(value){
+          const token = getAuthToken();
+          if (!token) return;
+          const base = (window.TBP_AUTH_BASE || '').replace(/\/$/, '');
+          try {
+            await fetch(`${base}/auth/profile`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({ school: value || null })
+            });
+          } catch (err) { console.warn('Failed to save school preference', err); }
+        }
+
+        function escapeCss(val){
+          if (window.CSS && typeof CSS.escape === 'function') return CSS.escape(val);
+          return String(val || '').replace(/[\"\\]/g, '\\$&');
+        }
+
         async function loadSchools(){
           const base = (window.TBP_AUTH_BASE || '').replace(/\/$/, '');
           try {
@@ -603,12 +637,36 @@
           if (!select) return;
           const schools = await loadSchools();
           select.innerHTML = '<option value="">Select school</option>';
+
+          const token = getAuthToken();
+          if (!token){
+            select.disabled = true;
+            return;
+          }
+          select.disabled = false;
           schools.forEach(name => {
             const opt = document.createElement('option');
             opt.value = name;
             opt.textContent = name;
             select.appendChild(opt);
           });
+
+          const profile = await fetchProfile();
+          if (profile && profile.school){
+            const existing = select.querySelector(`option[value="${escapeCss(profile.school)}"]`);
+            if (!existing){
+              const opt = document.createElement('option');
+              opt.value = profile.school;
+              opt.textContent = profile.school;
+              select.appendChild(opt);
+            }
+            select.value = profile.school;
+          }
+
+          if (!select.dataset.bound){
+            select.addEventListener('change', () => { saveSchoolProfile(select.value); });
+            select.dataset.bound = '1';
+          }
         }
 
         function getStoredUser(){
