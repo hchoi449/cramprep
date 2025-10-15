@@ -2076,116 +2076,112 @@ async function bootstrap() {
           return false;
         } catch { return false; }
       }
-      const allInstructionLines = new Set();
-      const allLinesPool = [];
+      let worksheetInstruction = '';
       let pageNum = 0;
-      if (!ENABLE_TESSERACT){
-        console.log('[worksheet-process] Tesseract disabled; skipping local OCR segmentation.');
-      }
-      for (const img of images){
-        pageNum++;
-        if (!ENABLE_TESSERACT){
-          continue;
-        }
-        let text = '';
-        let linesWithBbox = [];
-        if (hasTessCli){
-          // Attempt OCR on original + dual preprocessed variants and union lines
-          const variants = [img, img.replace(/\.png$/i, '.soft.png'), img.replace(/\.png$/i, '.hard.png')].filter(p=> fs.existsSync(p));
-          const union = new Map();
-          for (const v of variants){
-            for (const psm of ['6','3']){
-              const r = runCmd('tesseract', [v, 'stdout', '-l', 'eng', '--psm', psm, '-c', 'preserve_interword_spaces=1', 'tsv']);
-              if (r.code === 0){
-                const ls = parseTsvToLines(r.stdout);
-                for (const li of ls){ union.set(`${li.top}:${li.left}:${li.text}`, li); }
-              } else { console.error('[tesseract cli]', r.stderr); }
+      if (ENABLE_TESSERACT){
+        const allInstructionLines = new Set();
+        const allLinesPool = [];
+        for (const img of images){
+          pageNum++;
+          let text = '';
+          let linesWithBbox = [];
+          if (hasTessCli){
+            const variants = [img, img.replace(/\.png$/i, '.soft.png'), img.replace(/\.png$/i, '.hard.png')].filter(p=> fs.existsSync(p));
+            const union = new Map();
+            for (const v of variants){
+              for (const psm of ['6','3']){
+                const r = runCmd('tesseract', [v, 'stdout', '-l', 'eng', '--psm', psm, '-c', 'preserve_interword_spaces=1', 'tsv']);
+                if (r.code === 0){
+                  const ls = parseTsvToLines(r.stdout);
+                  for (const li of ls){ union.set(`${li.top}:${li.left}:${li.text}`, li); }
+                } else { console.error('[tesseract cli]', r.stderr); }
+              }
             }
-          }
-          linesWithBbox = Array.from(union.values()).sort((a,b)=> a.top - b.top || a.left - b.left);
-          text = linesWithBbox.map(l=> l.text).join('\n');
-        } else if (ENABLE_TESSERACT){
-          try {
-            const o = await Tesseract.recognize(fs.readFileSync(img), 'eng', { logger:()=>{} });
-            text = (o && o.data && o.data.text) || '';
-            // Optional: attempt line boxes from Tesseract.js result if available
+            linesWithBbox = Array.from(union.values()).sort((a,b)=> a.top - b.top || a.left - b.left);
+            text = linesWithBbox.map(l=> l.text).join('\n');
+          } else {
             try {
-              const linesJs = Array.isArray(o?.data?.lines) ? o.data.lines : [];
-              linesWithBbox = linesJs.map(li => ({
-                id: `${li.block_num||0}:${li.par_num||0}:${li.line_num||0}`,
-                text: normalizeOcrText(String(li.text||'')),
-                left: Number(li.bbox?.x0 ?? 0),
-                top: Number(li.bbox?.y0 ?? 0),
-                width: Number((li.bbox ? (li.bbox.x1 - li.bbox.x0) : 0)),
-                height: Number((li.bbox ? (li.bbox.y1 - li.bbox.y0) : 0))
-              })).filter(li => li.text);
-            } catch {}
-          } catch(e){ console.error('[tesseract.js]', e); }
-        }
-        // Post-OCR normalization to improve math fidelity (e.g., square roots)
-        text = normalizeOcrText(text);
-        // Build line list (prefer bbox lines)
-        let lines = (linesWithBbox && linesWithBbox.length)
-          ? linesWithBbox
-          : String(text||'').split(/\n+/).map(s=> ({ text: s.trim(), left:0, top:0, width:0, height:0 })).filter(li => li.text);
-        // Expand mid-line anchors for both bbox and fallback lines
-        try { if (linesWithBbox && linesWithBbox.length) linesWithBbox = expandLinesByInternalAnchors(linesWithBbox); } catch {}
-        // Expand mid-line anchors (e.g., "... 2. ...") to separate logical lines
-        try { lines = expandLinesByInternalAnchors(lines); } catch {}
-        try { allLinesPool.push(...(Array.isArray(lines) ? lines.map(li=> li.text) : [])); } catch {}
-        try { for (const l of extractInstructions(lines.map(li=> li.text))) allInstructionLines.add(l); } catch {}
-        // Per-page visuals placeholder (detection TBD)
-        const pageHeight = lines.reduce((m,li)=> Math.max(m, li.top + li.height), 0) || 1000;
-        const visuals = [];
-        // simple visual tag heuristics (placeholder)
-        function tagVisual(txt){
-          const s = txt.toLowerCase();
-          if (/coordinate|axis|axes|plot|graph|slope|y\s*=|x\s*=/.test(s)) return 'graph';
-          if (/number\s*line|interval|inequality|open\s*dot|closed\s*dot/.test(s)) return 'number_line';
-          if (/table|row|column|cells|\|\s*\|/.test(s)) return 'table';
-          return 'none';
-        }
-      // Build problems using anchor-based grouping; supports optional vision anchors and column splits
-      let built = [];
-      let visionAnchors = [];
-      try { visionAnchors = await detectAnchorsWithVision(img); } catch {}
-      if (linesWithBbox && linesWithBbox.length){
-        const cols = splitLinesIntoColumns(linesWithBbox);
-        for (const col of cols){
-          let added = false;
-          if (visionAnchors && visionAnchors.length){
-            const minX = Math.min(...col.map(l=> l.left));
-            const maxX = Math.max(...col.map(l=> l.left + l.width));
-            const anchorsInCol = visionAnchors.filter(a => (a.left >= minX - 8) && (a.left <= maxX + 8));
-            if (anchorsInCol.length){
-              built = built.concat(buildProblemsFromVision(col, anchorsInCol));
-              added = true;
+              const o = await Tesseract.recognize(fs.readFileSync(img), 'eng', { logger:()=>{} });
+              text = (o && o.data && o.data.text) || '';
+              try {
+                const linesJs = Array.isArray(o?.data?.lines) ? o.data.lines : [];
+                linesWithBbox = linesJs.map(li => ({
+                  id: `${li.block_num||0}:${li.par_num||0}:${li.line_num||0}`,
+                  text: normalizeOcrText(String(li.text||'')),
+                  left: Number(li.bbox?.x0 ?? 0),
+                  top: Number(li.bbox?.y0 ?? 0),
+                  width: Number((li.bbox ? (li.bbox.x1 - li.bbox.x0) : 0)),
+                  height: Number((li.bbox ? (li.bbox.y1 - li.bbox.y0) : 0))
+                })).filter(li => li.text);
+              } catch {}
+            } catch(e){ console.error('[tesseract.js]', e); }
+          }
+          text = normalizeOcrText(text);
+          let lines = (linesWithBbox && linesWithBbox.length)
+            ? linesWithBbox
+            : String(text||'').split(/\n+/).map(s=> ({ text: s.trim(), left:0, top:0, width:0, height:0 })).filter(li => li.text);
+          try { if (linesWithBbox && linesWithBbox.length) linesWithBbox = expandLinesByInternalAnchors(linesWithBbox); } catch {}
+          try { lines = expandLinesByInternalAnchors(lines); } catch {}
+          try { allLinesPool.push(...(Array.isArray(lines) ? lines.map(li=> li.text) : [])); } catch {}
+          try { for (const l of extractInstructions(lines.map(li=> li.text))) allInstructionLines.add(l); } catch {}
+          const pageHeight = lines.reduce((m,li)=> Math.max(m, li.top + li.height), 0) || 1000;
+          const visuals = [];
+          function tagVisual(txt){
+            const s = txt.toLowerCase();
+            if (/coordinate|axis|axes|plot|graph|slope|y\s*=|x\s*=/.test(s)) return 'graph';
+            if (/number\s*line|interval|inequality|open\s*dot|closed\s*dot/.test(s)) return 'number_line';
+            if (/table|row|column|cells|\|\s*\|/.test(s)) return 'table';
+            return 'none';
+          }
+          let built = [];
+          let visionAnchors = [];
+          try { visionAnchors = await detectAnchorsWithVision(img); } catch {}
+          if (linesWithBbox && linesWithBbox.length){
+            const cols = splitLinesIntoColumns(linesWithBbox);
+            for (const col of cols){
+              let added = false;
+              if (visionAnchors && visionAnchors.length){
+                const minX = Math.min(...col.map(l=> l.left));
+                const maxX = Math.max(...col.map(l=> l.left + l.width));
+                const anchorsInCol = visionAnchors.filter(a => (a.left >= minX - 8) && (a.left <= maxX + 8));
+                if (anchorsInCol.length){
+                  built = built.concat(buildProblemsFromVision(col, anchorsInCol));
+                  added = true;
+                }
+              }
+              if (!added){
+                built = built.concat(buildProblemsFromLines(col));
+              }
             }
+          } else {
+            const flat = lines.map(li=> li.text);
+            const chunks = [];
+            let acc = [];
+            for (const ln of flat){
+              if (/^(\(?\d+\)?[.)]|[A-Z][.)])\s+/.test(ln) && acc.length){ chunks.push(acc.join(' ')); acc = [ln]; }
+              else acc.push(ln);
+            }
+            if (acc.length) chunks.push(acc.join(' '));
+            built = chunks.map(c => ({ id: pid++, prompt: c.slice(0, 800), answer_fields: [], visual: 'none' }));
           }
-          if (!added){
-            built = built.concat(buildProblemsFromLines(col));
+          built = built.filter(pr => !isInstructionText(pr.prompt));
+          const attachMap = assignVisualsToProblems(pageHeight, visuals, built, (linesWithBbox && linesWithBbox.length ? linesWithBbox : []));
+          for (const pr of built){
+            problems.push({ id: pr.id, prompt: pr.prompt, answer_fields: pr.answer_fields||[], visual: pr.visual || tagVisual(pr.prompt), attachments: attachMap.get(pr.id) || [], bbox: pr.bbox || null });
           }
+        }
+        worksheetInstruction = Array.from(allInstructionLines).join(' ').slice(0, 1200);
+        if (!worksheetInstruction){
+          try {
+            const candidates = Array.from(new Set(allLinesPool.filter(l=> l && !/^(\(?\d+\)?[.)]|[A-D][.)])\s+/.test(l))))
+              .sort((a,b)=> b.length - a.length);
+            const best = candidates.find(s=> s.length >= 50) || candidates[0] || '';
+            worksheetInstruction = String(best||'').slice(0, 1200);
+          } catch {}
         }
       } else {
-        const flat = lines.map(li=> li.text);
-        const chunks = [];
-        let acc = [];
-        for (const ln of flat){
-          if (/^(\(?\d+\)?[.)]|[A-Z][.)])\s+/.test(ln) && acc.length){ chunks.push(acc.join(' ')); acc = [ln]; }
-          else acc.push(ln);
-        }
-        if (acc.length) chunks.push(acc.join(' '));
-        built = chunks.map(c => ({ id: pid++, prompt: c.slice(0, 800), answer_fields: [], visual: 'none' }));
-      }
-        // Filter out instruction-only blocks
-        built = built.filter(pr => !isInstructionText(pr.prompt));
-        // Assign visuals per scoring and section rules
-        const attachMap = assignVisualsToProblems(pageHeight, visuals, built, (linesWithBbox && linesWithBbox.length ? linesWithBbox : []));
-        for (const pr of built){
-          problems.push({ id: pr.id, prompt: pr.prompt, answer_fields: pr.answer_fields||[], visual: pr.visual || tagVisual(pr.prompt), attachments: attachMap.get(pr.id) || [], bbox: pr.bbox || null });
-        }
-      }
-
+        pageNum = images.length;
+        worksheetInstruction = '';
       }
       // Store minimally to Mongo (raw extraction), keyed to lessonSlug
       const client3 = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
