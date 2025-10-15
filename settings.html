@@ -196,6 +196,16 @@
           el.addEventListener('change', ()=> set(keys[id], el.checked));
         });
         loadSchoolOptions();
+        window.addEventListener('tbp:auth:login', () => {
+          try { token = localStorage.getItem('tbp_token') || ''; } catch { token = ''; }
+          loadSchoolOptions();
+        });
+        window.addEventListener('storage', (e) => {
+          if (e && e.key === 'tbp_token'){
+            try { token = localStorage.getItem('tbp_token') || ''; } catch { token = ''; }
+            loadSchoolOptions();
+          }
+        });
       })();
     </script>
   </body>

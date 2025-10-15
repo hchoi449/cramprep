@@ -99,8 +99,6 @@
               </div>
             </div>
             <div>
-              <label class="setting-label" for="lessonSlugInput">Lesson Slug</label>
-              <input id="lessonSlugInput" type="text" placeholder="e.g., algebra-ii" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px" />
             </div>
             <div id="tbp-uploader" class="rounded-2xl border border-slate-200 bg-white p-4" style="box-shadow:0 10px 30px rgba(0,0,0,.08);">
               <div id="tbp-dropzone" class="rounded-2xl border border-dashed border-slate-300" style="padding:24px; text-align:center; background:#f8fafb; cursor:pointer;">
@@ -180,8 +178,12 @@
         function setState(authenticated) {
           jarvisApp.hidden = !authenticated;
           warning.hidden = authenticated;
-          if (authenticated) jarvisApp.removeAttribute('aria-hidden');
-          else jarvisApp.setAttribute('aria-hidden', 'true');
+          if (authenticated) {
+            jarvisApp.removeAttribute('aria-hidden');
+            populateSchoolSelect();
+          } else {
+            jarvisApp.setAttribute('aria-hidden', 'true');
+          }
           if (authenticated && lastAuthState !== true) {
             try { window.dispatchEvent(new CustomEvent('tbp:jarvis:authenticated')); } catch {}
           }
@@ -228,6 +230,8 @@
 
         init();
         window.addEventListener('tbp:auth:login', verifyAuth);
+        window.addEventListener('tbp:auth:login', populateSchoolSelect);
+        window.addEventListener('tbp:jarvis:authenticated', populateSchoolSelect);
         window.addEventListener('storage', function(e){
           if (!e) return;
           if (e.key === 'tbp_token' || e.key === 'tbp_user') {
@@ -483,12 +487,12 @@
           count: document.getElementById('tbp-file-count'),
           clear: document.getElementById('tbp-clear'),
           upload: document.getElementById('tbp-upload'),
-          rows: document.getElementById('tbp-rows'),
-          slug: document.getElementById('lessonSlugInput')
+          rows: document.getElementById('tbp-rows')
         };
         const overlay = document.getElementById('jarvisLoading');
         const overlayEta = document.getElementById('jarvisEta');
         let items = [];
+        let currentSlug = ;
 
         function fmtBytes(bytes){ if (bytes===0) return '0 B'; const k=1024; const sizes=['B','KB','MB','GB']; const i=Math.floor(Math.log(bytes)/Math.log(k)); return `${(bytes/Math.pow(k,i)).toFixed(i===0?0:2)} ${sizes[i]}`; }
         function setDragging(on){ els.drop.style.background = on ? '#eff6ff' : '#f8fafb'; }
@@ -751,13 +755,10 @@
         }
 
         function ensureSlug(){
-          if (!els.slug) return;
-          let current = (els.slug.value || '').trim();
-          if (!current) {
-            current = `jarvis-${Date.now()}`;
-            els.slug.value = current;
+          if (!currentSlug) {
+            currentSlug = `jarvis-${Date.now()}`;
           }
-          return current;
+          return currentSlug;
         }
 
         ensureSlug();
