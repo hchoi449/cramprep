@@ -683,11 +683,16 @@
           try {
             const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
             const data = await res.json().catch(() => ({}));
-            if (res.ok && data && data.authenticated) {
-              setState(true);
-              return;
+            if (res.ok) {
+              const authFlag = data && Object.prototype.hasOwnProperty.call(data, 'authenticated')
+                ? Boolean(data.authenticated)
+                : true;
+              if (authFlag) {
+                setState(true);
+                return;
+              }
             }
-            if (res.status === 401 || res.status === 403) {
+            if (res.status === 401 || res.status === 403 || (res.ok && data && data.authenticated === false)) {
               try {
                 localStorage.removeItem('tbp_token');
                 localStorage.removeItem('tbp_user');
