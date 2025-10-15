@@ -629,6 +629,10 @@
 
         if (makeGuideBtn) makeGuideBtn.addEventListener('click', () => { window.location.href = 'jarvis-upload.html'; });
 
+        function getAuthToken(){
+          try { return localStorage.getItem('tbp_token') || ''; } catch { return ''; }
+        }
+
         let storedGuides = [];
         const questionCache = {};
         const guidePositions = {};
@@ -1177,8 +1181,7 @@
 
         async function fetchGuideQuestions(slug){
           const base = (window.TBP_AUTH_BASE || '').replace(/\/$/, '');
-          let token = null;
-          try { token = localStorage.getItem('tbp_token'); } catch {}
+          const token = getAuthToken();
           const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
           const res = await fetch(`${base}/ai/agent2/questions?lesson=${encodeURIComponent(slug)}&ordered=1&n=200`, {
             headers,
@@ -1194,6 +1197,13 @@
           storedGuides = loadStoredGuides();
           const guide = storedGuides.find(g => g.slug === slug);
           if (!guide) return;
+          const token = getAuthToken();
+          if (!token) {
+            if (resultsBody) {
+              resultsBody.innerHTML = '<p class="ps-outline-empty" style="border:none;background:none;padding:0;text-align:left;">Please log in to view the study guide problems.</p>';
+            }
+            return;
+          }
           currentGuideSlug = slug;
           highlightSelected();
           updateMetaForGuide(guide);
