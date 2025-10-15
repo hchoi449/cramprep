@@ -1744,7 +1744,7 @@ async function bootstrap() {
 
       // OCR each image: use tesseract CLI if present; otherwise Tesseract.js
       const ENABLE_TESSERACT = String(process.env.WORKSHEET_ENABLE_TESSERACT || '').trim() === '1';
-      const hasTessCli = runCmd('tesseract', ['-v']).code === 0;
+      const hasTessCli = ENABLE_TESSERACT && runCmd('tesseract', ['-v']).code === 0;
       // Flag to preserve glyphs (skip text normalization)
       const preserveGlyphsFlag = (String((req.query && req.query.preserveGlyphs) || (req.body && req.body.preserveGlyphs) || '').trim() === '1');
       const problems = [];
@@ -2079,8 +2079,14 @@ async function bootstrap() {
       const allInstructionLines = new Set();
       const allLinesPool = [];
       let pageNum = 0;
+      if (!ENABLE_TESSERACT){
+        console.log('[worksheet-process] Tesseract disabled; skipping local OCR segmentation.');
+      }
       for (const img of images){
         pageNum++;
+        if (!ENABLE_TESSERACT){
+          continue;
+        }
         let text = '';
         let linesWithBbox = [];
         if (hasTessCli){
@@ -2098,7 +2104,7 @@ async function bootstrap() {
           }
           linesWithBbox = Array.from(union.values()).sort((a,b)=> a.top - b.top || a.left - b.left);
           text = linesWithBbox.map(l=> l.text).join('\n');
-        } else {
+        } else if (ENABLE_TESSERACT){
           try {
             const o = await Tesseract.recognize(fs.readFileSync(img), 'eng', { logger:()=>{} });
             text = (o && o.data && o.data.text) || '';
