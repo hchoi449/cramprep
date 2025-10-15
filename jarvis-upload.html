@@ -463,20 +463,22 @@
         async function verifyAuth() {
           let token = null;
           try { token = localStorage.getItem('tbp_token'); } catch {}
-          if (!token) {
-            setState(false);
-            return;
-          }
           const base = (window.TBP_AUTH_BASE || '').replace(/\/$/, '');
           const url = base ? `${base}/auth/me` : '/auth/me';
           try {
-            const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+            const res = await fetch(url, { headers, credentials: 'include' });
             const data = await res.json().catch(() => ({}));
-            if (res.ok && data && data.authenticated) {
-              setState(true);
-              return;
+            if (res.ok) {
+              const authFlag = data && Object.prototype.hasOwnProperty.call(data, 'authenticated')
+                ? Boolean(data.authenticated)
+                : true;
+              if (authFlag) {
+                setState(true);
+                return;
+              }
             }
-            if (res.status === 401 || res.status === 403) {
+            if (res.status === 401 || res.status === 403 || (res.ok && data && data.authenticated === false)) {
               try {
                 localStorage.removeItem('tbp_token');
                 localStorage.removeItem('tbp_user');

@@ -674,14 +674,11 @@
         async function verifyAuth() {
           let token = null;
           try { token = localStorage.getItem('tbp_token'); } catch {}
-          if (!token) {
-            setState(false);
-            return;
-          }
           const base = (window.TBP_AUTH_BASE || '').replace(/\/$/, '');
           const url = base ? `${base}/auth/me` : '/auth/me';
           try {
-            const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+            const res = await fetch(url, { headers, credentials: 'include' });
             const data = await res.json().catch(() => ({}));
             if (res.ok) {
               const authFlag = data && Object.prototype.hasOwnProperty.call(data, 'authenticated')
@@ -1298,7 +1295,10 @@
           let token = null;
           try { token = localStorage.getItem('tbp_token'); } catch {}
           const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-          const res = await fetch(`${base}/ai/agent2/questions?lesson=${encodeURIComponent(slug)}&ordered=1&n=200`, { headers });
+          const res = await fetch(`${base}/ai/agent2/questions?lesson=${encodeURIComponent(slug)}&ordered=1&n=200`, {
+            headers,
+            credentials: 'include'
+          });
           const data = await res.json().catch(() => ({}));
           if (!res.ok || !data || !Array.isArray(data.questions)) throw new Error('failed_to_load');
           return data.questions;
