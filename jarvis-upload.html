@@ -440,25 +440,19 @@
         const warning = document.getElementById('jarvisAuthWarning');
         if (!jarvisApp || !warning) return;
 
-        function hasCachedCredentials(){
+        function hasCachedToken(){
           try {
             const token = localStorage.getItem('tbp_token');
-            if (token) return true;
-          } catch {}
-          try {
-            const rawUser = localStorage.getItem('tbp_user');
-            if (rawUser) {
-              const parsed = JSON.parse(rawUser);
-              if (parsed && (parsed.email || parsed.id || parsed.userId)) return true;
-            }
-          } catch {}
-          return false;
+            return Boolean(token);
+          } catch {
+            return false;
+          }
         }
 
         let lastAuthState = null;
 
         function setState(authenticated) {
-          const effective = authenticated || hasCachedCredentials();
+          const effective = authenticated || hasCachedToken();
           jarvisApp.hidden = !effective;
           warning.hidden = effective;
           if (authenticated) {
@@ -513,7 +507,7 @@
         }
 
         function init() {
-          const cached = hasCachedCredentials();
+          const cached = hasCachedToken();
           jarvisApp.hidden = !cached;
           warning.hidden = cached;
           if (cached) jarvisApp.removeAttribute('aria-hidden');
