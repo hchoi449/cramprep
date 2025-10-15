@@ -2076,11 +2076,11 @@ async function bootstrap() {
           return false;
         } catch { return false; }
       }
+      const allInstructionLines = new Set();
+      const allLinesPool = [];
       let worksheetInstruction = '';
       let pageNum = 0;
       if (ENABLE_TESSERACT){
-        const allInstructionLines = new Set();
-        const allLinesPool = [];
         for (const img of images){
           pageNum++;
           let text = '';
@@ -2179,8 +2179,18 @@ async function bootstrap() {
             worksheetInstruction = String(best||'').slice(0, 1200);
           } catch {}
         }
+        worksheetInstruction = Array.from(allInstructionLines).join(' ').slice(0, 1200);
+        if (!worksheetInstruction){
+          try {
+            const candidates = Array.from(new Set(allLinesPool.filter(l=> l && !/^(\(?\d+\)?[.)]|[A-D][.)])\s+/.test(l))))
+              .sort((a,b)=> b.length - a.length);
+            const best = candidates.find(s=> s.length >= 50) || candidates[0] || '';
+            worksheetInstruction = String(best||'').slice(0, 1200);
+          } catch {}
+        }
       } else {
         pageNum = images.length;
+        worksheetInstruction = '';
       }
       // Store minimally to Mongo (raw extraction), keyed to lessonSlug
       const client3 = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
@@ -2202,15 +2212,6 @@ async function bootstrap() {
         const last = (u.pathname || '').split('/').filter(Boolean).pop() || '';
         sourceName = last && /\.pdf$/i.test(last) ? last : `${lessonTitle||lessonSlug}.pdf`;
       } catch { sourceName = `${lessonTitle||lessonSlug}.pdf`; }
-      let worksheetInstruction = Array.from(allInstructionLines).join(' ').slice(0, 1200);
-      if (!worksheetInstruction){
-        try {
-          const candidates = Array.from(new Set(allLinesPool.filter(l=> l && !/^(\(?\d+\)?[.)]|[A-D][.)])\s+/.test(l))))
-            .sort((a,b)=> b.length - a.length);
-          const best = candidates.find(s=> s.length >= 50) || candidates[0] || '';
-          worksheetInstruction = String(best||'').slice(0, 1200);
-        } catch {}
-      }
       // Backfill/update instruction on existing OCR docs for this lesson
       try { if (worksheetInstruction) await col.updateMany({ lessonSlug, generator:'worksheet-ocr' }, { $set: { worksheetInstruction } }); } catch {}
       let inserted = 0;
