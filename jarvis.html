@@ -20,6 +20,18 @@
       .ps-lesson.active{background:#8B4513;color:#fff;border-color:#8B4513;}
       .ps-lesson:focus-visible{outline:2px solid #8B4513;outline-offset:2px;}
       .ps-outline-empty{padding:14px;border-radius:10px;border:1px dashed #e5e7eb;color:#6b7280;background:#fff;margin-top:10px;text-align:center;font-size:.95rem;}
+      .ps-lesson-row{display:flex;align-items:center;gap:8px;margin:6px 0;}
+      .ps-lesson-row .ps-lesson{margin:0;flex:1;}
+      .ps-lesson-delete{border:1px solid #fee2e2;background:#fff;color:#b91c1c;border-radius:8px;padding:6px 10px;font-size:.8rem;font-weight:600;cursor:pointer;transition:background .2s ease;}
+      .ps-lesson-delete:hover,.ps-lesson-delete:focus-visible{background:#fee2e2;}
+      .ps-opt.sel{border-color:#8B4513;background:#fbf5ee;}
+      .ps-opt.correct{border-color:#16a34a;background:#dcfce7;color:#065f46;}
+      .ps-opt.wrong{border-color:#b91c1c;background:#fee2e2;color:#7f1d1d;}
+      .ps-q-nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;}
+      .ps-q-nav button{min-width:120px;}
+      .ps-q-progress{font-weight:700;color:#6b3410;}
+      .ps-q-content{min-height:260px;}
+      .ps-q-feedback{min-height:24px;font-weight:600;}
       .ps-exam-meta{margin-bottom:16px;padding:14px;border:1px solid #f0e2d0;border-radius:12px;background:#fbf5ee;color:#6b3410;}
       .ps-exam-meta h3{margin:0;font-size:1.15rem;font-weight:800;color:#6b3410;}
       .ps-exam-meta p{margin:4px 0 0;font-size:.95rem;color:#6b7280;}
@@ -30,7 +42,7 @@
       .ps-question-stem{font-size:1.2rem;font-weight:700;margin-bottom:12px;}
       .ps-instruction{font-size:1rem;color:#4b5563;margin-bottom:12px;white-space:pre-wrap;}
       .ps-opts{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;}
-      .ps-opt{display:flex;align-items:flex-start;gap:10px;border:1px solid #efe7dc;border-radius:10px;padding:12px 14px;background:#fbf5ee;color:#1f2937;}
+      .ps-opt{display:flex;align-items:flex-start;gap:10px;border:1px solid #efe7dc;border-radius:10px;padding:12px 14px;background:#fbf5ee;color:#1f2937;cursor:pointer;text-align:left;width:100%;transition:background .15s ease,border-color .15s ease;}
       .ps-opt-label{font-weight:700;min-width:24px;}
       .ps-explain{flex:1;min-width:0;white-space:pre-wrap;}
       .ps-solution{margin-top:18px;padding:14px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;}
@@ -97,6 +109,9 @@
               <h3 id="jarvisExamTitle">Your Study Guides</h3>
               <p id="jarvisExamDate" style="display:none;"></p>
               <p id="jarvisExamDetails" style="display:none;"></p>
+            </div>
+            <div id="jarvisGuideActions" style="display:none;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+              <button type="button" id="jarvisClearGuidesBtn" class="btn btn-secondary" style="flex:1;">Clear All</button>
             </div>
             <div id="jarvisResultsOutline"></div>
             <div id="jarvisResultsEmpty" class="ps-outline-empty">Use "Make a Study Guide" to upload worksheets and populate this list.</div>
@@ -216,11 +231,14 @@
         const resultsTitle = document.getElementById('jarvisResultTitle');
         const resultsBody = document.getElementById('jarvisResultBody');
         const resultsExamDetails = document.getElementById('jarvisExamDetails');
+        const guideActions = document.getElementById('jarvisGuideActions');
+        const clearGuidesBtn = document.getElementById('jarvisClearGuidesBtn');
 
         if (makeGuideBtn) makeGuideBtn.addEventListener('click', () => { window.location.href = 'jarvis-upload.html'; });
 
         let storedGuides = [];
         const questionCache = {};
+        const guidePositions = {};
         let currentGuideSlug = null;
 
         function loadStoredGuides(){
@@ -245,6 +263,53 @@
           const title = (guide.title || guide.slug || 'Study Guide').trim();
           const dateLabel = formatExamDateLabel(guide.examDate);
           return dateLabel ? `${title} — ${dateLabel}` : title;
+        }
+
+        function deleteGuide(slug){
+          if (!slug) return;
+          const guides = loadStoredGuides().filter(g => g.slug !== slug);
+          try { localStorage.setItem('jarvisGuides', JSON.stringify(guides)); } catch {}
+          const latest = localStorage.getItem('jarvisLatestGuide');
+          if (latest === slug){
+            if (guides.length) localStorage.setItem('jarvisLatestGuide', guides[0].slug);
+            else localStorage.removeItem('jarvisLatestGuide');
+          }
+          delete questionCache[slug];
+          delete guidePositions[slug];
+          const wasCurrent = currentGuideSlug === slug;
+          storedGuides = guides;
+          if (wasCurrent){
+            currentGuideSlug = guides.length ? guides[0].slug : null;
+          }
+          renderGuideList();
+          if (currentGuideSlug){
+            openGuide(currentGuideSlug);
+          } else {
+            Object.keys(questionCache).forEach(key => {
+              if (!guides.some(g => g.slug === key)) delete questionCache[key];
+            });
+          }
+          try { window.dispatchEvent(new CustomEvent('tbp:jarvis:guides-updated')); } catch {}
+        }
+
+        function clearAllGuides(){
+          if (!storedGuides.length) return;
+          const confirmClear = window.confirm('Delete all saved study guides? This cannot be undone.');
+          if (!confirmClear) return;
+          try {
+            localStorage.removeItem('jarvisGuides');
+            localStorage.removeItem('jarvisLatestGuide');
+          } catch {}
+          storedGuides = [];
+          currentGuideSlug = null;
+          Object.keys(questionCache).forEach(key => delete questionCache[key]);
+          Object.keys(guidePositions).forEach(key => delete guidePositions[key]);
+          renderGuideList();
+          try { window.dispatchEvent(new CustomEvent('tbp:jarvis:guides-updated')); } catch {}
+        }
+
+        if (clearGuidesBtn){
+          clearGuidesBtn.addEventListener('click', clearAllGuides);
         }
 
         function highlightSelected(){
@@ -289,6 +354,12 @@
           if (!resultsOutline) return;
           storedGuides = loadStoredGuides();
           resultsOutline.innerHTML = '';
+          if (guideActions){
+            guideActions.style.display = storedGuides.length ? 'flex' : 'none';
+          }
+          if (clearGuidesBtn){
+            clearGuidesBtn.disabled = storedGuides.length === 0;
+          }
           if (!storedGuides.length){
             if (resultsEmpty) {
               resultsEmpty.style.display = '';
@@ -309,96 +380,45 @@
 
           if (resultsEmpty) resultsEmpty.style.display = 'none';
           storedGuides.forEach(guide => {
+            const row = document.createElement('div');
+            row.className = 'ps-lesson-row';
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'ps-lesson';
             btn.dataset.slug = guide.slug;
             btn.textContent = formatGuideLabel(guide);
             btn.addEventListener('click', () => openGuide(guide.slug));
-            resultsOutline.appendChild(btn);
+            const delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.className = 'ps-lesson-delete';
+            delBtn.setAttribute('aria-label', `Delete ${guide.title || guide.slug}`);
+            delBtn.textContent = 'Delete';
+            delBtn.addEventListener('click', (event) => {
+              event.stopPropagation();
+              deleteGuide(guide.slug);
+            });
+            row.appendChild(btn);
+            row.appendChild(delBtn);
+            resultsOutline.appendChild(row);
           });
           highlightSelected();
         }
 
-        function renderGuideContent(guide, questions){
-          updateMetaForGuide(guide);
-          if (!resultsBody) return;
-          resultsBody.innerHTML = '';
-          if (!Array.isArray(questions) || !questions.length){
-            resultsBody.innerHTML = '<p class="ps-outline-empty" style="border:none;background:none;padding:0;text-align:left;">No problems available yet for this study guide.</p>';
-            return;
+        function formatDisplayText(val){
+          if (val === null || typeof val === 'undefined') return '';
+          if (typeof val === 'string') return val;
+          if (Array.isArray(val)) return val.map(formatDisplayText).join('\n');
+          if (typeof val === 'object'){
+            if (typeof val.latex === 'string' && val.latex.trim()) return val.latex;
+            if (typeof val.text === 'string' && val.text.trim()) return val.text;
           }
+          return String(val);
+        }
 
-          questions.forEach((q, idx) => {
-            const wrapper = document.createElement('article');
-            wrapper.className = 'ps-q-card';
-            wrapper.style.marginBottom = '26px';
-
-            const heading = document.createElement('h3');
-            heading.className = 'ps-question-stem';
-            heading.textContent = `Problem ${idx + 1}`;
-            wrapper.appendChild(heading);
-
-            if (q.instruction){
-              const instruct = document.createElement('p');
-              instruct.className = 'ps-instruction';
-              instruct.textContent = q.instruction;
-              wrapper.appendChild(instruct);
-            }
-
-            if (q.stem){
-              const stem = document.createElement('p');
-              stem.className = 'ps-instruction';
-              stem.style.fontWeight = '600';
-              stem.textContent = q.stem;
-              wrapper.appendChild(stem);
-            }
-
-            if (Array.isArray(q.options) && q.options.length){
-              const opts = document.createElement('div');
-              opts.className = 'ps-opts';
-              q.options.forEach((opt, optIdx) => {
-                const row = document.createElement('div');
-                row.className = 'ps-opt';
-                const label = document.createElement('span');
-                label.className = 'ps-opt-label';
-                label.textContent = `${String.fromCharCode(65 + optIdx)}.`;
-                const text = document.createElement('span');
-                text.className = 'ps-explain';
-                text.textContent = opt;
-                row.appendChild(label);
-                row.appendChild(text);
-                opts.appendChild(row);
-              });
-              wrapper.appendChild(opts);
-            }
-
-            if (q.solution || q.answer){
-              const sol = document.createElement('div');
-              sol.className = 'ps-solution';
-              const headingSol = document.createElement('h4');
-              headingSol.textContent = 'Solution';
-              sol.appendChild(headingSol);
-              if (q.solution){
-                const solBody = document.createElement('p');
-                solBody.textContent = q.solution;
-                sol.appendChild(solBody);
-              }
-              if (q.answer){
-                const answer = document.createElement('p');
-                answer.className = 'ps-answer';
-                answer.textContent = `Answer: ${q.answer}`;
-                sol.appendChild(answer);
-              }
-              wrapper.appendChild(sol);
-            }
-
-            resultsBody.appendChild(wrapper);
-          });
-
+        function applyMath(el){
           try {
             if (window.renderMathInElement) {
-              window.renderMathInElement(resultsBody, {
+              window.renderMathInElement(el, {
                 delimiters: [
                   { left: '\\(', right: '\\)', display: false },
                   { left: '\\[', right: '\\]', display: true },
@@ -413,12 +433,295 @@
           }
         }
 
+        function renderGuideContent(guide, questions){
+          updateMetaForGuide(guide);
+          if (!resultsBody) return;
+          resultsBody.innerHTML = '';
+          if (!Array.isArray(questions) || !questions.length){
+            resultsBody.innerHTML = '<p class="ps-outline-empty" style="border:none;background:none;padding:0;text-align:left;">No problems available yet for this study guide.</p>';
+            return;
+          }
+
+          const total = questions.length;
+          let index = Math.max(0, Math.min(Number.isInteger(guidePositions[guide.slug]) ? guidePositions[guide.slug] : 0, total - 1));
+          guidePositions[guide.slug] = index;
+
+          const viewer = document.createElement('div');
+          viewer.className = 'ps-q-viewer';
+          const nav = document.createElement('div');
+          nav.className = 'ps-q-nav';
+          const prevBtn = document.createElement('button');
+          prevBtn.type = 'button';
+          prevBtn.className = 'btn btn-secondary';
+          prevBtn.textContent = 'Previous';
+          const nextBtn = document.createElement('button');
+          nextBtn.type = 'button';
+          nextBtn.className = 'btn btn-secondary';
+          nextBtn.textContent = 'Next';
+          const progress = document.createElement('div');
+          progress.className = 'ps-q-progress';
+          nav.appendChild(prevBtn);
+          nav.appendChild(progress);
+          nav.appendChild(nextBtn);
+
+          const content = document.createElement('div');
+          content.className = 'ps-q-content';
+          viewer.appendChild(nav);
+          viewer.appendChild(content);
+          resultsBody.appendChild(viewer);
+
+          function updateNavState(){
+            progress.textContent = `Problem ${index + 1} of ${total}`;
+            prevBtn.disabled = total <= 1 || index === 0;
+            nextBtn.disabled = total <= 1 || index === total - 1;
+          }
+
+          function setIndex(newIndex){
+            index = Math.max(0, Math.min(newIndex, total - 1));
+            guidePositions[guide.slug] = index;
+            renderProblem();
+          }
+
+          function renderProblem(){
+            updateNavState();
+            const question = questions[index];
+            content.innerHTML = '';
+            if (!question){
+              const empty = document.createElement('p');
+              empty.className = 'ps-outline-empty';
+              empty.style.border = 'none';
+              empty.style.background = 'none';
+              empty.style.padding = '0';
+              empty.style.textAlign = 'left';
+              empty.textContent = 'Problem unavailable.';
+              content.appendChild(empty);
+              return;
+            }
+
+            const card = document.createElement('article');
+            card.className = 'ps-q-card';
+            card.style.marginBottom = '0';
+            content.appendChild(card);
+
+            const heading = document.createElement('h3');
+            heading.className = 'ps-question-stem';
+            heading.textContent = `Problem ${index + 1}`;
+            card.appendChild(heading);
+
+            const instructionText = formatDisplayText(question.instruction || question.instructions || '');
+            if (instructionText){
+              const instruct = document.createElement('p');
+              instruct.className = 'ps-instruction';
+              instruct.textContent = instructionText;
+              card.appendChild(instruct);
+            }
+
+            const stemText = formatDisplayText(
+              question.stem_latex ||
+              question.stem ||
+              question.stimulus_latex ||
+              question.stimulus_text ||
+              question.promptLatex ||
+              question.prompt ||
+              question.question ||
+              ''
+            );
+            if (stemText){
+              const stem = document.createElement('p');
+              stem.className = 'ps-instruction';
+              stem.style.fontWeight = '600';
+              stem.textContent = stemText;
+              card.appendChild(stem);
+            }
+
+            const imageUrl = question.imageUrl || question.image || question.pngUrl || '';
+            if (imageUrl){
+              const imgWrap = document.createElement('div');
+              imgWrap.style.margin = '14px 0';
+              imgWrap.style.textAlign = 'center';
+              const img = document.createElement('img');
+              img.src = imageUrl;
+              img.alt = 'Worksheet reference';
+              img.style.maxWidth = '100%';
+              img.style.borderRadius = '12px';
+              img.style.boxShadow = '0 8px 26px rgba(0,0,0,0.08)';
+              imgWrap.appendChild(img);
+              card.appendChild(imgWrap);
+            }
+
+            let selectedIdx = null;
+            const optionButtons = [];
+
+            const options = Array.isArray(question.options) ? question.options : [];
+            if (options.length){
+              const opts = document.createElement('div');
+              opts.className = 'ps-opts';
+              options.forEach((opt, optIdx) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'ps-opt';
+                btn.textContent = formatDisplayText(opt);
+                btn.dataset.optionIndex = String(optIdx);
+                btn.addEventListener('click', () => {
+                  optionButtons.forEach(b => {
+                    b.classList.remove('sel', 'correct', 'wrong');
+                    b.setAttribute('aria-pressed', 'false');
+                  });
+                  btn.classList.add('sel');
+                  btn.setAttribute('aria-pressed', 'true');
+                  selectedIdx = optIdx;
+                  feedback.textContent = '';
+                  feedback.style.color = '';
+                  actionBtn.textContent = 'Check';
+                  actionBtn.dataset.mode = 'check';
+                  solutionBox.style.display = 'none';
+                });
+                optionButtons.push(btn);
+                opts.appendChild(btn);
+              });
+              card.appendChild(opts);
+            } else {
+              const notice = document.createElement('p');
+              notice.className = 'ps-outline-empty';
+              notice.style.border = 'none';
+              notice.style.background = 'none';
+              notice.style.padding = '0';
+              notice.style.textAlign = 'left';
+              notice.textContent = 'No multiple-choice options available for this problem.';
+              card.appendChild(notice);
+            }
+
+            const actions = document.createElement('div');
+            actions.className = 'ps-q-actions';
+            actions.style.display = 'flex';
+            actions.style.flexDirection = 'column';
+            actions.style.gap = '12px';
+            actions.style.marginTop = '18px';
+            card.appendChild(actions);
+
+            const feedback = document.createElement('div');
+            feedback.className = 'ps-q-feedback';
+            feedback.setAttribute('role', 'status');
+            actions.appendChild(feedback);
+
+            const actionBtn = document.createElement('button');
+            actionBtn.type = 'button';
+            actionBtn.className = 'btn btn-primary';
+            actionBtn.textContent = 'Check';
+            actionBtn.dataset.mode = 'check';
+            actions.appendChild(actionBtn);
+
+            const solutionBox = document.createElement('div');
+            solutionBox.className = 'ps-solution';
+            solutionBox.style.display = 'none';
+            const solHeading = document.createElement('h4');
+            solHeading.textContent = 'Solution';
+            solutionBox.appendChild(solHeading);
+            const solBody = document.createElement('p');
+            solutionBox.appendChild(solBody);
+            const answerLine = document.createElement('p');
+            answerLine.className = 'ps-answer';
+            solutionBox.appendChild(answerLine);
+            card.appendChild(solutionBox);
+
+            const correctIndex = Number.isInteger(question.correct) ? Number(question.correct) :
+              Number.isInteger(question.answer_index) ? Number(question.answer_index) :
+              (Array.isArray(options) ? 0 : -1);
+
+            function revealSolution(){
+              const explanation = formatDisplayText(question.explanation || question.solution || '');
+              const answerText = formatDisplayText(question.answer || (Array.isArray(options) ? options[correctIndex] : ''));
+              if (explanation){
+                solBody.textContent = explanation;
+                solBody.style.display = '';
+              } else {
+                solBody.textContent = '';
+                solBody.style.display = 'none';
+              }
+              if (answerText){
+                answerLine.textContent = `Answer: ${answerText}`;
+                answerLine.style.display = '';
+              } else {
+                answerLine.textContent = '';
+                answerLine.style.display = 'none';
+              }
+              solutionBox.style.display = explanation || answerText ? '' : 'none';
+              applyMath(solutionBox);
+            }
+
+            if (!options.length){
+              revealSolution();
+              if (!feedback.textContent){
+                feedback.textContent = 'Review the walkthrough below.';
+                feedback.style.color = '#6b3410';
+              }
+              actionBtn.disabled = true;
+            }
+
+            function handleCheck(){
+              if (actionBtn.dataset.mode === 'next'){
+                if (index < total - 1){
+                  setIndex(index + 1);
+                } else {
+                  setIndex(0);
+                }
+                return;
+              }
+              if (!options.length){
+                feedback.textContent = 'No answer choices available.';
+                feedback.style.color = '#b45309';
+                return;
+              }
+              if (selectedIdx === null){
+                feedback.textContent = 'Please select an answer.';
+                feedback.style.color = '#b45309';
+                return;
+              }
+              const isCorrect = Number(correctIndex) === Number(selectedIdx);
+              optionButtons.forEach(btn => {
+                btn.classList.remove('correct', 'wrong');
+                const idx = Number(btn.dataset.optionIndex);
+                if (isCorrect && idx === selectedIdx){
+                  btn.classList.add('correct');
+                } else if (!isCorrect && idx === selectedIdx){
+                  btn.classList.add('wrong');
+                }
+              });
+              if (isCorrect){
+                feedback.textContent = 'Great job! That is correct.';
+                feedback.style.color = '#065f46';
+                actionBtn.textContent = index < total - 1 ? 'Next Problem' : 'Restart';
+                actionBtn.dataset.mode = 'next';
+                optionButtons.forEach(btn => btn.disabled = true);
+                revealSolution();
+              } else {
+                feedback.textContent = 'Not quite. Try again.';
+                feedback.style.color = '#b91c1c';
+                actionBtn.textContent = 'Try Again';
+                actionBtn.dataset.mode = 'check';
+              }
+            }
+
+            actionBtn.addEventListener('click', handleCheck);
+            applyMath(card);
+          }
+
+          prevBtn.addEventListener('click', () => {
+            if (index > 0) setIndex(index - 1);
+          });
+          nextBtn.addEventListener('click', () => {
+            if (index < total - 1) setIndex(index + 1);
+          });
+
+          renderProblem();
+        }
+
         async function fetchGuideQuestions(slug){
           const base = (window.TBP_AUTH_BASE || '').replace(/\/$/, '');
           let token = null;
           try { token = localStorage.getItem('tbp_token'); } catch {}
           const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-          const res = await fetch(`${base}/ai/agent2/questions?lesson=${encodeURIComponent(slug)}&ordered=1&n=40`, { headers });
+          const res = await fetch(`${base}/ai/agent2/questions?lesson=${encodeURIComponent(slug)}&ordered=1&n=20`, { headers });
           const data = await res.json().catch(() => ({}));
           if (!res.ok || !data || !Array.isArray(data.questions)) throw new Error('failed_to_load');
           return data.questions;
@@ -433,6 +736,7 @@
           highlightSelected();
           updateMetaForGuide(guide);
           localStorage.setItem('jarvisLatestGuide', slug);
+          if (!Number.isInteger(guidePositions[slug])) guidePositions[slug] = 0;
 
           if (questionCache[slug]) {
             renderGuideContent(guide, questionCache[slug]);
