@@ -1743,11 +1743,15 @@ async function bootstrap() {
       }
 
       // OCR each image: use tesseract CLI if present; otherwise Tesseract.js
+      const ENABLE_TESSERACT = String(process.env.WORKSHEET_ENABLE_TESSERACT || '').trim() === '1';
       const hasTessCli = runCmd('tesseract', ['-v']).code === 0;
       // Flag to preserve glyphs (skip text normalization)
       const preserveGlyphsFlag = (String((req.query && req.query.preserveGlyphs) || (req.body && req.body.preserveGlyphs) || '').trim() === '1');
       const problems = [];
       let pid = 1;
+      if (!ENABLE_TESSERACT){
+        console.log('[worksheet-process] Tesseract disabled via WORKSHEET_ENABLE_TESSERACT; skipping OCR segmentation.');
+      } else {
       function normalizeOcrText(input){
         if (preserveGlyphsFlag) return String(input||'');
         try {
@@ -2176,6 +2180,7 @@ async function bootstrap() {
         }
       }
 
+      }
       // Store minimally to Mongo (raw extraction), keyed to lessonSlug
       const client3 = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
       await client3.connect();
