@@ -72,33 +72,6 @@
       .jarvis-nav a[aria-current="page"]:hover{
         background: linear-gradient(135deg, #7f3f12 0%, #9d5625 100%);
       }
-      .jarvis-warning{
-        padding: 26px 30px;
-        border-radius: 24px;
-        border: 1px solid rgba(139,69,19,0.18);
-        background: #fff7f5;
-        color: #8B4513;
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-        box-shadow: 0 24px 60px -36px rgba(139,69,19,0.4);
-      }
-      .jarvis-warning-title{
-        margin: 0;
-        font-size: 1.6rem;
-        font-weight: 700;
-        color: #8B4513;
-      }
-      .jarvis-warning-text{
-        margin: 4px 0 0;
-        color: #8B4513;
-        max-width: 540px;
-      }
-      .jarvis-warning .warning-actions{
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-      }
       .jarvis-hero{
         padding: 34px 36px;
         border-radius: 30px;
@@ -549,17 +522,6 @@
     </header>
 
     <main class="jarvis-shell">
-      <section id="jarvisAuthWarning" class="jarvis-warning" aria-live="polite" hidden>
-        <div>
-          <h1 class="jarvis-warning-title">Login Required</h1>
-          <p class="jarvis-warning-text">Please sign in to your ThinkBigPrep account to access Jarvis and upload study materials.</p>
-        </div>
-        <div class="warning-actions">
-          <a href="login.html" class="btn btn-primary student-login-link">Log In</a>
-          <a href="index.html#home" class="btn btn-secondary">Back to Home</a>
-        </div>
-      </section>
-
       <div id="jarvisApp">
         <nav class="jarvis-nav" aria-label="Jarvis navigation">
           <a href="jarvis.html" aria-current="page">
@@ -649,96 +611,6 @@
     <script>window.TBP_AUTH_BASE='https://cramprep.onrender.com';</script>
     <script src="index.js"></script>
     <script src="login.js?v=1.0"></script>
-    <script>
-      (function(){
-        const jarvisApp = document.getElementById('jarvisApp');
-        const warning = document.getElementById('jarvisAuthWarning');
-        if (!jarvisApp || !warning) return;
-
-        function hasCachedToken(){
-          try {
-            const token = localStorage.getItem('tbp_token');
-            return Boolean(token);
-          } catch {
-            return false;
-          }
-        }
-
-        let lastAuthState = null;
-
-        function setState(authenticated) {
-          const effective = authenticated || hasCachedToken();
-          jarvisApp.hidden = !effective;
-          warning.hidden = effective;
-          if (effective) jarvisApp.removeAttribute('aria-hidden');
-          else jarvisApp.setAttribute('aria-hidden', 'true');
-          if (authenticated && lastAuthState !== true) {
-            try { window.dispatchEvent(new CustomEvent('tbp:jarvis:authenticated')); } catch {}
-          }
-          if (!authenticated && lastAuthState === true) {
-            try { window.dispatchEvent(new CustomEvent('tbp:jarvis:unauthenticated')); } catch {}
-          }
-          lastAuthState = authenticated;
-        }
-
-        async function verifyAuth() {
-          let token = null;
-          try { token = localStorage.getItem('tbp_token'); } catch {}
-          const base = (window.TBP_AUTH_BASE || '').replace(/\/$/, '');
-          const url = base ? `${base}/auth/me` : '/auth/me';
-          try {
-            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-            const res = await fetch(url, { headers, credentials: 'include' });
-            const data = await res.json().catch(() => ({}));
-            if (res.ok) {
-              const authFlag = data && Object.prototype.hasOwnProperty.call(data, 'authenticated')
-                ? Boolean(data.authenticated)
-                : true;
-              if (authFlag) {
-                setState(true);
-                return;
-              }
-            }
-            if (res.status === 401 || res.status === 403 || (res.ok && data && data.authenticated === false)) {
-              try {
-                localStorage.removeItem('tbp_token');
-                localStorage.removeItem('tbp_user');
-              } catch {}
-              setState(false);
-              return;
-            }
-            console.warn('Unexpected auth response', res.status, data);
-            setState(true);
-            return;
-          } catch (err) {
-            console.warn('Jarvis auth verification failed', err);
-            setState(true);
-            return;
-          }
-        }
-
-        function init() {
-          const cached = hasCachedToken();
-          jarvisApp.hidden = !cached;
-          warning.hidden = cached;
-          if (cached) jarvisApp.removeAttribute('aria-hidden');
-          else jarvisApp.setAttribute('aria-hidden', 'true');
-          verifyAuth();
-        }
-
-        init();
-        window.addEventListener('tbp:auth:login', verifyAuth);
-        window.addEventListener('storage', function(e){
-          if (!e) return;
-          if (e.key === 'jarvisGuides') {
-            try { window.dispatchEvent(new CustomEvent('tbp:jarvis:guides-updated')); } catch {}
-          }
-          if (e.key === 'tbp_token' || e.key === 'tbp_user') {
-            verifyAuth();
-          }
-        });
-      })();
-    </script>
     <script>
       (function(){
         const makeGuideBtn = document.getElementById('jarvisMakeGuideBtn');
