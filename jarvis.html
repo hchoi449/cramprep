@@ -415,6 +415,18 @@
           return String(val);
         }
 
+        function maybeWrapLatex(input){
+          const str = (input || '').toString();
+          const trimmed = str.trim();
+          if (!trimmed) return '';
+          const hasDelimiters = /\\\(|\\\[|\\begin|\$\$?/.test(trimmed);
+          const looksLatex = /\\[a-zA-Z]+|_\\{|\\^\\{|\\frac|\\sqrt|\\pi|\\theta|\\int|\\sum|\\sin|\\cos|\\tan|\\leq|\\geq|\\neq/.test(trimmed);
+          if (looksLatex && !hasDelimiters){
+            return `\\(${trimmed}\\)`;
+          }
+          return str;
+        }
+
         function applyMath(el){
           try {
             if (window.renderMathInElement) {
@@ -508,7 +520,7 @@
             heading.textContent = `Problem ${index + 1}`;
             card.appendChild(heading);
 
-            const instructionText = formatDisplayText(question.instruction || question.instructions || '');
+            const instructionText = maybeWrapLatex(formatDisplayText(question.instruction || question.instructions || ''));
             if (instructionText){
               const instruct = document.createElement('p');
               instruct.className = 'ps-instruction';
@@ -516,7 +528,7 @@
               card.appendChild(instruct);
             }
 
-            const stemText = formatDisplayText(
+            const stemTextRaw = formatDisplayText(
               question.stem_latex ||
               question.stem ||
               question.stimulus_latex ||
@@ -526,6 +538,7 @@
               question.question ||
               ''
             );
+            const stemText = maybeWrapLatex(stemTextRaw);
             if (stemText){
               const stem = document.createElement('p');
               stem.className = 'ps-instruction';
@@ -560,7 +573,7 @@
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.className = 'ps-opt';
-                btn.textContent = formatDisplayText(opt);
+                btn.textContent = maybeWrapLatex(formatDisplayText(opt));
                 btn.dataset.optionIndex = String(optIdx);
                 btn.addEventListener('click', () => {
                   optionButtons.forEach(b => {
@@ -629,8 +642,8 @@
               (Array.isArray(options) ? 0 : -1);
 
             function revealSolution(){
-              const explanation = formatDisplayText(question.explanation || question.solution || '');
-              const answerText = formatDisplayText(question.answer || (Array.isArray(options) ? options[correctIndex] : ''));
+              const explanation = maybeWrapLatex(formatDisplayText(question.explanation || question.solution || ''));
+              const answerText = maybeWrapLatex(formatDisplayText(question.answer || (Array.isArray(options) ? options[correctIndex] : '')));
               if (explanation){
                 solBody.textContent = explanation;
                 solBody.style.display = '';
@@ -721,7 +734,7 @@
           let token = null;
           try { token = localStorage.getItem('tbp_token'); } catch {}
           const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-          const res = await fetch(`${base}/ai/agent2/questions?lesson=${encodeURIComponent(slug)}&ordered=1&n=20`, { headers });
+          const res = await fetch(`${base}/ai/agent2/questions?lesson=${encodeURIComponent(slug)}&ordered=1&n=60`, { headers });
           const data = await res.json().catch(() => ({}));
           if (!res.ok || !data || !Array.isArray(data.questions)) throw new Error('failed_to_load');
           return data.questions;
