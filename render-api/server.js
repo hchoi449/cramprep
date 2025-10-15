@@ -3814,11 +3814,8 @@ async function bootstrap() {
 
       const collected = [];
       const groupOutputs = await runConcurrentGroups(groups, concurrencyLimit);
-      groupOutputs.forEach((parsed, idx) => {
-        if (parsed && parsed.problems && Array.isArray(parsed.problems)){
-          const imageUrl = (groups[idx] && groups[idx][0]) || null;
-          collected.push({ parsed, imageUrl, index: idx });
-        }
+      groupOutputs.forEach(parsed => {
+        if (parsed && parsed.problems && Array.isArray(parsed.problems)) collected.push(parsed);
       });
 
       // Merge collected results
@@ -3827,9 +3824,7 @@ async function bootstrap() {
       let finalStudentName = normalizedStudentName;
       let finalStudentEmail = normalizedStudentEmail;
       const merged = [];
-      for (const entry of collected){
-        const block = entry.parsed;
-        const imageUrlForBlock = entry.imageUrl || null;
+      for (const block of collected){
         if (!finalTitle){ finalTitle = texFieldToString(block.title) || finalTitle; }
         if (!finalExamTitle){
           const extractedExamTitle = texFieldToString(block.exam_title);
@@ -3850,7 +3845,7 @@ async function bootstrap() {
           const options = Array.isArray(p.options) ? p.options.map(texFieldToString).map(normalizeLatex).filter(Boolean).slice(0,6) : [];
           const answer_index = Number.isInteger(p.answer_index) ? p.answer_index : 0;
           const difficulty = (p.difficulty||'').toString().toLowerCase();
-          merged.push({ number: num, text, instruction, options, answer_index, difficulty, rawQuestion:p, imageUrl: imageUrlForBlock });
+          merged.push({ number: num, text, instruction, options, answer_index, difficulty, rawQuestion:p });
         }
       }
 
@@ -3860,7 +3855,6 @@ async function bootstrap() {
       const storedStudentEmail = (finalStudentEmail || normalizedStudentEmail || '').toString().trim();
       const storedExamTitle = (finalExamTitle || normalizedExamTitle || '').toString().trim();
       const validatedDocs = [];
-      const visionRecords = [];
       for (const m of merged){
         if (!m.text) continue;
         let idx = (Number.isInteger(m.answer_index) ? m.answer_index : null);
@@ -3930,40 +3924,15 @@ async function bootstrap() {
           validated: idx !== null && method !== 'generated_options',
           validationMethod: method
         });
-        visionRecords.push({
-          lessonSlug,
-          lessonTitle: finalTitle || lessonSlug,
-          sourceType: 'worksheet-vision',
-          sourceUrl: m.imageUrl || null,
-          problemNumber: m.number || null,
-          stem: normalizedStem,
-          instruction: normalizedInstruction,
-          options: normalizedOptions,
-          correct: correctIndex,
-          difficulty: (/easy|medium|hard/i.test(m.difficulty||'') ? m.difficulty : 'medium'),
-          raw: m.rawQuestion || null,
-          createdAt: nowIso
-        });
       }
 
       // Insert into questionbank
       const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
       await client.connect();
       const col = await getQuestionCollection(client);
-      const qsrcCol = await getQSourcesCollection(client);
       let inserted = 0;
-      let visionInserted = 0;
       if (validatedDocs.length){
         try { const r = await col.insertMany(validatedDocs, { ordered: false }); inserted = (r && r.insertedCount) || validatedDocs.length; } catch { inserted = validatedDocs.length; }
-      }
-      if (visionRecords.length){
-        try {
-          const result = await qsrcCol.insertMany(visionRecords, { ordered: false });
-          visionInserted = (result && result.insertedCount) || visionRecords.length;
-        } catch (err){
-          console.warn('[worksheet-extract] vision record insert failed', err && err.message || err);
-          visionInserted = 0;
-        }
       }
       await client.close();
       return res.json({
@@ -3971,7 +3940,6 @@ async function bootstrap() {
         title: finalTitle || null,
         problems: validatedDocs.length,
         inserted,
-        visionInserted,
         studentFullName: storedStudentName || null,
         studentEmail: storedStudentEmail || null,
         examTitle: storedExamTitle || null,
