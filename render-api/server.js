@@ -3725,13 +3725,27 @@ async function bootstrap() {
       };
 
       // Helper to choose TexField as plain string (prefer latex, else text)
-      function texFieldToString(tf){
-        if (!tf) return '';
-        if (typeof tf === 'string') return tf.trim();
-        if (tf.latex && typeof tf.latex === 'string' && tf.latex.trim()) return String(tf.latex).trim();
-        if (tf.text && typeof tf.text === 'string' && tf.text.trim()) return String(tf.text).trim();
-        return '';
-      }
+function texFieldToString(tf){
+  if (!tf) return '';
+  if (typeof tf === 'string') return tf.trim();
+  if (tf.latex && typeof tf.latex === 'string' && tf.latex.trim()) return String(tf.latex).trim();
+  if (tf.text && typeof tf.text === 'string' && tf.text.trim()) return String(tf.text).trim();
+  return '';
+}
+
+function normalizeLatex(value){
+  try {
+    let s = String(value || '');
+    if (!s) return '';
+    // Normalize superscripts like x^2 -> x^{2}, e.g., handles optional sign or multiple chars until whitespace or delimiter
+    s = s.replace(/\^(?!\{)([-+]?(?:\\[a-zA-Z]+|[A-Za-z0-9]+))/g, '^{$1}');
+    // Collapse multiple spaces
+    s = s.replace(/\s+/g, ' ').trim();
+    return s;
+  } catch {
+    return String(value || '');
+  }
+}
 
       // If this is an Answer Key batch, extract mapping and update existing questions
       if ((worksheetType||'').toLowerCase().includes('answer')){
