@@ -599,7 +599,7 @@
 
         async function runWorksheetPipeline(opts){
           const { fileUrl, images, meta } = opts || {};
-          if (!meta || !meta.slug || !fileUrl) return { processed:false, extracted:false };
+          if (!meta || !meta.slug || !fileUrl) return { processed:false, extracted:false, error:'missing_metadata' };
           const base = (window.TBP_AUTH_BASE || '').replace(/\/$/, '');
           const headers = { 'Content-Type': 'application/json' };
           let token = null;
@@ -608,6 +608,7 @@
 
           let processed = false;
           let extracted = false;
+          let errorMessage = '';
 
           try {
             const rsp = await fetch(`${base}/ai/worksheet/process`, {
@@ -617,8 +618,15 @@
             });
             processed = rsp.ok;
             if (!rsp.ok) console.warn('Worksheet process failed', rsp.status);
+            if (!rsp.ok){
+              try {
+                const text = await rsp.text();
+                errorMessage = text || `process_failed_${rsp.status}`;
+              } catch { errorMessage = `process_failed_${rsp.status}`; }
+            }
           } catch (err) {
             console.warn('Worksheet process exception', err);
+            errorMessage = (err && err.message) || 'process_exception';
           }
 
           if (Array.isArray(images) && images.length){
@@ -642,12 +650,21 @@
               });
               extracted = rsp.ok;
               if (!rsp.ok) console.warn('Worksheet extract failed', rsp.status);
+              if (!rsp.ok){
+                try {
+                  const text = await rsp.text();
+                  errorMessage = text || `extract_failed_${rsp.status}`;
+                } catch { errorMessage = `extract_failed_${rsp.status}`; }
+              }
             } catch (err) {
               console.warn('Worksheet extract exception', err);
+              errorMessage = (err && err.message) || 'extract_exception';
             }
+          } else if (!errorMessage){
+            errorMessage = 'no_images_for_extraction';
           }
 
-          return { processed, extracted };
+          return { processed, extracted, error: errorMessage };
         }
 
         function ensureSlug(){
@@ -703,6 +720,7 @@
           try { tick(); timer = setInterval(tick, 1000); } catch{}
 
           const pipelineTasks = [];
+          const pipelineErrors = [];
           items = items.map(it => it.status==='ready'? { ...it, status:'uploading', progress:5 } : it);
           render();
 
@@ -729,7 +747,11 @@
                         const schedulePipeline = (pp)=>{
                           if (!fileUrl) return;
                           const imgs = pp && Array.isArray(pp.images) ? pp.images : [];
-                          pipelineTasks.push(runWorksheetPipeline({ fileUrl, images: imgs, meta: pipelineMeta }));
+                          if (imgs.length){
+                            pipelineTasks.push(runWorksheetPipeline({ fileUrl, images: imgs, meta: pipelineMeta }));
+                          } else {
+                            pipelineErrors.push({ id: it.id, error: 'no_preprocess_images' });
+                          }
                         };
                         doPre.then(pp=>{
                           it.status='done';
@@ -782,13 +804,21 @@
           try { overlay.style.display='none'; } catch{}
 
           const allFinished = pipelineTasks.length && pipelineResults.length === pipelineTasks.length;
-          const allSucceeded = allFinished && pipelineResults.every(res => res && res.processed && res.extracted);
+          pipelineResults.forEach(res => {
+            if (!res || !res.processed || !res.extracted){
+              pipelineErrors.push(res);
+            }
+          });
+          const allSucceeded = allFinished && pipelineErrors.length === 0;
           if (!pipelineTasks.length || !allFinished){
             alert('Upload completed but the extraction pipeline did not finish. Please retry.');
             return;
           }
           if (!allSucceeded){
-            alert('Some worksheets were uploaded, but extraction did not fully complete. Please retry before continuing.');
+            console.warn('Worksheet pipeline errors', pipelineErrors);
+            const sampleErr = pipelineErrors.find(e => e && e.error && typeof e.error === 'string');
+            const detail = sampleErr ? ` (detail: ${sampleErr.error})` : '';
+            alert(`Some worksheets were uploaded, but extraction did not fully complete${detail}. Please retry before continuing.`);
             return;
           }
 
