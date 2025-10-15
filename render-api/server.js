@@ -2215,27 +2215,28 @@ async function bootstrap() {
       // Backfill/update instruction on existing OCR docs for this lesson
       try { if (worksheetInstruction) await col.updateMany({ lessonSlug, generator:'worksheet-ocr' }, { $set: { worksheetInstruction } }); } catch {}
       let inserted = 0;
-      const storedProblems = [];
-      // Re-scan images to map problems to pages by simple heuristic (first page for this single-page worksheet)
-      const perPage = pageNum || 1;
-      let runningPage = 1;
-      for (const p of problems.slice(0, 50)){ // cap for safety
-        try {
-          const pngPath = images[Math.min(images.length-1, runningPage-1)] || images[0];
-          let imageB64 = '';
-          try { imageB64 = fs.readFileSync(pngPath).toString('base64'); } catch {}
-          // Persist a copy to public tmp uploads and store a public URL as fallback
-          let pngUrl = '';
+      const structured = [];
+      const preview = [];
+
+      if (ENABLE_TESSERACT && qsrc){
+        const storedProblems = [];
+        const perPage = pageNum || 1;
+        let runningPage = 1;
+        for (const p of problems.slice(0, 50)){ // cap for safety
           try {
-            const publicTmp = path.resolve(__dirname, '../tmp_uploads');
-            try { fs.mkdirSync(publicTmp, { recursive: true }); } catch{}
-            const outName = `ws_${jobId}_p${runningPage}.png`;
-            const outPath = path.join(publicTmp, outName);
-            try { fs.copyFileSync(pngPath, outPath); } catch{}
-            const baseUrl = (req.headers['x-forwarded-proto'] ? `${req.headers['x-forwarded-proto']}` : 'https') + '://' + (req.headers['x-forwarded-host'] || req.headers.host);
-            pngUrl = `${baseUrl}/tmp/uploads/${outName}`;
-          } catch {}
-          if (ENABLE_TESSERACT && qsrc){
+            const pngPath = images[Math.min(images.length-1, runningPage-1)] || images[0];
+            let imageB64 = '';
+            try { imageB64 = fs.readFileSync(pngPath).toString('base64'); } catch {}
+            let pngUrl = '';
+            try {
+              const publicTmp = path.resolve(__dirname, '../tmp_uploads');
+              try { fs.mkdirSync(publicTmp, { recursive: true }); } catch{}
+              const outName = `ws_${jobId}_p${runningPage}.png`;
+              const outPath = path.join(publicTmp, outName);
+              try { fs.copyFileSync(pngPath, outPath); } catch{}
+              const baseUrl = (req.headers['x-forwarded-proto'] ? `${req.headers['x-forwarded-proto']}` : 'https') + '://' + (req.headers['x-forwarded-host'] || req.headers.host);
+              pngUrl = `${baseUrl}/tmp/uploads/${outName}`;
+            } catch {}
             storedProblems.push({ id: p.id, prompt: p.prompt, answer_fields: Array.isArray(p.answer_fields)? p.answer_fields: [], visual: p.visual||'none', page: runningPage, pngPath, dpi: DPI, pngUrl, bbox: (p.bbox||null) });
             try {
               await qsrc.insertOne({
@@ -2259,24 +2260,19 @@ async function bootstrap() {
               });
               inserted++;
             } catch {}
-          }
-          runningPage = Math.min(perPage, runningPage + 1);
-        } catch(e){}
-      }
-      if (ENABLE_TESSERACT && qsrc){
+            runningPage = Math.min(perPage, runningPage + 1);
+          } catch(e){}
+        }
         try {
           const imgs = images.map((p,i)=>({ page:i+1, pngPath:p }));
           await qsrc.insertOne({ lessonSlug, lessonTitle: lessonTitle||lessonSlug, sourceUrl: url, sourceName, pages: images.length, dpi: DPI, jobId, images: imgs, problems: storedProblems, createdAt: nowIso, sourceType:'worksheet-ocr' });
         } catch {}
+        structured.push(...storedProblems.map(p => ({ id: p.id, prompt: p.prompt, answer_fields: p.answer_fields, visual: p.visual })));
+        preview.push(...structured.slice(0, 10));
       }
+
       await client3.close();
-
-      // Keep PNGs for vision-clean to consume later (cleanup handled by ops)
-
-      // Return a minimal structured view for OCR output consumers
-      const structured = problems.map(p => ({ id: p.id, prompt: p.prompt, answer_fields: Array.isArray(p.answer_fields)? p.answer_fields: [], visual: p.visual || 'none' }));
-      const preview = structured.slice(0, 10);
-      return res.json({ ok:true, pages: images.length, extracted: problems.length, inserted, structured: structured.slice(0, 50), preview });
+      return res.json({ ok:true, pages: images.length, extracted: structured.length, inserted, structured: structured.slice(0, 50), preview });
     } catch (e){ console.error('[worksheet-process] exception', e); return res.status(500).json({ error:'worksheet_process_exception', detail: String(e && e.message || e) }); }
   });
 
