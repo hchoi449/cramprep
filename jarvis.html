@@ -1184,8 +1184,7 @@
           const token = getAuthToken();
           const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
           const res = await fetch(`${base}/ai/agent2/questions?lesson=${encodeURIComponent(slug)}&ordered=1&n=200`, {
-            headers,
-            credentials: 'include'
+            headers
           });
 
           let data = null;
