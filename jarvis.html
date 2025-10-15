@@ -728,7 +728,7 @@
           });
         }
 
-        function updateMetaForGuide(guide){
+        function updateMetaForGuide(guide, problemCount){
           if (!guide) return;
           const title = (guide.title || guide.slug || 'Study Guide').trim();
           const dateLabel = formatExamDateLabel(guide.examDate);
@@ -749,12 +749,19 @@
             if (guide.course) details.push(`Course: ${guide.course}`);
             if (guide.teacher) details.push(`Teacher: ${guide.teacher}`);
             if (guide.school) details.push(`School: ${guide.school}`);
+            if (problemCount && problemCount > 0) details.push(`Problems: ${problemCount}`);
             if (details.length) {
               resultsExamDetails.textContent = details.join(' • ');
               resultsExamDetails.style.display = '';
             } else {
               resultsExamDetails.textContent = '';
               resultsExamDetails.style.display = 'none';
+            }
+          } else if (problemCount && problemCount > 0) {
+            const label = `Problems: ${problemCount}`;
+            if (resultsExamDetails) {
+              resultsExamDetails.textContent = label;
+              resultsExamDetails.style.display = '';
             }
           }
         }
@@ -772,6 +779,63 @@
               guidesRecentEl.textContent = '—';
             }
           }
+        }
+
+        function sanitizeQuestions(raw){
+          if (!Array.isArray(raw)) return [];
+          return raw
+            .map(original => original || {})
+            .map(original => {
+              const question = { ...original };
+              const options = Array.isArray(original.options) ? original.options : [];
+              const cleanedOptions = [];
+              let newCorrectIndex = -1;
+              const originalCorrect = Number.isInteger(original.correct)
+                ? Number(original.correct)
+                : (Number.isInteger(original.answer_index) ? Number(original.answer_index) : -1);
+
+              options.forEach((opt, idx) => {
+                const text = formatDisplayText(opt);
+                if (!text || !text.trim()) return;
+                cleanedOptions.push(opt);
+                if (idx === originalCorrect && newCorrectIndex < 0) {
+                  newCorrectIndex = cleanedOptions.length - 1;
+                }
+              });
+
+              if (cleanedOptions.length) {
+                question.options = cleanedOptions;
+                if (newCorrectIndex >= 0) {
+                  question.correct = newCorrectIndex;
+                  question.answer_index = newCorrectIndex;
+                }
+              } else {
+                delete question.options;
+              }
+
+              const instruction = formatDisplayText(question.instruction || question.instructions || '').trim();
+              const stem = formatDisplayText(
+                question.stem_latex ||
+                question.stem ||
+                question.stimulus_latex ||
+                question.stimulus_text ||
+                question.promptLatex ||
+                question.prompt ||
+                question.question ||
+                ''
+              ).trim();
+              const hasOptions = Array.isArray(question.options)
+                ? question.options.some(opt => (formatDisplayText(opt) || '').trim())
+                : false;
+              const explanation = formatDisplayText(question.explanation || question.solution || '').trim();
+              const imageUrl = question.imageUrl || question.image || question.pngUrl || '';
+
+              if (instruction || stem || hasOptions || explanation || imageUrl) {
+                return question;
+              }
+              return null;
+            })
+            .filter(Boolean);
         }
 
         function renderGuideList(){
@@ -840,13 +904,26 @@
           return String(val);
         }
 
-        function maybeWrapLatex(input){
+        function maybeWrapLatex(input, forceMath){
           const str = (input || '').toString();
           const trimmed = str.trim();
           if (!trimmed) return '';
 
-          const looksLatex = /\\[a-zA-Z]+|_\\{|\\^\\{|\\frac|\\sqrt|\\pi|\\theta|\\int|\\sum|\\sin|\\cos|\\tan|\\leq|\\geq|\\neq|\\\(|\\\[/.test(trimmed);
-          if (!looksLatex) return str;
+          const hasCommand = /\\[a-zA-Z]+/.test(trimmed);
+          const hasGreek = /π|θ|α|β|γ|Δ|Σ|Ω|µ/.test(trimmed);
+          const hasInequality = /[=<>]/.test(trimmed);
+          const hasOperatorWithDigits = /[+\-*/^]/.test(trimmed) && /\d/.test(trimmed);
+          const hasVariableNumber = /[a-zA-Z]\s*\d|\d\s*[a-zA-Z]/.test(trimmed);
+          const hasVariableOps = /[a-zA-Z]\s*[+\-*/^]\s*[a-zA-Z]/.test(trimmed);
+          const isNumeric = /^\d+(\.\d+)?$/.test(trimmed);
+          const mathWord = /\b(?:sin|cos|tan|cot|sec|csc|log|ln|sqrt|pi|theta|sigma|delta|alpha|beta|gamma|phi|degree|deg|lim|mod)\b/i.test(trimmed);
+
+          const looksLatex = hasCommand || hasGreek || hasInequality || hasOperatorWithDigits || hasVariableNumber || hasVariableOps || isNumeric || mathWord;
+          if (!looksLatex) {
+            if (!forceMath) return str;
+            const pared = trimmed.replace(/[0-9+\-*/^=().,:%\s]/g, '');
+            if (pared && !hasCommand) return str;
+          }
 
           const withoutDelims = trimmed
             .replace(/^(\$\$?|\\\(|\\\[)/, '')
@@ -895,15 +972,16 @@
         }
 
         function renderGuideContent(guide, questions){
-          updateMetaForGuide(guide);
+          const safeQuestions = Array.isArray(questions) ? questions : [];
+          updateMetaForGuide(guide, safeQuestions.length);
           if (!resultsBody) return;
           resultsBody.innerHTML = '';
-          if (!Array.isArray(questions) || !questions.length){
+          if (!safeQuestions.length){
             resultsBody.innerHTML = '<p class="ps-outline-empty" style="border:none;background:none;padding:0;text-align:left;">No problems available yet for this study guide.</p>';
             return;
           }
 
-          const total = questions.length;
+          const total = safeQuestions.length;
           let index = Math.max(0, Math.min(Number.isInteger(guidePositions[guide.slug]) ? guidePositions[guide.slug] : 0, total - 1));
           guidePositions[guide.slug] = index;
 
@@ -945,7 +1023,7 @@
 
           function renderProblem(){
             updateNavState();
-            const question = questions[index];
+            const question = safeQuestions[index];
             content.innerHTML = '';
             if (!question){
               const empty = document.createElement('p');
@@ -970,7 +1048,7 @@
             heading.textContent = `Problem ${displayNum}`;
             card.appendChild(heading);
 
-            const instructionText = maybeWrapLatex(formatDisplayText(question.instruction || question.instructions || ''));
+            const instructionText = maybeWrapLatex(formatDisplayText(question.instruction || question.instructions || ''), false);
             if (instructionText){
               const instruct = document.createElement('p');
               instruct.className = 'ps-instruction';
@@ -988,7 +1066,7 @@
               question.question ||
               ''
             );
-            const stemText = maybeWrapLatex(stemTextRaw);
+            const stemText = maybeWrapLatex(stemTextRaw, true);
             if (stemText){
               const stem = document.createElement('p');
               stem.className = 'ps-instruction';
@@ -1023,7 +1101,7 @@
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.className = 'ps-opt';
-                btn.textContent = maybeWrapLatex(formatDisplayText(opt));
+                btn.textContent = maybeWrapLatex(formatDisplayText(opt), true);
                 btn.dataset.optionIndex = String(optIdx);
                 btn.addEventListener('click', () => {
                   optionButtons.forEach(b => {
@@ -1092,8 +1170,8 @@
               (Array.isArray(options) ? 0 : -1);
 
             function revealSolution(){
-              const explanation = maybeWrapLatex(formatDisplayText(question.explanation || question.solution || ''));
-              const answerText = maybeWrapLatex(formatDisplayText(question.answer || (Array.isArray(options) ? options[correctIndex] : '')));
+              const explanation = maybeWrapLatex(formatDisplayText(question.explanation || question.solution || ''), false);
+              const answerText = maybeWrapLatex(formatDisplayText(question.answer || (Array.isArray(options) ? options[correctIndex] : '')), true);
               if (explanation){
                 solBody.textContent = explanation;
                 solBody.style.display = '';
@@ -1226,8 +1304,9 @@
           if (resultsBody) resultsBody.innerHTML = '<p class="ps-outline-empty" style="border:none;background:none;padding:0;text-align:left;">Loading problems…</p>';
           try {
             const questions = await fetchGuideQuestions(slug);
-            questionCache[slug] = questions;
-            renderGuideContent(guide, questions);
+            const cleaned = sanitizeQuestions(questions);
+            questionCache[slug] = cleaned;
+            renderGuideContent(guide, cleaned);
           } catch (err) {
             console.warn('Failed to load guide', err);
             if (resultsBody) {
