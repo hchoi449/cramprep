@@ -2238,36 +2238,39 @@ async function bootstrap() {
           // Do NOT insert into questionbank; store only in qsources
           storedProblems.push({ id: p.id, prompt: p.prompt, answer_fields: Array.isArray(p.answer_fields)? p.answer_fields: [], visual: p.visual||'none', page: runningPage, pngPath, dpi: DPI, pngUrl, bbox: (p.bbox||null) });
           // Also insert a per-item record into thinkpod.qsources
-          try {
-            await qsrc.insertOne({
-              lessonSlug,
-              lessonTitle: lessonTitle || lessonSlug,
-              sourceUrl: url,
-              sourceName,
-              page: runningPage,
-              problemId: p.id,
-              prompt: p.prompt,
-              answer_fields: Array.isArray(p.answer_fields)? p.answer_fields: [],
-              visual: p.visual || 'none',
-              createdAt: nowIso,
-              sourceType: 'worksheet-ocr',
-              jobId,
-              pngPath,
-              pngUrl,
-              dpi: DPI,
-              imageB64,
-              bbox: (p.bbox||null)
-            });
-            inserted++;
-          } catch {}
+          if (ENABLE_TESSERACT){
+            try {
+              await qsrc.insertOne({
+                lessonSlug,
+                lessonTitle: lessonTitle || lessonSlug,
+                sourceUrl: url,
+                sourceName,
+                page: runningPage,
+                problemId: p.id,
+                prompt: p.prompt,
+                answer_fields: Array.isArray(p.answer_fields)? p.answer_fields: [],
+                visual: p.visual || 'none',
+                createdAt: nowIso,
+                sourceType: 'worksheet-ocr',
+                jobId,
+                pngPath,
+                pngUrl,
+                dpi: DPI,
+                imageB64,
+                bbox: (p.bbox||null)
+              });
+              inserted++;
+            } catch {}
+          }
           runningPage = Math.min(perPage, runningPage + 1);
         } catch(e){}
       }
-      // Record provenance in qsources
-      try {
-        const imgs = images.map((p,i)=>({ page:i+1, pngPath:p }));
-        await qsrc.insertOne({ lessonSlug, lessonTitle: lessonTitle||lessonSlug, sourceUrl: url, sourceName, pages: images.length, dpi: DPI, jobId, images: imgs, problems: storedProblems, createdAt: nowIso, sourceType:'worksheet-ocr' });
-      } catch {}
+      if (ENABLE_TESSERACT){
+        try {
+          const imgs = images.map((p,i)=>({ page:i+1, pngPath:p }));
+          await qsrc.insertOne({ lessonSlug, lessonTitle: lessonTitle||lessonSlug, sourceUrl: url, sourceName, pages: images.length, dpi: DPI, jobId, images: imgs, problems: storedProblems, createdAt: nowIso, sourceType:'worksheet-ocr' });
+        } catch {}
+      }
       await client3.close();
 
       // Keep PNGs for vision-clean to consume later (cleanup handled by ops)
