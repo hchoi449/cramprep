@@ -431,6 +431,42 @@
         font-weight: 600;
         color: #4b5563;
       }
+      .ps-answer-input{
+        margin-top: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .ps-answer-input label{
+        font-weight: 600;
+        color: #6b3410;
+        font-size: .95rem;
+      }
+      .ps-answer-input input{
+        padding: 12px 14px;
+        border: 1px solid rgba(139,69,19,0.2);
+        border-radius: 12px;
+        font-size: 1rem;
+        transition: border-color .18s ease, box-shadow .18s ease;
+      }
+      .ps-answer-input input:focus{
+        outline: none;
+        border-color: rgba(139,69,19,0.45);
+        box-shadow: 0 0 0 3px rgba(139,69,19,0.15);
+      }
+      .ps-answer-preview{
+        min-height: 32px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px dashed rgba(139,69,19,0.25);
+        background: rgba(139,69,19,0.05);
+        color: #1f2937;
+        font-size: 1rem;
+      }
+      .ps-answer-preview .ps-preview-placeholder{
+        color: #9ca3af;
+        font-style: italic;
+      }
       @media (max-width: 1100px){
         .jarvis-shell{
           width: min(96vw, 980px);
@@ -831,12 +867,259 @@
               const explanation = formatDisplayText(question.explanation || question.solution || '').trim();
               const imageUrl = question.imageUrl || question.image || question.pngUrl || '';
 
+              if (!instruction) {
+                question.instructions = 'Enter your simplified answer below.';
+              }
               if (instruction || stem || hasOptions || explanation || imageUrl) {
                 return question;
               }
               return null;
             })
             .filter(Boolean);
+        }
+
+        const MATH_FUNCTIONS = new Set(['sqrt','sin','cos','tan','ln','log','abs','root','frac']);
+
+        function tokenizeMath(input){
+          const tokens = [];
+          let i = 0;
+          while (i < input.length){
+            const ch = input[i];
+            if (/\s/.test(ch)){ i++; continue; }
+            if (/[0-9.]/.test(ch)){
+              let start = i;
+              while (i < input.length && /[0-9.]/.test(input[i])) i++;
+              tokens.push({ type:'number', value: input.slice(start, i) });
+              continue;
+            }
+            if (/[a-zA-Z]/.test(ch)){
+              let start = i;
+              while (i < input.length && /[a-zA-Z0-9_]/.test(input[i])) i++;
+              tokens.push({ type:'ident', value: input.slice(start, i) });
+              continue;
+            }
+            if (ch === '('){ tokens.push({ type:'lparen', value: ch }); i++; continue; }
+            if (ch === ')'){ tokens.push({ type:'rparen', value: ch }); i++; continue; }
+            if (ch === ','){ tokens.push({ type:'comma', value: ch }); i++; continue; }
+            if ('+-*/^'.includes(ch)){
+              tokens.push({ type:'op', value: ch });
+              i++;
+              continue;
+            }
+            if (ch === '|'){
+              tokens.push({ type:'abs', value: ch });
+              i++;
+              continue;
+            }
+            // unsupported symbol
+            throw new Error(`Unexpected character: ${ch}`);
+          }
+          tokens.push({ type:'eof', value:'' });
+          return tokens;
+        }
+
+        function parseUserMath(str){
+          const tokens = tokenizeMath(str);
+          let pos = 0;
+          function peek(){ return tokens[pos]; }
+          function consume(){ return tokens[pos++]; }
+          function expect(type){
+            const tok = peek();
+            if (tok.type !== type) throw new Error(`Expected ${type}`);
+            pos++;
+            return tok;
+          }
+
+          function parseExpression(){ return parseAddSub(); }
+
+          function parseAddSub(){
+            let node = parseMulDiv();
+            while (true){
+              const tok = peek();
+              if (tok.type === 'op' && (tok.value === '+' || tok.value === '-')){
+                consume();
+                const right = parseMulDiv();
+                node = { type:'Binary', op: tok.value, left: node, right };
+              } else break;
+            }
+            return node;
+          }
+
+          function parseMulDiv(){
+            let node = parsePow();
+            while (true){
+              const tok = peek();
+              if (tok.type === 'op' && (tok.value === '*' || tok.value === '/')){
+                consume();
+                const right = parsePow();
+                node = { type:'Binary', op: tok.value, left: node, right };
+              } else break;
+            }
+            return node;
+          }
+
+          function parsePow(){
+            let node = parseUnary();
+            const tok = peek();
+            if (tok.type === 'op' && tok.value === '^'){
+              consume();
+              const right = parsePow();
+              node = { type:'Binary', op: '^', left: node, right };
+            }
+            return node;
+          }
+
+          function parseUnary(){
+            const tok = peek();
+            if (tok.type === 'op' && (tok.value === '-' || tok.value === '+')){
+              consume();
+              const arg = parseUnary();
+              return { type:'Unary', op: tok.value, arg };
+            }
+            if (tok.type === 'abs'){
+              consume();
+              const expr = parseAddSub();
+              if (peek().type !== 'abs') throw new Error('Unmatched |');
+              consume();
+              return { type:'Call', fn:'abs', args:[ expr ] };
+            }
+            return parsePrimary();
+          }
+
+          function parsePrimary(){
+            const tok = peek();
+            if (tok.type === 'number'){
+              consume();
+              return { type:'Number', value: tok.value };
+            }
+            if (tok.type === 'ident'){
+              consume();
+              const ident = tok.value;
+              if (peek().type === 'lparen'){
+                consume();
+                const args = [];
+                if (peek().type !== 'rparen'){
+                  while (true){
+                    args.push(parseExpression());
+                    if (peek().type === 'comma'){ consume(); continue; }
+                    break;
+                  }
+                }
+                expect('rparen');
+                return { type:'Call', fn: ident, args };
+              }
+              return { type:'Symbol', name: ident };
+            }
+            if (tok.type === 'lparen'){
+              consume();
+              const expr = parseExpression();
+              expect('rparen');
+              return { type:'Group', expr };
+            }
+            throw new Error('Unexpected token');
+          }
+
+          const ast = parseExpression();
+          if (peek().type !== 'eof') throw new Error('Unexpected input');
+          return ast;
+        }
+
+        function astToLatex(node){
+          switch (node.type){
+            case 'Number':
+              return node.value;
+            case 'Symbol':
+              return node.name;
+            case 'Unary': {
+              const inner = astToLatex(node.arg);
+              return `${node.op}${wrapForUnary(node.arg, inner)}`;
+            }
+            case 'Binary':
+              return binaryToLatex(node);
+            case 'Group':
+              return `\\left(${astToLatex(node.expr)}\\right)`;
+            case 'Call':
+              return callToLatex(node);
+            default:
+              return '';
+          }
+        }
+
+        function needsGroup(node){
+          return node.type === 'Binary' && (node.op === '+' || node.op === '-' || node.op === '*');
+        }
+
+        function wrapForPower(node){
+          const inner = astToLatex(node);
+          if (node.type === 'Number' || node.type === 'Symbol') return inner;
+          return `\\left(${inner}\\right)`;
+        }
+
+        function wrapForUnary(node, latex){
+          if (node.type === 'Number' || node.type === 'Symbol' || node.type === 'Call') return latex;
+          return `\\left(${latex}\\right)`;
+        }
+
+        function binaryToLatex(node){
+          const left = astToLatex(node.left);
+          const right = astToLatex(node.right);
+          switch (node.op){
+            case '+':
+            case '-':
+              return `${left} ${node.op} ${right}`;
+            case '*': {
+              const l = needsGroup(node.left) ? `\\left(${left}\\right)` : left;
+              const r = needsGroup(node.right) ? `\\left(${right}\\right)` : right;
+              return `${l}\\cdot ${r}`;
+            }
+            case '/':
+              return `\\frac{${left}}{${right}}`;
+            case '^':
+              return `${wrapForPower(node.left)}^{${astToLatex(node.right)}}`;
+            default:
+              return `${left} ${node.op} ${right}`;
+          }
+        }
+
+        function callToLatex(node){
+          const args = node.args || [];
+          switch (node.fn){
+            case 'sqrt':
+              return `\\sqrt{${astToLatex(args[0] || { type:'Number', value:'0' })}}`;
+            case 'root':
+              if (args.length >= 2) return `\\sqrt[${astToLatex(args[1])}]{${astToLatex(args[0])}}`;
+              return `\\sqrt{${astToLatex(args[0] || { type:'Number', value:'0' })}}`;
+            case 'frac':
+              if (args.length >= 2) return `\\frac{${astToLatex(args[0])}}{${astToLatex(args[1])}}`;
+              break;
+            case 'abs':
+              return `\\left|${astToLatex(args[0] || { type:'Number', value:'0' })}\\right|`;
+            case 'log':
+              if (args.length === 2) return `\\log_{${astToLatex(args[1])}}{${astToLatex(args[0])}}`;
+              return `\\log\\left(${astToLatex(args[0] || { type:'Number', value:'0' })}\\right)`;
+            default:
+              if (MATH_FUNCTIONS.has(node.fn)){
+                return `\\${node.fn}\\left(${astToLatex(args[0] || { type:'Number', value:'0' })}\\right)`;
+              }
+              return `${node.fn}\\left(${args.map(astToLatex).join(', ')}\\right)`;
+          }
+          return astToLatex(args[0] || { type:'Number', value:'0' });
+        }
+
+        function renderAnswerPreview(value, previewEl){
+          const trimmed = value.trim();
+          if (!trimmed){
+            previewEl.innerHTML = '<span class="ps-preview-placeholder">Your formatted answer appears here.</span>';
+            return;
+          }
+          try {
+            const ast = parseUserMath(trimmed);
+            const latex = astToLatex(ast);
+            previewEl.textContent = `\\(${latex}\\)`;
+            applyMath(previewEl);
+          } catch {
+            previewEl.textContent = trimmed;
+          }
         }
 
         function renderGuideList(){
@@ -1030,10 +1313,6 @@
             card.style.marginBottom = '0';
             content.appendChild(card);
 
-            const heading = document.createElement('h3');
-            heading.className = 'ps-question-stem';
-            card.appendChild(heading);
-
             const instructionText = maybeWrapLatex(formatDisplayText(question.instruction || question.instructions || ''), false);
             if (instructionText){
               const instruct = document.createElement('p');
@@ -1141,6 +1420,25 @@
             answerLine.className = 'ps-answer';
             solutionBox.appendChild(answerLine);
             card.appendChild(solutionBox);
+
+            const answerWrap = document.createElement('div');
+            answerWrap.className = 'ps-answer-input';
+            const answerLabel = document.createElement('label');
+            const answerId = `answer-${guide.slug}-${index}`;
+            answerLabel.setAttribute('for', answerId);
+            answerLabel.textContent = 'Your Answer';
+            const answerField = document.createElement('input');
+            answerField.type = 'text';
+            answerField.id = answerId;
+            const preview = document.createElement('div');
+            preview.className = 'ps-answer-preview';
+            preview.innerHTML = '<span class="ps-preview-placeholder">Your formatted answer appears here.</span>';
+            answerField.addEventListener('input', () => renderAnswerPreview(answerField.value, preview));
+            answerWrap.appendChild(answerLabel);
+            answerWrap.appendChild(answerField);
+            answerWrap.appendChild(preview);
+            card.appendChild(answerWrap);
+            renderAnswerPreview('', preview);
 
             const correctIndex = Number.isInteger(question.correct) ? Number(question.correct) :
               Number.isInteger(question.answer_index) ? Number(question.answer_index) :
