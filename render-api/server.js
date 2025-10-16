@@ -2353,7 +2353,7 @@ async function bootstrap() {
       const target = targetDesired; // exact target per lesson
       const maxAttempts = 12; // give more tries to reach exact target
       const seen = new Set();
-      const docs = [];
+      let docs = [];
       let deletedCount = 0;
       let attempts = 0;
       addTrace('config', { perBatch, target, maxAttempts });
