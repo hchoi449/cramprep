@@ -455,6 +455,18 @@
         border-color: rgba(139,69,19,0.55);
         box-shadow: 0 0 0 3px rgba(139,69,19,0.18);
       }
+      .mq-fallback-input{
+        padding: 12px 14px;
+        border: 1px solid rgba(139,69,19,0.2);
+        border-radius: 12px;
+        font-size: 1rem;
+        transition: border-color .18s ease, box-shadow .18s ease;
+      }
+      .mq-fallback-input:focus{
+        outline: none;
+        border-color: rgba(139,69,19,0.45);
+        box-shadow: 0 0 0 3px rgba(139,69,19,0.18);
+      }
       @media (max-width: 1100px){
         .jarvis-shell{
           width: min(96vw, 980px);
@@ -1377,6 +1389,12 @@
 
             const answerField = document.createElement('div');
             answerField.className = 'mq-input';
+            answerField.style.display = 'none';
+            const fallbackInput = document.createElement('input');
+            fallbackInput.type = 'text';
+            fallbackInput.className = 'mq-fallback-input';
+            fallbackInput.placeholder = 'Type your answer';
+            answerWrap.appendChild(fallbackInput);
             answerWrap.appendChild(answerField);
             const hiddenLatex = document.createElement('input');
             hiddenLatex.type = 'hidden';
@@ -1410,6 +1428,10 @@
             solutionBox.appendChild(answerLine);
             card.appendChild(solutionBox);
 
+            fallbackInput.addEventListener('input', () => {
+              hiddenLatex.value = fallbackInput.value;
+            });
+
             queueMicrotask(() => {
               if (!window.MathQuill) return;
               const MQ = window.MathQuill.getInterface(2);
@@ -1425,6 +1447,10 @@
               });
               hiddenLatex.value = mathField.latex();
               answerField._mathField = mathField;
+              answerField.style.display = '';
+              if (fallbackInput.parentNode === answerWrap) {
+                answerWrap.removeChild(fallbackInput);
+              }
             });
 
             const correctIndex = Number.isInteger(question.correct) ? Number(question.correct) :
