@@ -1938,7 +1938,7 @@ async function bootstrap() {
         }
 
         async function callOAI(b64){
-          const instruction = 'You are a math vision transcriber. Task: Transcribe exactly the math expression(s) visible for ONE problem from the provided worksheet image. Return STRICT JSON ONLY: {"latex":"..."}. Rules: 1) Prefer canonical LaTeX (\\frac, \\sqrt, ^, _). 2) Return a single-line LaTeX string; wrap inline with \\( ... \\). 3) Do NOT include prose or markdown. 4) If multiple tiny expressions appear, pick the one that matches the hint. 5) If unsure, output best guess as LaTeX.';
+          const instruction = 'You are a math vision transcriber. Task: Transcribe exactly the math expression(s) visible for ONE problem from the provided worksheet image. Return STRICT JSON ONLY: {"latex":"..."}. Rules: 1) Prefer canonical LaTeX (\\frac, \\sqrt, ^, _). 2) Return a single-line LaTeX string; wrap inline with \\( ... \\). 3) Do NOT include prose or markdown. 4) If multiple tiny expressions appear, pick the one that matches the hint. 5) If unsure, output best guess as LaTeX. 6) Simplify thoroughly: rationalize denominators (no radicals in denominators), reduce fractions, and present answers in simplest exact form.';
           const user = [
             noisy && noisy.stem ? `Noisy OCR hint: ${String(noisy.stem).slice(0,200)}` : 'Noisy OCR hint: (none)',
             'Return STRICT JSON: {"latex":"..."}.'
