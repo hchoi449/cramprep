@@ -2571,27 +2571,6 @@ async function bootstrap() {
         bucketDocs.forEach(addUnique);
       }
 
-      if (docs.length < n){
-        const remaining = n - docs.length;
-        const excludeIds = Array.from(seenIds).map(id => {
-          try { return new ObjectId(id); } catch { return null; }
-        }).filter(Boolean);
-        const extraMatch = book ? { lessonSlug, book } : { lessonSlug };
-        if (excludeIds.length) extraMatch._id = { $nin: excludeIds };
-        if (seenHashes.size) extraMatch.sourceHash = { $nin: Array.from(seenHashes) };
-
-        const available = await col.countDocuments(extraMatch);
-        if (available > 0){
-          const sampleSize = Math.min(remaining, available);
-          const extraDocs = await col.aggregate([
-            { $match: extraMatch },
-            { $sample: { size: sampleSize } }
-          ]).toArray();
-          extraDocs.forEach(addUnique);
-        }
-      }
-
-      // Final: do not duplicate; return only what we have (could be < n)
       // optional ordering easy->medium->hard
       if (ordered === '1' || /true|yes/i.test(ordered)){
         const byBand = { easy: [], medium: [], hard: [] };
