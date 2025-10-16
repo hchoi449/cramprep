@@ -1448,9 +1448,7 @@
               hiddenLatex.value = mathField.latex();
               answerField._mathField = mathField;
               answerField.style.display = '';
-              if (fallbackInput.parentNode === answerWrap) {
-                answerWrap.removeChild(fallbackInput);
-              }
+              fallbackInput.style.display = 'none';
             });
 
             const correctIndex = Number.isInteger(question.correct) ? Number(question.correct) :
@@ -1480,10 +1478,6 @@
 
             if (!options.length){
               revealSolution();
-              if (!feedback.textContent){
-                feedback.textContent = 'Review the walkthrough below.';
-                feedback.style.color = '#6b3410';
-              }
               actionBtn.disabled = true;
             }
 
