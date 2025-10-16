@@ -1363,18 +1363,32 @@
               card.appendChild(opts);
             }
 
+            const feedback = document.createElement('div');
+            feedback.className = 'ps-q-feedback';
+            feedback.setAttribute('role', 'status');
+            card.appendChild(feedback);
+
+            const answerWrap = document.createElement('div');
+            answerWrap.className = 'ps-answer-input';
+            const answerLabel = document.createElement('label');
+            answerLabel.textContent = 'Your Answer';
+            answerWrap.appendChild(answerLabel);
+            card.appendChild(answerWrap);
+
+            const answerField = document.createElement('div');
+            answerField.className = 'mq-input';
+            answerWrap.appendChild(answerField);
+            const hiddenLatex = document.createElement('input');
+            hiddenLatex.type = 'hidden';
+            hiddenLatex.name = `answerLatex-${guide.slug}-${index}`;
+            answerWrap.appendChild(hiddenLatex);
+
             const actions = document.createElement('div');
             actions.className = 'ps-q-actions';
             actions.style.display = 'flex';
             actions.style.flexDirection = 'column';
             actions.style.gap = '12px';
-            actions.style.marginTop = '18px';
             card.appendChild(actions);
-
-            const feedback = document.createElement('div');
-            feedback.className = 'ps-q-feedback';
-            feedback.setAttribute('role', 'status');
-            actions.appendChild(feedback);
 
             const actionBtn = document.createElement('button');
             actionBtn.type = 'button';
@@ -1395,20 +1409,6 @@
             answerLine.className = 'ps-answer';
             solutionBox.appendChild(answerLine);
             card.appendChild(solutionBox);
-
-            const answerWrap = document.createElement('div');
-            answerWrap.className = 'ps-answer-input';
-            const answerLabel = document.createElement('label');
-            answerLabel.textContent = 'Your Answer';
-            const answerField = document.createElement('div');
-            answerField.className = 'mq-input';
-            const hiddenLatex = document.createElement('input');
-            hiddenLatex.type = 'hidden';
-            hiddenLatex.name = `answerLatex-${guide.slug}-${index}`;
-            answerWrap.appendChild(answerLabel);
-            answerWrap.appendChild(answerField);
-            answerWrap.appendChild(hiddenLatex);
-            card.appendChild(answerWrap);
 
             queueMicrotask(() => {
               if (!window.MathQuill) return;

@@ -3348,7 +3348,8 @@ function simplifyLatexExpression(latex){
   const trimmed = String(latex || '').trim();
   if (!trimmed) return '';
   try {
-    const exprStr = latexToExpression(trimmed);
+    const normalized = normalizeExponentProducts(trimmed);
+    const exprStr = latexToExpression(normalized);
     const parsed = math.parse(exprStr);
     let simplified = math.simplify(parsed, [], { exactFractions: true });
     try {
@@ -3360,11 +3361,31 @@ function simplifyLatexExpression(latex){
       console.warn('rationalize failed', trimmed, err?.message || err);
     }
     const tex = simplified.toTex({ parenthesis: 'keep', implicit: 'show' });
-    return tex;
+    return normalizeExponentProducts(tex);
   } catch (err) {
     console.warn('simplifyLatexExpression failed', trimmed, err?.message || err);
     return trimmed;
   }
+}
+
+function normalizeExponentProducts(latex){
+  let result = String(latex || '');
+  const pattern = /([a-zA-Z](?:_{[a-zA-Z0-9]+}|_[a-zA-Z0-9]+)?)\^\{([^{}]*?(?:\{[^{}]*\}[^{}]*)*)\}/g;
+  result = result.replace(pattern, (match, base, exponentBody) => {
+    if (!/\{/.test(exponentBody)) return match;
+    let remainder = exponentBody;
+    const extras = [];
+    remainder = remainder.replace(/([a-zA-Z](?:_{[a-zA-Z0-9]+}|_[a-zA-Z0-9]+)?)\^\{([^{}]+)\}/g, (_sub, sym, pow) => {
+      extras.push(`${sym}^{${pow}}`);
+      return '';
+    });
+    const numericPart = remainder.replace(/\s+/g, '');
+    if (!extras.length) return match;
+    if (!numericPart || /[a-zA-Z]/.test(numericPart)) return match;
+    const basePart = `${base}^{${numericPart}}`;
+    return `${basePart} ${extras.join(' ')}`;
+  });
+  return result;
 }
 
       // If this is an Answer Key batch, extract mapping and update existing questions
