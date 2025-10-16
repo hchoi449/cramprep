@@ -2602,6 +2602,23 @@ async function bootstrap() {
         docs = [...byBand.easy, ...byBand.medium, ...byBand.hard];
       }
 
+      // Final dedupe in case of overlaps and enforce limit
+      const finalSeen = new Set();
+      const finalDocs = [];
+      for (const doc of docs){
+        if (!doc) continue;
+        const key = doc.sourceHash
+          ? String(doc.sourceHash)
+          : (doc._id && typeof doc._id.toHexString === 'function'
+              ? doc._id.toHexString()
+              : String(doc._id || ''));
+        if (key && finalSeen.has(key)) continue;
+        if (key) finalSeen.add(key);
+        finalDocs.push(doc);
+        if (finalDocs.length >= n) break;
+      }
+      docs = finalDocs;
+
       // Strict formatting pass: ensure LaTeX-wrapped options and stimulus consistency
       try {
         docs = docs.map(d => {
