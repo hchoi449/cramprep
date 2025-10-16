@@ -8,6 +8,7 @@
     <meta name="description" content="Jarvis: your AI study assistant at ThinkBigPrep." />
     <link rel="shortcut icon" href="assets/logo/thinkbigprep-icon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="css/index.css?v=1.1" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.css" integrity="sha512-+YmafgkUdi5AtZ9YZu7/6FaXzwUL13CZgRN4n8Dc3Aw1f6mEU0hP6uMmakmHjPAFDZJ2i5C64pTIjIS71MAkmg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="css/login.css?v=1.0" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
@@ -435,37 +436,24 @@
         margin-top: 20px;
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 12px;
       }
       .ps-answer-input label{
         font-weight: 600;
         color: #6b3410;
         font-size: .95rem;
       }
-      .ps-answer-input input{
-        padding: 12px 14px;
+      .mq-editable-field{
         border: 1px solid rgba(139,69,19,0.2);
         border-radius: 12px;
-        font-size: 1rem;
-        transition: border-color .18s ease, box-shadow .18s ease;
+        padding: 12px 14px;
+        min-height: 48px;
+        font-size: 1.1rem;
+        line-height: 1.4;
       }
-      .ps-answer-input input:focus{
-        outline: none;
-        border-color: rgba(139,69,19,0.45);
-        box-shadow: 0 0 0 3px rgba(139,69,19,0.15);
-      }
-      .ps-answer-preview{
-        min-height: 32px;
-        padding: 10px 12px;
-        border-radius: 10px;
-        border: 1px dashed rgba(139,69,19,0.25);
-        background: rgba(139,69,19,0.05);
-        color: #1f2937;
-        font-size: 1rem;
-      }
-      .ps-answer-preview .ps-preview-placeholder{
-        color: #9ca3af;
-        font-style: italic;
+      .mq-editable-field.mq-focused{
+        border-color: rgba(139,69,19,0.55);
+        box-shadow: 0 0 0 3px rgba(139,69,19,0.18);
       }
       @media (max-width: 1100px){
         .jarvis-shell{
@@ -648,6 +636,7 @@
     <script>window.TBP_AUTH_BASE='https://cramprep.onrender.com';</script>
     <script src="index.js"></script>
     <script src="login.js?v=1.0"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.js" integrity="sha512-0ZIRUdZ4/2JjL40hQ4D2auEAdXHutdpUx8aOCWDEBcHMB8LpgM0FyPjHaMYqBUrqrn36zXhVfLgH5DqZIw0sdg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script>
       (function(){
         const makeGuideBtn = document.getElementById('jarvisMakeGuideBtn');
@@ -1106,21 +1095,7 @@
           return astToLatex(args[0] || { type:'Number', value:'0' });
         }
 
-        function renderAnswerPreview(value, previewEl){
-          const trimmed = value.trim();
-          if (!trimmed){
-            previewEl.innerHTML = '<span class="ps-preview-placeholder">Your formatted answer appears here.</span>';
-            return;
-          }
-          try {
-            const ast = parseUserMath(trimmed);
-            const latex = astToLatex(ast);
-            previewEl.textContent = `\\(${latex}\\)`;
-            applyMath(previewEl);
-          } catch {
-            previewEl.textContent = trimmed;
-          }
-        }
+        function renderAnswerPreview(){}
 
         function renderGuideList(){
           if (!resultsOutline) return;
@@ -1424,21 +1399,33 @@
             const answerWrap = document.createElement('div');
             answerWrap.className = 'ps-answer-input';
             const answerLabel = document.createElement('label');
-            const answerId = `answer-${guide.slug}-${index}`;
-            answerLabel.setAttribute('for', answerId);
             answerLabel.textContent = 'Your Answer';
-            const answerField = document.createElement('input');
-            answerField.type = 'text';
-            answerField.id = answerId;
-            const preview = document.createElement('div');
-            preview.className = 'ps-answer-preview';
-            preview.innerHTML = '<span class="ps-preview-placeholder">Your formatted answer appears here.</span>';
-            answerField.addEventListener('input', () => renderAnswerPreview(answerField.value, preview));
+            const answerField = document.createElement('div');
+            answerField.className = 'mq-input';
+            const hiddenLatex = document.createElement('input');
+            hiddenLatex.type = 'hidden';
+            hiddenLatex.name = `answerLatex-${guide.slug}-${index}`;
             answerWrap.appendChild(answerLabel);
             answerWrap.appendChild(answerField);
-            answerWrap.appendChild(preview);
+            answerWrap.appendChild(hiddenLatex);
             card.appendChild(answerWrap);
-            renderAnswerPreview('', preview);
+
+            queueMicrotask(() => {
+              if (!window.MathQuill) return;
+              const MQ = window.MathQuill.getInterface(2);
+              const mathField = MQ.MathField(answerField, {
+                spaceBehavesLikeTab: true,
+                autoCommands: 'pi theta sqrt ln log abs',
+                autoOperatorNames: 'sin cos tan',
+                handlers: {
+                  edit: function(){
+                    hiddenLatex.value = mathField.latex();
+                  }
+                }
+              });
+              hiddenLatex.value = mathField.latex();
+              answerField._mathField = mathField;
+            });
 
             const correctIndex = Number.isInteger(question.correct) ? Number(question.correct) :
               Number.isInteger(question.answer_index) ? Number(question.answer_index) :
