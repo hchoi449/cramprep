@@ -2629,7 +2629,10 @@ async function bootstrap() {
       } catch {}
       await client.close();
       return res.json({ ok: true, lesson: lessonSlug, count: docs.length, questions: docs });
-    } catch (e){ console.error(e); return res.status(500).json({ error:'retrieve_failed' }); }
+    } catch (e){
+      console.error('[agent2/questions] error', e);
+      return res.status(500).json({ error:'retrieve_failed', detail: e && e.message ? String(e.message) : 'unknown' });
+    }
   });
 
   // Agent 2 (visual enrichment)
