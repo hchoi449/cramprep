@@ -34,25 +34,25 @@
       .jarvis-nav{
         display: flex;
         align-items: center;
-        gap: 14px;
-        padding: 14px;
-        background: rgba(255,255,255,0.92);
-        border-radius: 9999px;
-        border: 1px solid rgba(139,69,19,0.18);
-        box-shadow: 0 26px 60px -26px rgba(90,56,28,0.45);
-        backdrop-filter: blur(20px);
+        gap: 18px;
+        padding: 18px 20px;
+        background: rgba(255,255,255,0.94);
+        border-radius: 36px;
+        border: 1px solid rgba(139,69,19,0.2);
+        box-shadow: 0 32px 70px -24px rgba(90,56,28,0.5);
+        backdrop-filter: blur(22px);
       }
       .jarvis-nav a{
         flex: 1;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 12px;
-        padding: 16px 28px;
-        border-radius: 9999px;
+        gap: 14px;
+        padding: 20px 32px;
+        border-radius: 28px;
         font-weight: 700;
-        font-size: 1.05rem;
-        color: #4a321a;
+        font-size: 1.1rem;
+        color: #40260f;
         text-decoration: none;
         transition: all .18s ease;
         position: relative;
@@ -955,20 +955,7 @@
           }
         }
 
-        function getProblemDisplayNumber(question, fallback){
-          const candidates = [
-            question && question.problemNumber,
-            question && question.problem_number,
-            question && question.number,
-            question && question.question_number,
-            question && question.meta && question.meta.problemNumber
-          ];
-          for (const cand of candidates){
-            if (cand === null || typeof cand === 'undefined') continue;
-            const text = String(cand).trim();
-            if (!text) continue;
-            return text.replace(/^Problem\s*/i, '').replace(/^#/, '') || String(fallback);
-          }
+        function getProblemDisplayNumber(_question, fallback){
           return String(fallback);
         }
 
@@ -1122,15 +1109,6 @@
                 opts.appendChild(btn);
               });
               card.appendChild(opts);
-            } else {
-              const notice = document.createElement('p');
-              notice.className = 'ps-outline-empty';
-              notice.style.border = 'none';
-              notice.style.background = 'none';
-              notice.style.padding = '0';
-              notice.style.textAlign = 'left';
-              notice.textContent = 'No multiple-choice options available for this problem.';
-              card.appendChild(notice);
             }
 
             const actions = document.createElement('div');
