@@ -2571,6 +2571,23 @@ async function bootstrap() {
         bucketDocs.forEach(addUnique);
       }
 
+      if (docs.length < n){
+        const remaining = Math.min(n - docs.length, Math.max(0, n));
+        const excludeIds = Array.from(seenIds).map(id => {
+          try { return new ObjectId(id); } catch { return null; }
+        }).filter(Boolean);
+        const excludeHashes = Array.from(seenHashes);
+        const baseMatch = book ? { lessonSlug, book } : { lessonSlug };
+        if (excludeIds.length) baseMatch._id = { $nin: excludeIds };
+        if (excludeHashes.length) baseMatch.sourceHash = { $nin: excludeHashes };
+
+        const additionalDocs = await col.aggregate([
+          { $match: baseMatch },
+          { $sample: { size: remaining } }
+        ]).toArray();
+        additionalDocs.forEach(addUnique);
+      }
+
       // optional ordering easy->medium->hard
       if (ordered === '1' || /true|yes/i.test(ordered)){
         const byBand = { easy: [], medium: [], hard: [] };
