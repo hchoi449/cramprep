@@ -1032,8 +1032,6 @@
 
             const heading = document.createElement('h3');
             heading.className = 'ps-question-stem';
-            const displayNum = getProblemDisplayNumber(question, index + 1);
-            heading.textContent = `Problem ${displayNum}`;
             card.appendChild(heading);
 
             const instructionText = maybeWrapLatex(formatDisplayText(question.instruction || question.instructions || ''), false);
