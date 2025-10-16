@@ -1938,7 +1938,7 @@ async function bootstrap() {
         }
 
         async function callOAI(b64){
-          const instruction = 'You are a math vision transcriber. Task: Transcribe exactly the math expression(s) visible for ONE problem from the provided worksheet image. Return STRICT JSON ONLY: {"latex":"..."}. Rules: 1) Prefer canonical LaTeX (\\frac, \\sqrt, ^, _). 2) Return a single-line LaTeX string; wrap inline with \\( ... \\). 3) Do NOT include prose or markdown. 4) If multiple tiny expressions appear, pick the one that matches the hint. 5) If unsure, output best guess as LaTeX. 6) Simplify thoroughly: rationalize denominators (no radicals in denominators), reduce fractions, and present answers in simplest exact form.';
+          const instruction = 'You are a math vision transcriber. Task: Transcribe exactly the math expression(s) visible for ONE problem from the provided worksheet image. Return STRICT JSON ONLY: {"latex":"..."}. Rules: 1) Prefer canonical LaTeX (\\frac, \\sqrt, ^, _). 2) Return a single-line LaTeX string; wrap inline with \\( ... \\). 3) Do NOT include prose or markdown. 4) If multiple tiny expressions appear, pick the one that matches the hint. 5) If unsure, output best guess as LaTeX. 6) Express the final answer in fully simplified exact form: combine like terms, reduce radicals, rationalize denominators, and simplify fractions. 7) When writing powers, place braces around the precise base only (e.g., u^{2}v^{4}, not u^{24} or u^{2v}). 8) Ensure the LaTeX is syntactically valid with matched braces and mathematically correct.';
           const user = [
             noisy && noisy.stem ? `Noisy OCR hint: ${String(noisy.stem).slice(0,200)}` : 'Noisy OCR hint: (none)',
             'Return STRICT JSON: {"latex":"..."}.'
