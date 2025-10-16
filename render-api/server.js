@@ -2546,7 +2546,7 @@ async function bootstrap() {
         return { easy: e, medium: m, hard: h };
       };
       const target = calcMix(n);
-      const docs = [];
+      let docs = [];
       const seenIds = new Set();
       const seenHashes = new Set();
 
