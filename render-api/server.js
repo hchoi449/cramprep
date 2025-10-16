@@ -2546,33 +2546,52 @@ async function bootstrap() {
         return { easy: e, medium: m, hard: h };
       };
       const target = calcMix(n);
-      const buckets = {};
+      const docs = [];
+      const seenIds = new Set();
+      const seenHashes = new Set();
+
+      function addUnique(doc){
+        if (!doc) return false;
+        const idKey = doc._id && typeof doc._id.toHexString === 'function' ? doc._id.toHexString() : (doc._id ? String(doc._id) : '');
+        const hashKey = doc.sourceHash ? String(doc.sourceHash) : '';
+        if ((idKey && seenIds.has(idKey)) || (hashKey && seenHashes.has(hashKey))) return false;
+        if (idKey) seenIds.add(idKey);
+        if (hashKey) seenHashes.add(hashKey);
+        docs.push(doc);
+        return true;
+      }
+
       for (const [k, size] of Object.entries(target)){
         if (size <= 0) continue;
-        const docsK = await col.aggregate([
-          { $match: (book ? { lessonSlug, difficulty: k, book } : { lessonSlug, difficulty: k }) },
+        const matchStage = book ? { lessonSlug, difficulty: k, book } : { lessonSlug, difficulty: k };
+        const bucketDocs = await col.aggregate([
+          { $match: matchStage },
           { $sample: { size } }
         ]).toArray();
-        buckets[k] = docsK;
+        bucketDocs.forEach(addUnique);
       }
-      let docs = [...(buckets.easy||[]), ...(buckets.medium||[]), ...(buckets.hard||[])];
+
       if (docs.length < n){
         const remaining = n - docs.length;
-        const extra = await col.aggregate([
-          { $match: (book ? { lessonSlug, sourceHash: { $nin: docs.map(d=> d.sourceHash) }, book } : { lessonSlug, sourceHash: { $nin: docs.map(d=> d.sourceHash) } }) },
-          { $sample: { size: remaining } }
-        ]).toArray();
-        docs = docs.concat(extra);
+        const excludeIds = Array.from(seenIds).map(id => {
+          try { return new ObjectId(id); } catch { return null; }
+        }).filter(Boolean);
+        const extraMatch = book ? { lessonSlug, book } : { lessonSlug };
+        if (excludeIds.length) extraMatch._id = { $nin: excludeIds };
+        if (seenHashes.size) extraMatch.sourceHash = { $nin: Array.from(seenHashes) };
+
+        const available = await col.countDocuments(extraMatch);
+        if (available > 0){
+          const sampleSize = Math.min(remaining, available);
+          const extraDocs = await col.aggregate([
+            { $match: extraMatch },
+            { $sample: { size: sampleSize } }
+          ]).toArray();
+          extraDocs.forEach(addUnique);
+        }
       }
-      // Final top-up: if still short, allow repeats to guarantee n items (with replacement)
-      if (docs.length < n){
-        const remaining = n - docs.length;
-        const extra2 = await col.aggregate([
-          { $match: (book ? { lessonSlug, book } : { lessonSlug }) },
-          { $sample: { size: remaining } }
-        ]).toArray();
-        docs = docs.concat(extra2);
-      }
+
+      // Final: do not duplicate; return only what we have (could be < n)
       // optional ordering easy->medium->hard
       if (ordered === '1' || /true|yes/i.test(ordered)){
         const byBand = { easy: [], medium: [], hard: [] };
