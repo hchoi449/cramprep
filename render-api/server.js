@@ -7,8 +7,12 @@ const pdfParse = require('pdf-parse');
 const { createCanvas, loadImage } = require('canvas');
 const Tesseract = require('tesseract.js');
 const { MongoClient, ObjectId } = require('mongodb');
+const { create: createMath, all: mathAll } = require('mathjs');
 const FormDataLib = require('form-data');
 const FormData = require('form-data');
+
+const math = createMath(mathAll, { number: 'Fraction', predictable: true });
+math.config({ number: 'Fraction', precision: 64, predictable: true });
 
 const app = express();
 app.use(cors());
@@ -3283,6 +3287,86 @@ function ensureInlineLatex(str){
   return s;
 }
 
+function stripLatexDelimiters(input){
+  let value = String(input || '').trim();
+  if (!value) return value;
+  if ((value.startsWith('\\(') && value.endsWith('\\)')) || (value.startsWith('\\[') && value.endsWith('\\]'))){
+    value = value.slice(2, -2);
+  }
+  if (value.startsWith('$$') && value.endsWith('$$')){
+    value = value.slice(2, -2);
+  }
+  return value.trim();
+}
+
+function latexToExpression(latex){
+  let expr = stripLatexDelimiters(latex);
+  expr = expr.replace(/\\left|\\right/g, '')
+    .replace(/\\!/g, '')
+    .replace(/\\,/g, '')
+    .replace(/\\cdot|\\times/g, '*')
+    .replace(/\\div/g, '/')
+    .replace(/\\pm/g, '+')
+    .replace(/\\bullet/g, '*');
+
+  while (/\\frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/.test(expr)){
+    expr = expr.replace(/\\frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, '($1)/($2)');
+  }
+
+  expr = expr.replace(/\\sqrt\s*\{([^}]*)\}/g, 'sqrt($1)');
+  expr = expr.replace(/\\abs\s*\{([^}]*)\}/g, 'abs($1)');
+  expr = expr.replace(/\\log_\{([^}]*)\}\s*\{([^}]*)\}/g, 'log($2)/log($1)');
+  expr = expr.replace(/\\log\s*\{([^}]*)\}/g, 'log($1)');
+  expr = expr.replace(/\\ln\s*\{([^}]*)\}/g, 'ln($1)');
+
+  const symbolMap = new Map([
+    ['\\pi', 'pi'],
+    ['\\theta', 'theta'],
+    ['\\alpha', 'alpha'],
+    ['\\beta', 'beta'],
+    ['\\gamma', 'gamma'],
+    ['\\delta', 'delta'],
+    ['\\phi', 'phi'],
+    ['\\omega', 'omega'],
+    ['\\mu', 'mu'],
+    ['\\sigma', 'sigma']
+  ]);
+  symbolMap.forEach((plain, latexSym) => {
+    const re = new RegExp(latexSym, 'g');
+    expr = expr.replace(re, plain);
+  });
+
+  expr = expr.replace(/\\([a-zA-Z]+)/g, '$1');
+  expr = expr.replace(/\{\s*/g, '(').replace(/\s*\}/g, ')');
+  expr = expr.replace(/\^\s*\(/g, '^(');
+  expr = expr.replace(/\^\s*([^()^\s]+)/g, '^($1)');
+  expr = expr.replace(/\s+/g, '');
+  return expr;
+}
+
+function simplifyLatexExpression(latex){
+  const trimmed = String(latex || '').trim();
+  if (!trimmed) return '';
+  try {
+    const exprStr = latexToExpression(trimmed);
+    const parsed = math.parse(exprStr);
+    let simplified = math.simplify(parsed, [], { exactFractions: true });
+    try {
+      const rationalized = math.rationalize(simplified.toString(), {}, true);
+      if (rationalized && rationalized.expression){
+        simplified = math.simplify(rationalized.expression, [], { exactFractions: true });
+      }
+    } catch (err) {
+      console.warn('rationalize failed', trimmed, err?.message || err);
+    }
+    const tex = simplified.toTex({ parenthesis: 'keep', implicit: 'show' });
+    return tex;
+  } catch (err) {
+    console.warn('simplifyLatexExpression failed', trimmed, err?.message || err);
+    return trimmed;
+  }
+}
+
       // If this is an Answer Key batch, extract mapping and update existing questions
       if ((worksheetType||'').toLowerCase().includes('answer')){
         const answers = await extractAnswerKeyMap(urls);
@@ -3416,7 +3500,9 @@ function ensureInlineLatex(str){
         const normalizedStem = ensureInlineLatex(normalizedStemRaw);
         const normalizedInstruction = normalizeLatex(m.instruction || '').slice(0, 2000) || '';
         const answerTextRaw = normalizeLatex(m.answer || '').slice(0, 4000);
-        const answerText = ensureInlineLatex(answerTextRaw);
+        const simplifiedLatex = answerTextRaw ? simplifyLatexExpression(answerTextRaw) : '';
+        const answerLatex = simplifiedLatex || answerTextRaw;
+        const answerText = ensureInlineLatex(answerLatex);
         const validationMethod = answerText ? 'answer_only' : null;
         const isValidated = !!answerText;
         validatedDocs.push({
@@ -3436,7 +3522,7 @@ function ensureInlineLatex(str){
           correct: null,
           solution: '',
           answer: answerText,
-          answerPlain: stripLatexToPlain(answerText || ''),
+          answerPlain: stripLatexToPlain(answerLatex || ''),
           difficulty: (/easy|medium|hard/i.test(m.difficulty||'') ? m.difficulty : 'medium'),
           sourceHash: sha256Hex(`${lessonSlug}|${m.number||''}|${m.text||''}`),
           generatedAt: nowIso,
