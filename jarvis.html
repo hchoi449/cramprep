@@ -443,7 +443,7 @@
         color: #6b3410;
         font-size: .95rem;
       }
-      math-field.ml-input,
+      .ml-input,
       .ml-fallback-input{
         display: block;
         width: 100%;
@@ -455,7 +455,7 @@
         line-height: 1.4;
         background: #fff;
       }
-      math-field.ml-input:focus-within,
+      .ml-input:focus-within,
       .ml-fallback-input:focus{
         outline: none;
         border-color: rgba(139,69,19,0.55);
@@ -1386,44 +1386,44 @@
             hiddenLatex.name = `answerLatex-${guide.slug}-${index}`;
             answerWrap.appendChild(hiddenLatex);
 
+            let mathfieldInstance = null;
             let answerField = null;
             let fallbackInput = null;
-            if (window.MathfieldElement && typeof window.MathfieldElement === 'function'){
-              answerField = document.createElement('math-field');
+            if (window.MathLive && typeof window.MathLive.mathfield === 'function'){
+              answerField = document.createElement('div');
               answerField.className = 'ml-input';
-              answerField.placeholder = 'Type your answer';
               answerWrap.appendChild(answerField);
-              const initMathField = () => {
+              queueMicrotask(() => {
                 try {
-                  if (typeof answerField.setOptions === 'function'){
-                    answerField.setOptions({
-                      smartMode: true,
-                      virtualKeyboardMode: 'manual'
-                    });
-                  } else {
-                    answerField.smartMode = true;
-                    answerField.virtualKeyboardMode = 'manual';
-                  }
+                  mathfieldInstance = window.MathLive.mathfield(answerField, {
+                    smartMode: true,
+                    virtualKeyboardMode: 'manual',
+                    onContentDidChange: (mf) => {
+                      hiddenLatex.value = mf.getValue('latex') || '';
+                    }
+                  });
+                  hiddenLatex.value = mathfieldInstance.getValue('latex') || '';
                   answerField.addEventListener('keydown', (ev) => {
                     if (ev.key === '/' && !ev.ctrlKey && !ev.metaKey){
                       ev.preventDefault();
-                      try { answerField.executeCommand('insertFraction'); } catch {}
+                      try { mathfieldInstance.executeCommand('insertFraction'); } catch {}
                     }
-                  });
-                  hiddenLatex.value = answerField.getValue ? (answerField.getValue('latex') || '') : '';
-                  answerField.addEventListener('input', () => {
-                    const latex = answerField.getValue ? (answerField.getValue('latex') || '') : '';
-                    hiddenLatex.value = latex;
                   });
                 } catch (err) {
                   console.warn('MathLive init failed', err);
+                  answerField.remove();
+                  mathfieldInstance = null;
+                  fallbackInput = document.createElement('input');
+                  fallbackInput.type = 'text';
+                  fallbackInput.className = 'ml-fallback-input';
+                  fallbackInput.placeholder = 'Type your answer';
+                  fallbackInput.addEventListener('input', () => {
+                    hiddenLatex.value = fallbackInput.value || '';
+                  });
+                  hiddenLatex.value = '';
+                  answerWrap.appendChild(fallbackInput);
                 }
-              };
-              if (window.customElements && customElements.whenDefined){
-                customElements.whenDefined('math-field').then(initMathField);
-              } else {
-                queueMicrotask(initMathField);
-              }
+              });
             } else {
               fallbackInput = document.createElement('input');
               fallbackInput.type = 'text';
@@ -1432,7 +1432,7 @@
               fallbackInput.addEventListener('input', () => {
                 hiddenLatex.value = fallbackInput.value || '';
               });
-              hiddenLatex.value = ''; 
+              hiddenLatex.value = '';
               answerWrap.appendChild(fallbackInput);
             }
 
@@ -1463,8 +1463,8 @@
             solutionBox.appendChild(answerLine);
             card.appendChild(solutionBox);
 
-            if (answerField){
-              hiddenLatex.value = answerField.getValue ? (answerField.getValue('latex') || '') : '';
+            if (mathfieldInstance){
+              hiddenLatex.value = mathfieldInstance.getValue('latex') || '';
             } else if (fallbackInput){
               hiddenLatex.value = fallbackInput.value || '';
             }
