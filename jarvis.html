@@ -1387,19 +1387,16 @@
             answerWrap.appendChild(hiddenLatex);
 
             let answerField = null;
+            let fallbackInput = null;
             if (window.MathfieldElement && typeof window.MathfieldElement === 'function'){
               answerField = document.createElement('math-field');
               answerField.className = 'ml-input';
               answerField.placeholder = 'Type your answer';
               answerField.setAttribute('virtual-keyboard-mode', 'manual');
-              answerField.addEventListener('input', () => {
-                const latex = answerField.getValue('latex') || '';
-                hiddenLatex.value = latex;
-              });
               hiddenLatex.value = answerField.getValue('latex') || '';
               answerWrap.appendChild(answerField);
             } else {
-              const fallbackInput = document.createElement('input');
+              fallbackInput = document.createElement('input');
               fallbackInput.type = 'text';
               fallbackInput.className = 'ml-fallback-input';
               fallbackInput.placeholder = 'Type your answer';
@@ -1437,12 +1434,16 @@
             solutionBox.appendChild(answerLine);
             card.appendChild(solutionBox);
 
-            const updateAnswerLatex = () => {
-              const latex = answerField.getValue('latex') || '';
-              hiddenLatex.value = latex;
-            };
-            answerField.addEventListener('input', updateAnswerLatex);
-            hiddenLatex.value = answerField.getValue('latex') || '';
+            if (answerField){
+              const updateAnswerLatex = () => {
+                const latex = answerField.getValue('latex') || '';
+                hiddenLatex.value = latex;
+              };
+              answerField.addEventListener('input', updateAnswerLatex);
+              hiddenLatex.value = answerField.getValue('latex') || '';
+            } else if (fallbackInput){
+              hiddenLatex.value = fallbackInput.value || '';
+            }
 
             const correctIndex = Number.isInteger(question.correct) ? Number(question.correct) :
               Number.isInteger(question.answer_index) ? Number(question.answer_index) :
