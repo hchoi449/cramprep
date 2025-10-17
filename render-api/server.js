@@ -3309,6 +3309,8 @@ function latexToExpression(latex){
     .replace(/\\pm/g, '+')
     .replace(/\\bullet/g, '*');
 
+  expr = expr.replace(/\\sqrt\s*\[([^\]]+)\]\s*\{([^{}]*)\}/g, 'root($2,$1)');
+
   while (/\\frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/.test(expr)){
     expr = expr.replace(/\\frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, '($1)/($2)');
   }
@@ -3351,7 +3353,8 @@ function simplifyLatexExpression(latex){
     const normalized = normalizeExponentProducts(trimmed);
     const exprStr = latexToExpression(normalized);
     const parsed = math.parse(exprStr);
-    let simplified = math.simplify(parsed, [], { exactFractions: true });
+    const normalizedNode = splitExponentProducts(parsed);
+    let simplified = math.simplify(normalizedNode, [], { exactFractions: true });
     try {
       const rationalized = math.rationalize(simplified.toString(), {}, true);
       if (rationalized && rationalized.expression){
@@ -3366,6 +3369,36 @@ function simplifyLatexExpression(latex){
     console.warn('simplifyLatexExpression failed', trimmed, err?.message || err);
     return trimmed;
   }
+}
+
+function cloneNode(node){
+  if (!node) return node;
+  if (typeof node.cloneDeep === 'function') return node.cloneDeep();
+  if (typeof node.clone === 'function') return node.clone();
+  return math.parse(node.toString());
+}
+
+function splitExponentProducts(rootNode){
+  return rootNode.transform(function (child) {
+    if (child && child.type === 'OperatorNode' && child.op === '^' && child.args && child.args.length === 2){
+      const base = child.args[0];
+      const exponent = child.args[1];
+      if (exponent && exponent.type === 'OperatorNode' && exponent.op === '*' && (base.type === 'SymbolNode' || base.type === 'ParenthesisNode' || base.type === 'FunctionNode' || base.type === 'ConstantNode')){
+        const factors = exponent.args || [];
+        if (factors.length > 1){
+          const powNodes = factors.map(factor => {
+            return new math.OperatorNode('^', 'pow', [cloneNode(base), cloneNode(factor)]);
+          });
+          let combined = powNodes[0];
+          for (let i = 1; i < powNodes.length; i++){
+            combined = new math.OperatorNode('*', 'multiply', [combined, powNodes[i]]);
+          }
+          return combined;
+        }
+      }
+    }
+    return child;
+  });
 }
 
 function normalizeExponentProducts(latex){
