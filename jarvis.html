@@ -1392,11 +1392,17 @@
               answerField = document.createElement('math-field');
               answerField.className = 'ml-input';
               answerField.placeholder = 'Type your answer';
-              answerField.setAttribute('virtual-keyboard-mode', 'manual');
-              answerField.setAttribute('smart-mode', 'true');
-              answerField.setAttribute('inline-shortcuts', 'true');
-              hiddenLatex.value = answerField.getValue('latex') || '';
               answerWrap.appendChild(answerField);
+              queueMicrotask(() => {
+                try {
+                  answerField.smartMode = true;
+                  answerField.inlineShortcuts = true;
+                  answerField.virtualKeyboardMode = 'manual';
+                } catch (err) {
+                  console.warn('MathLive init failed', err);
+                }
+              });
+              hiddenLatex.value = answerField.getValue('latex') || '';
             } else {
               fallbackInput = document.createElement('input');
               fallbackInput.type = 'text';
