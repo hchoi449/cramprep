@@ -1393,16 +1393,37 @@
               answerField.className = 'ml-input';
               answerField.placeholder = 'Type your answer';
               answerWrap.appendChild(answerField);
-              queueMicrotask(() => {
+              const initMathField = () => {
                 try {
-                  answerField.smartMode = true;
-                  answerField.inlineShortcuts = true;
-                  answerField.virtualKeyboardMode = 'manual';
+                  if (typeof answerField.setOptions === 'function'){
+                    answerField.setOptions({
+                      smartMode: true,
+                      virtualKeyboardMode: 'manual'
+                    });
+                  } else {
+                    answerField.smartMode = true;
+                    answerField.virtualKeyboardMode = 'manual';
+                  }
+                  answerField.addEventListener('keydown', (ev) => {
+                    if (ev.key === '/' && !ev.ctrlKey && !ev.metaKey){
+                      ev.preventDefault();
+                      try { answerField.executeCommand('insertFraction'); } catch {}
+                    }
+                  });
+                  hiddenLatex.value = answerField.getValue ? (answerField.getValue('latex') || '') : '';
+                  answerField.addEventListener('input', () => {
+                    const latex = answerField.getValue ? (answerField.getValue('latex') || '') : '';
+                    hiddenLatex.value = latex;
+                  });
                 } catch (err) {
                   console.warn('MathLive init failed', err);
                 }
-              });
-              hiddenLatex.value = answerField.getValue('latex') || '';
+              };
+              if (window.customElements && customElements.whenDefined){
+                customElements.whenDefined('math-field').then(initMathField);
+              } else {
+                queueMicrotask(initMathField);
+              }
             } else {
               fallbackInput = document.createElement('input');
               fallbackInput.type = 'text';
@@ -1443,12 +1464,7 @@
             card.appendChild(solutionBox);
 
             if (answerField){
-              const updateAnswerLatex = () => {
-                const latex = answerField.getValue('latex') || '';
-                hiddenLatex.value = latex;
-              };
-              answerField.addEventListener('input', updateAnswerLatex);
-              hiddenLatex.value = answerField.getValue('latex') || '';
+              hiddenLatex.value = answerField.getValue ? (answerField.getValue('latex') || '') : '';
             } else if (fallbackInput){
               hiddenLatex.value = fallbackInput.value || '';
             }
