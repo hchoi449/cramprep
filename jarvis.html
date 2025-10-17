@@ -1389,51 +1389,41 @@
             let mathfieldInstance = null;
             let answerField = null;
             let fallbackInput = null;
-            if (window.MathLive && typeof window.MathLive.mathfield === 'function'){
-              answerField = document.createElement('div');
-              answerField.className = 'ml-input';
-              answerWrap.appendChild(answerField);
-              queueMicrotask(() => {
-                try {
-                  mathfieldInstance = window.MathLive.mathfield(answerField, {
-                    smartMode: true,
-                    virtualKeyboardMode: 'manual',
-                    onContentDidChange: (mf) => {
-                      hiddenLatex.value = mf.getValue('latex') || '';
-                    }
-                  });
-                  hiddenLatex.value = mathfieldInstance.getValue('latex') || '';
-                  answerField.addEventListener('keydown', (ev) => {
-                    if (ev.key === '/' && !ev.ctrlKey && !ev.metaKey){
-                      ev.preventDefault();
-                      try { mathfieldInstance.executeCommand('insertFraction'); } catch {}
-                    }
-                  });
-                } catch (err) {
-                  console.warn('MathLive init failed', err);
-                  answerField.remove();
-                  mathfieldInstance = null;
-                  fallbackInput = document.createElement('input');
-                  fallbackInput.type = 'text';
-                  fallbackInput.className = 'ml-fallback-input';
-                  fallbackInput.placeholder = 'Type your answer';
-                  fallbackInput.addEventListener('input', () => {
-                    hiddenLatex.value = fallbackInput.value || '';
-                  });
-                  hiddenLatex.value = '';
-                  answerWrap.appendChild(fallbackInput);
-                }
-              });
+            const initMathLive = () => {
+              if (window.MathLive && typeof window.MathLive.mathfield === 'function'){
+                answerField = document.createElement('div');
+                answerField.className = 'ml-input';
+                answerWrap.appendChild(answerField);
+                mathfieldInstance = window.MathLive.mathfield(answerField, {
+                  smartMode: true,
+                  virtualKeyboardMode: 'manual',
+                  onContentDidChange: (mf) => {
+                    hiddenLatex.value = mf.getValue('latex') || '';
+                  }
+                });
+                hiddenLatex.value = mathfieldInstance.getValue('latex') || '';
+                answerField.addEventListener('keydown', (ev) => {
+                  if (ev.key === '/' && !ev.ctrlKey && !ev.metaKey){
+                    ev.preventDefault();
+                    try { mathfieldInstance.executeCommand('insertFraction'); } catch {}
+                  }
+                });
+              } else {
+                fallbackInput = document.createElement('input');
+                fallbackInput.type = 'text';
+                fallbackInput.className = 'ml-fallback-input';
+                fallbackInput.placeholder = 'Type your answer';
+                fallbackInput.addEventListener('input', () => {
+                  hiddenLatex.value = fallbackInput.value || '';
+                });
+                hiddenLatex.value = '';
+                answerWrap.appendChild(fallbackInput);
+              }
+            };
+            if (document.readyState === 'loading') {
+              document.addEventListener('DOMContentLoaded', initMathLive);
             } else {
-              fallbackInput = document.createElement('input');
-              fallbackInput.type = 'text';
-              fallbackInput.className = 'ml-fallback-input';
-              fallbackInput.placeholder = 'Type your answer';
-              fallbackInput.addEventListener('input', () => {
-                hiddenLatex.value = fallbackInput.value || '';
-              });
-              hiddenLatex.value = '';
-              answerWrap.appendChild(fallbackInput);
+              initMathLive();
             }
 
             const actions = document.createElement('div');
