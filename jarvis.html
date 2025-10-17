@@ -8,7 +8,7 @@
     <meta name="description" content="Jarvis: your AI study assistant at ThinkBigPrep." />
     <link rel="shortcut icon" href="assets/logo/thinkbigprep-icon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="css/index.css?v=1.1" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.css" />
+    <link rel="stylesheet" href="https://unpkg.com/mathlive/dist/mathlive.min.css" />
     <link rel="stylesheet" href="css/login.css?v=1.0" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
@@ -443,30 +443,20 @@
         color: #6b3410;
         font-size: .95rem;
       }
-      .mq-editable-field{
-        border: 1px solid rgba(139,69,19,0.2);
-        border-radius: 12px;
-        padding: 12px 14px;
-        min-height: 48px;
-        font-size: 1.1rem;
-        line-height: 1.4;
-      }
-      .mq-editable-field.mq-focused{
-        border-color: rgba(139,69,19,0.55);
-        box-shadow: 0 0 0 3px rgba(139,69,19,0.18);
-      }
-      .mq-fallback-input{
+      math-field.ml-input{
         display: block;
         width: 100%;
-        padding: 12px 14px;
         border: 1px solid rgba(139,69,19,0.2);
         border-radius: 12px;
-        font-size: 1rem;
-        transition: border-color .18s ease, box-shadow .18s ease;
+        padding: 10px 12px;
+        min-height: 52px;
+        font-size: 1.1rem;
+        line-height: 1.4;
+        background: #fff;
       }
-      .mq-fallback-input:focus{
+      math-field.ml-input:focus-within{
         outline: none;
-        border-color: rgba(139,69,19,0.45);
+        border-color: rgba(139,69,19,0.55);
         box-shadow: 0 0 0 3px rgba(139,69,19,0.18);
       }
       @media (max-width: 1100px){
@@ -650,8 +640,7 @@
     <script>window.TBP_AUTH_BASE='https://cramprep.onrender.com';</script>
     <script src="index.js"></script>
     <script src="login.js?v=1.0"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.js"></script>
+    <script src="https://unpkg.com/mathlive/dist/mathlive.min.js"></script>
     <script>
       (function(){
         const makeGuideBtn = document.getElementById('jarvisMakeGuideBtn');
@@ -1390,14 +1379,10 @@
             answerWrap.appendChild(answerLabel);
             card.appendChild(answerWrap);
 
-            const answerField = document.createElement('div');
-            answerField.className = 'mq-input';
-            answerField.style.display = 'none';
-            const fallbackInput = document.createElement('input');
-            fallbackInput.type = 'text';
-            fallbackInput.className = 'mq-fallback-input';
-            fallbackInput.placeholder = 'Type your answer';
-            answerWrap.appendChild(fallbackInput);
+            const answerField = document.createElement('math-field');
+            answerField.className = 'ml-input';
+            answerField.placeholder = 'Type your answer';
+            answerField.setAttribute('virtual-keyboard-mode', 'manual');
             answerWrap.appendChild(answerField);
             const hiddenLatex = document.createElement('input');
             hiddenLatex.type = 'hidden';
@@ -1431,28 +1416,12 @@
             solutionBox.appendChild(answerLine);
             card.appendChild(solutionBox);
 
-            fallbackInput.addEventListener('input', () => {
-              hiddenLatex.value = fallbackInput.value;
-            });
-
-            queueMicrotask(() => {
-              if (!window.MathQuill) return;
-              const MQ = window.MathQuill.getInterface(2);
-              const mathField = MQ.MathField(answerField, {
-                spaceBehavesLikeTab: true,
-                autoCommands: 'pi theta sqrt ln log abs',
-                autoOperatorNames: 'sin cos tan',
-                handlers: {
-                  edit: function(){
-                    hiddenLatex.value = mathField.latex();
-                  }
-                }
-              });
-              hiddenLatex.value = mathField.latex();
-              answerField._mathField = mathField;
-              answerField.style.display = '';
-              fallbackInput.style.display = 'none';
-            });
+            const updateAnswerLatex = () => {
+              const latex = answerField.getValue('latex') || '';
+              hiddenLatex.value = latex;
+            };
+            answerField.addEventListener('input', updateAnswerLatex);
+            hiddenLatex.value = answerField.getValue('latex') || '';
 
             const correctIndex = Number.isInteger(question.correct) ? Number(question.correct) :
               Number.isInteger(question.answer_index) ? Number(question.answer_index) :
