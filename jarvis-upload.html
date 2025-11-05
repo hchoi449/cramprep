@@ -11,32 +11,45 @@
     <link rel="stylesheet" href="css/login.css?v=1.0" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" />
     <style>
-      body{
-        background: radial-gradient(120% 120% at 90% 0%, rgba(139,69,19,0.15) 0%, rgba(255,255,255,0) 55%), linear-gradient(135deg, #f8f4ef 0%, #ffffff 60%);
-        min-height: 100vh;
+      :root{
+        --tbp-bg:#f9f5ef;
+        --tbp-panel:#ffffff;
+        --tbp-border:rgba(139,69,19,0.18);
+        --tbp-border-strong:rgba(139,69,19,0.26);
+        --tbp-accent:#8B4513;
+        --tbp-accent-light:rgba(139,69,19,0.08);
+        --tbp-text:#3f2a11;
+        --tbp-muted:#6b5b4c;
+        --tbp-muted-light:#8c7b6c;
+        --tbp-sky:#38bdf8;
+      }
+      body.upload-body{
+        background:linear-gradient(135deg, #f5f0e8 0%, #efe5da 45%, #e5d3c1 100%);
+        min-height:100vh;
       }
       .upload-shell{
-        width:min(1100px, 92vw);
-        margin:120px auto 80px;
+        max-width:1180px;
+        margin:120px auto 84px;
+        padding:0 26px;
         display:flex;
         flex-direction:column;
-        gap:28px;
+        gap:32px;
       }
       #jarvisApp{
         display:flex;
         flex-direction:column;
-        gap:28px;
+        gap:32px;
       }
       .jarvis-nav{
         display:flex;
         align-items:center;
         gap:22px;
         padding:22px 26px;
-        background:rgba(255,255,255,0.95);
+        background:rgba(255,255,255,0.94);
         border-radius:44px;
         border:1px solid rgba(139,69,19,0.22);
-        box-shadow:0 36px 80px -20px rgba(90,56,28,0.55);
-        backdrop-filter: blur(24px);
+        box-shadow:0 36px 80px -28px rgba(90,56,28,0.45);
+        backdrop-filter:blur(18px);
       }
       .jarvis-nav a{
         flex:1;
@@ -44,17 +57,13 @@
         align-items:center;
         justify-content:center;
         gap:16px;
-        padding:24px 36px;
+        padding:24px 34px;
         border-radius:32px;
         font-weight:700;
         font-size:1.15rem;
         color:#351f0a;
         text-decoration:none;
-        transition:all .18s ease;
-        position:relative;
-      }
-      .jarvis-nav a .bi{
-        font-size:1.2rem;
+        transition:all .2s ease;
       }
       .jarvis-nav a:hover,
       .jarvis-nav a:focus-visible{
@@ -62,52 +71,61 @@
         outline:none;
       }
       .jarvis-nav a[aria-current="page"]{
-        background:linear-gradient(135deg, #8B4513 0%, #a25a28 100%);
+        background:linear-gradient(135deg, #8B4513 0%, #b26d2f 100%);
         color:#fff;
-        box-shadow:0 22px 36px -24px rgba(139,69,19,0.7);
+        box-shadow:0 24px 40px -26px rgba(139,69,19,0.55);
       }
-      .jarvis-nav a[aria-current="page"]:hover{
-        background:linear-gradient(135deg, #7f3f12 0%, #9d5625 100%);
-      }
-      .upload-header{
-        padding:28px 32px;
-        border-radius:22px;
-        background:rgba(255,255,255,0.82);
-        backdrop-filter: blur(16px);
+      .upload-header-card{
+        background:linear-gradient(135deg, rgba(255,255,255,0.96), rgba(255,255,255,0.84));
+        border-radius:28px;
+        padding:34px 38px;
         border:1px solid rgba(139,69,19,0.14);
-        box-shadow:0 24px 65px -30px rgba(139,69,19,0.45);
-      }
-      .upload-header h2{
-        margin:0;
-        font-size:2rem;
-        font-weight:800;
-        color:#4b3115;
-      }
-      .upload-header p{
-        margin:10px 0 0;
-        color:#6b5b4c;
-        max-width:640px;
-      }
-      .upload-grid{
-        display:grid;
-        gap:24px;
-        grid-template-columns:360px 1fr;
-      }
-      .upload-card{
-        background:rgba(255,255,255,0.88);
-        border-radius:22px;
-        border:1px solid rgba(139,69,19,0.12);
-        box-shadow:0 22px 60px -32px rgba(90,56,28,0.35);
-        padding:26px;
+        box-shadow:0 30px 60px -40px rgba(139,69,19,0.45);
+        backdrop-filter:blur(20px);
         display:flex;
         flex-direction:column;
-        gap:18px;
+        gap:12px;
       }
-      .upload-card h3{
+      .upload-header-card h1{
         margin:0;
-        font-size:1.25rem;
+        font-size:2.35rem;
+        font-weight:800;
+        color:var(--tbp-text);
+      }
+      .upload-header-card p{
+        margin:0;
+        font-size:1.05rem;
+        color:var(--tbp-muted);
+        max-width:720px;
+      }
+      .upload-layout{
+        display:grid;
+        grid-template-columns:380px 1fr;
+        gap:28px;
+        align-items:start;
+      }
+      .upload-panel{
+        background:var(--tbp-panel);
+        border-radius:24px;
+        border:1px solid rgba(139,69,19,0.12);
+        box-shadow:0 30px 60px -36px rgba(139,69,19,0.38);
+        padding:30px;
+        display:flex;
+        flex-direction:column;
+        gap:22px;
+      }
+      .upload-panel h2{
+        margin:0;
+        font-size:1.3rem;
         font-weight:700;
-        color:#4b3115;
+        color:var(--tbp-text);
+      }
+      .info-grid{
+        display:grid;
+        gap:20px;
+      }
+      .info-grid.two-col{
+        grid-template-columns:1fr;
       }
       .upload-field{
         display:flex;
@@ -116,90 +134,143 @@
       }
       .upload-field label{
         font-weight:600;
-        color:#4b3115;
+        color:var(--tbp-text);
+        font-size:0.95rem;
+        letter-spacing:.01em;
       }
-      .upload-field select,
-      .upload-field input{
+      .upload-control{
         width:100%;
-        padding:11px 12px;
-        border-radius:12px;
-        border:1px solid rgba(139,69,19,0.18);
+        height:52px;
+        padding:0 16px;
+        border-radius:14px;
+        border:1px solid var(--tbp-border);
         background:#fff;
-        transition:border-color .2s, box-shadow .2s;
+        font-size:1rem;
+        color:#1f2937;
+        box-sizing:border-box;
+        line-height:52px;
+        transition:border-color .2s ease, box-shadow .2s ease;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        white-space:nowrap;
+        appearance:none;
       }
-      .upload-field select:focus,
-      .upload-field input:focus{
+      .upload-control:disabled{
+        background:#f1f5f9;
+        color:#475569;
+      }
+      .upload-control:focus{
         outline:none;
-        border-color:rgba(139,69,19,0.45);
-        box-shadow:0 0 0 4px rgba(139,69,19,0.12);
+        border-color:var(--tbp-accent);
+        box-shadow:0 0 0 4px rgba(139,69,19,0.14);
       }
-      .dropzone{
-        border:2px dashed rgba(139,69,19,0.25);
-        border-radius:18px;
-        padding:40px 24px;
-        background:linear-gradient(135deg, rgba(139,69,19,0.08), rgba(139,69,19,0.02));
+      .field-hint{
+        font-size:0.8rem;
+        color:#667085;
+        margin:4px 0 0;
+      }
+      .upload-summary{
         display:flex;
         flex-direction:column;
+        gap:22px;
+        min-height:420px;
+      }
+      .upload-dropzone{
+        position:relative;
+        border:2px dashed rgba(139,69,19,0.28);
+        border-radius:20px;
+        padding:50px 32px;
+        background:linear-gradient(145deg, rgba(139,69,19,0.08), rgba(139,69,19,0.02));
+        text-align:center;
+        overflow:hidden;
+        transition:border-color .3s ease, box-shadow .3s ease, transform .3s ease;
+      }
+      .upload-dropzone:hover{
+        border-color:rgba(139,69,19,0.48);
+        box-shadow:0 28px 60px -44px rgba(139,69,19,0.5);
+        transform:translateY(-2px);
+      }
+      .upload-dropzone::after{
+        content:'';
+        position:absolute;
+        top:18%;
+        left:50%;
+        width:190px;
+        height:135px;
+        background:rgba(139,69,19,0.1);
+        border:2px solid rgba(139,69,19,0.35);
+        border-radius:18px;
+        transform:translate(-50%, -160%) rotate(-6deg);
+        opacity:0;
+        pointer-events:none;
+      }
+      .upload-dropzone.is-dragover::after{
+        animation:float-file .85s ease forwards;
+      }
+      @keyframes float-file{
+        0%{ opacity:0; transform:translate(-50%, -200%) rotate(-12deg); }
+        50%{ opacity:1; transform:translate(-50%, -40%) rotate(4deg); }
+        100%{ opacity:0; transform:translate(-50%, 50%) rotate(0deg); }
+      }
+      .dropzone-icon{
+        height:68px;
+        width:68px;
+        border-radius:18px;
+        background:#fff;
+        color:#6b7280;
+        box-shadow:0 1px 4px rgba(0,0,0,0.08);
+        display:inline-flex;
         align-items:center;
         justify-content:center;
-        gap:14px;
-        text-align:center;
-        color:#4b3115;
-        transition:border-color .2s, transform .2s, box-shadow .2s;
+        margin-bottom:12px;
       }
-      .dropzone:hover{
-        border-color:rgba(139,69,19,0.5);
-        transform:translateY(-2px);
-        box-shadow:0 18px 35px -30px rgba(139,69,19,0.55);
+      .dropzone-title{
+        margin:4px 0 0;
+        font-size:1.15rem;
+        font-weight:700;
+        color:#1f2937;
       }
-      .dropzone span{
-        font-weight:600;
+      .dropzone-sub{
+        margin:4px 0 12px;
+        color:#6b7280;
+        font-size:0.95rem;
       }
-      .file-list{
-        margin-top:12px;
-        background:#fff;
+      .dropzone-cta{
+        border:2px dashed rgba(148,163,184,0.35);
         border-radius:16px;
-        border:1px solid rgba(139,69,19,0.12);
-        max-height:280px;
-        overflow:auto;
+        padding:18px 16px;
+        background:#fff;
+        margin-top:20px;
       }
-      .file-list-header{
-        display:flex;
-        justify-content:space-between;
-        align-items:center;
-        padding:14px 18px;
-        border-bottom:1px solid rgba(139,69,19,0.1);
-        font-weight:600;
-        color:#4b3115;
-      }
-      .file-list-body{padding:10px 18px;}
       .upload-actions{
         display:flex;
-        justify-content:flex-end;
         gap:12px;
+        justify-content:flex-end;
+        align-items:center;
       }
-      .btn-soft{
+      .btn{
+        border:none;
         border-radius:12px;
-        padding:11px 20px;
-        border:1px solid rgba(139,69,19,0.3);
-        background:#fff;
-        color:#4b3115;
+        padding:12px 20px;
         font-weight:600;
-        transition:all .2s;
+        font-size:0.95rem;
+        cursor:pointer;
+        transition:transform .2s ease, box-shadow .2s ease, background .2s ease;
       }
-      .btn-soft:hover{
-        background:rgba(139,69,19,0.06);
-        border-color:rgba(139,69,19,0.45);
+      .btn-secondary{
+        background:linear-gradient(135deg, rgba(139,69,19,0.12), rgba(139,69,19,0.06));
+        border:1px solid var(--tbp-border);
+        color:var(--tbp-text);
+      }
+      .btn-secondary:hover{
+        transform:translateY(-1px);
+        box-shadow:0 20px 45px -30px rgba(139,69,19,0.48);
+        background:linear-gradient(135deg, rgba(139,69,19,0.16), rgba(139,69,19,0.08));
       }
       .btn-primary{
-        border-radius:12px;
-        padding:12px 22px;
-        background:linear-gradient(135deg, #8B4513 0%, #a25a28 100%);
+        background:linear-gradient(135deg, #8B4513 0%, #b2682f 100%);
         color:#fff;
-        border:none;
-        font-weight:600;
-        box-shadow:0 16px 35px -26px rgba(139,69,19,0.65);
-        transition:transform .2s, box-shadow .2s;
+        box-shadow:0 30px 60px -36px rgba(139,69,19,0.55);
       }
       .btn-primary:disabled{
         background:rgba(139,69,19,0.35);
@@ -208,57 +279,123 @@
       }
       .btn-primary:not(:disabled):hover{
         transform:translateY(-1px);
-        box-shadow:0 22px 40px -30px rgba(139,69,19,0.65);
+        box-shadow:0 30px 60px -34px rgba(139,69,19,0.52);
       }
-      #jarvisLoading{
-        display:none;
-        position:fixed;
-        inset:0;
-        background:rgba(255,255,255,0.88);
-        backdrop-filter: blur(12px) saturate(140%);
-        z-index:50;
+      .file-list-card{
+        background:#fff;
+        border-radius:20px;
+        border:1px solid rgba(139,69,19,0.14);
+        padding:24px;
+        display:flex;
+        flex-direction:column;
+        gap:18px;
+        min-height:270px;
+      }
+      .file-list-head{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:18px;
+      }
+      .file-list-head p{
+        margin:0;
+        font-weight:600;
+        color:#334155;
+      }
+      .file-list-empty{
+        flex:1;
+        display:flex;
         align-items:center;
         justify-content:center;
+        border-radius:16px;
+        background:rgba(148,163,184,0.12);
+        color:#64748b;
+        font-size:0.95rem;
       }
-      #jarvisLoading .loading-panel{
-        background:#fff;
-        padding:32px 40px;
-        border-radius:20px;
-        box-shadow:0 24px 55px -32px rgba(139,69,19,0.45);
-        text-align:center;
+      .file-list-items{
+        flex:1;
+        display:flex;
+        flex-direction:column;
+        gap:0;
+        max-height:210px;
+        overflow:auto;
+        scrollbar-gutter:stable both-edges;
       }
-      #jarvisEta{
-        margin-top:8px;
-        color:#6b5b4c;
+      .file-row{
+        display:flex;
+        align-items:flex-start;
+        justify-content:space-between;
+        gap:16px;
+        padding:12px 0;
+        border-top:1px solid rgba(241,245,249,0.9);
+      }
+      .file-row:first-child{ border-top:none; }
+      .file-meta{
+        display:flex;
+        gap:12px;
+        align-items:center;
+        flex:1;
+        min-width:0;
+      }
+      .file-badge{
+        height:34px;
+        width:34px;
+        border-radius:11px;
+        background:#f1f5f9;
+        color:#475569;
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
         font-weight:600;
       }
-      @media(max-width:1024px){
-        .upload-grid{
-          grid-template-columns:1fr;
-        }
+      .file-name{
+        margin:0;
+        font-weight:600;
+        color:#1f2937;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        white-space:nowrap;
       }
-      @media(max-width:640px){
+      .file-size{
+        margin:2px 0 0;
+        font-size:0.8rem;
+        color:#64748b;
+      }
+      .file-progress{
+        margin-top:8px;
+      }
+      .file-progress-bar{
+        height:8px;
+        border-radius:9999px;
+        background:#f1f5f9;
+        overflow:hidden;
+      }
+      .file-progress-bar span{
+        display:block;
+        height:100%;
+        border-radius:9999px;
+        background:linear-gradient(135deg, #38bdf8, #0ea5e9);
+        transition:width .25s ease;
+      }
+      .file-progress-text{
+        margin-top:4px;
+        font-size:0.75rem;
+        color:#64748b;
+      }
+      @media(max-width:1080px){
+        .upload-layout{ grid-template-columns:1fr; }
+      }
+      @media(max-width:720px){
         .jarvis-nav{
           flex-direction:column;
           align-items:stretch;
         }
-        .jarvis-nav a{
-          width:100%;
-        }
-        .upload-header{
-          padding:24px;
-        }
-        .upload-card{
-          padding:22px;
-        }
-        .upload-actions{
-          flex-direction:column;
-          align-items:stretch;
-        }
+        .jarvis-nav a{ width:100%; }
+        .upload-shell{ padding:0 18px; }
       }
     </style>
   </head>
-  <body>
+  <body class="upload-body">
     <header class="header">
       <div class="header-container">
         <a href="index.html#home" class="logo" aria-label="ThinkBigPrep Logo" style="text-decoration:none;color:inherit;">
@@ -266,6 +403,7 @@
         </a>
         <nav class="nav-desktop">
           <a href="index.html#home">Home</a>
+          <a href="dashboard.html">Dashboard</a>
           <a href="timetable.html">Timetable</a>
           <a href="index.html#courses">Plans</a>
           <a href="index.html#coaches">Available Tutors</a>
@@ -279,6 +417,7 @@
       </div>
       <nav class="nav-mobile" id="mobile-menu">
         <a href="index.html#home">Home</a>
+        <a href="dashboard.html">Dashboard</a>
         <a href="timetable.html">Timetable</a>
         <a href="index.html#courses">Plans</a>
         <a href="index.html#coaches">Available Tutors</a>
@@ -302,24 +441,24 @@
           </a>
         </nav>
 
-        <section class="settings-card" aria-labelledby="uploadTitle" style="max-width:900px; margin:0 auto 80px;">
-          <div class="settings-head">
-            <h2 id="uploadTitle" class="settings-title">Upload Worksheets</h2>
-            <p class="settings-sub">Drag & drop PDFs or images, or browse to upload. Progress is shown per file.</p>
-          </div>
-          <div style="padding:16px; display:grid; gap:12px;">
-            <div style="display:grid; gap:10px; grid-template-columns:1fr 1fr;">
-              <div>
-                <label class="setting-label" for="schoolInput">School</label>
-                <div style="position:relative">
-                  <select id="schoolInput" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff">
-                    <option value="">Select school</option>
-                  </select>
-                </div>
+        <section class="upload-header-card">
+          <h1>Upload Your Worksheets</h1>
+          <p>Drop your files, fill in the details, and Jarvis will turn them into tailored practice sets. You’ll see progress for each file and can add custom exam names if needed.</p>
+        </section>
+
+        <section class="upload-layout" aria-labelledby="uploadTitle">
+          <div class="upload-panel">
+            <h2>Worksheet Details</h2>
+            <div class="info-grid two-col">
+              <div class="upload-field">
+                <label for="schoolInput">School</label>
+                <select id="schoolInput" class="upload-control">
+                  <option value="">Select school</option>
+                </select>
               </div>
-              <div>
-                <label class="setting-label" for="courseSelect">Course</label>
-                <select id="courseSelect" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff">
+              <div class="upload-field">
+                <label for="courseSelect">Course</label>
+                <select id="courseSelect" class="upload-control">
                   <option value="">Select course</option>
                   <option>Pre-Algebra</option>
                   <option>Geometry</option>
@@ -330,51 +469,46 @@
                   <option>Calculus BC</option>
                 </select>
               </div>
-              <div>
-                <label class="setting-label" for="teacherInput">Teacher</label>
-                <input id="teacherInput" type="text" placeholder="ex. Mrs. Smith" autocomplete="off" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px" />
+              <div class="upload-field">
+                <label for="teacherInput">Teacher</label>
+                <input id="teacherInput" type="text" placeholder="ex. Mrs. Smith" autocomplete="off" class="upload-control" />
               </div>
-              <div>
-                <label class="setting-label" for="examSelect">Exams / Quizzes</label>
-                <select id="examSelect" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff">
-                  <option value="" disabled selected>Loading exams…</option>
-                </select>
-                <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
-                  <input id="examCustomInput" type="text" placeholder="Add custom exam title" style="flex:1;padding:10px;border:1px solid #e5e7eb;border-radius:8px" />
-                  <button type="button" id="examAddBtn" class="btn btn-secondary" style="flex:0 0 auto;white-space:nowrap;">Add</button>
-                </div>
+              <div class="upload-field">
+                <label for="examInput">Exams / Quizzes</label>
+                <input id="examInput" list="examOptions" placeholder="Loading exams…" autocomplete="off" class="upload-control" disabled />
+                <datalist id="examOptions"></datalist>
+                <p class="field-hint">Choose an upcoming exam or type a custom title.</p>
               </div>
             </div>
-            <div>
-            </div>
-            <div id="tbp-uploader" class="rounded-2xl border border-slate-200 bg-white p-4" style="box-shadow:0 10px 30px rgba(0,0,0,.08);">
-              <div id="tbp-dropzone" class="rounded-2xl border border-dashed border-slate-300" style="padding:24px; text-align:center; background:#f8fafb; cursor:pointer;">
-                <div style="display:inline-flex; align-items:center; justify-content:center; height:64px; width:64px; border-radius:9999px; background:#fff; color:#6b7280; box-shadow:0 1px 4px rgba(0,0,0,.08); margin-bottom:8px;">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden style="height:28px; width:28px;">
-                    <path d="M19.35 10.04a7.49 7.49 0 0 0-14-2.09A5.5 5.5 0 0 0 6.5 21H18a4.5 4.5 0 0 0 1.35-10.96ZM12 13a1 1 0 0 1 1 1v3.586l.293-.293a1 1 0 1 1 1.414 1.414l-2.707 2.707a1 1 0 0 1-1.414 0L7.879 18.707a1 1 0 0 1 1.414-1.414L9.586 17V14a1 1 0 0 1 1-1h1.414Z"/>
-                  </svg>
-                </div>
-                <h3 style="margin:4px 0 0; font-size:18px; font-weight:700; color:#1f2937;">Upload files</h3>
-                <p style="margin:2px 0 0; color:#6b7280;">JPEG, PNG, PDF up to 50MB each</p>
-                <div class="rounded-2xl border border-dashed border-slate-300" style="padding:16px; margin-top:12px;">
-                  <p style="font-weight:600; color:#1f2937;">Choose a file or drag & drop it here</p>
-                  <p style="margin-top:4px; color:#6b7280; font-size:14px;">Click to browse or drop multiple files</p>
-                  <div style="margin-top:10px;">
-                    <button id="tbp-browse" type="button" class="btn btn-primary">Browse File</button>
-                  </div>
-                  <input id="tbp-file-input" type="file" multiple accept="image/jpeg,image/png,application/pdf" style="display:none" />
-                </div>
-              </div>
+          </div>
 
-              <div id="tbp-file-list" style="margin-top:16px; display:none;" class="rounded-2xl bg-slate-50 p-4">
-                <div style="display:flex; align-items:center; justify-content:space-between;">
-                  <p id="tbp-file-count" style="font-weight:600; color:#334155; font-size:14px;">0 files selected</p>
-                  <div style="display:flex; gap:8px;">
-                    <button id="tbp-clear" type="button" class="btn">Clear</button>
-                    <button id="tbp-upload" type="button" class="btn btn-secondary" disabled>Upload</button>
-                  </div>
+          <div class="upload-summary">
+            <div class="upload-dropzone" id="tbp-dropzone">
+              <div class="dropzone-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden style="height:28px;width:28px;">
+                  <path d="M19.35 10.04a7.49 7.49 0 0 0-14-2.09A5.5 5.5 0 0 0 6.5 21H18a4.5 4.5 0 0 0 1.35-10.96ZM12 13a1 1 0 0 1 1 1v3.586l.293-.293a1 1 0 1 1 1.414 1.414l-2.707 2.707a1 1 0 0 1-1.414 0L7.879 18.707a1 1 0 0 1 1.414-1.414L9.586 17V14a1 1 0 0 1 1-1h1.414Z"/>
+                </svg>
+              </div>
+              <h3 class="dropzone-title">Upload files</h3>
+              <p class="dropzone-sub">PDF, PNG, or JPG – up to 50MB each. Drag and drop or browse.</p>
+              <div class="dropzone-cta">
+                <p style="font-weight:600;color:#1f2937;margin:0;">Select files or drop them here</p>
+                <p style="margin:4px 0 10px;color:#6b7280;font-size:0.9rem;">You can add up to five files per batch</p>
+                <button id="tbp-browse" type="button" class="btn btn-primary">Browse files</button>
+              </div>
+              <input id="tbp-file-input" type="file" multiple accept="image/jpeg,image/png,application/pdf" style="display:none" />
+            </div>
+
+            <div id="tbp-file-list" class="file-list-card" style="visibility:hidden;">
+              <div class="file-list-head">
+                <p id="tbp-file-count">0 files selected</p>
+                <div class="upload-actions">
+                  <button id="tbp-clear" type="button" class="btn btn-secondary">Clear</button>
+                  <button id="tbp-upload" type="button" class="btn btn-primary" disabled>Upload</button>
                 </div>
-                <div id="tbp-rows" style="margin-top:8px;"></div>
+              </div>
+              <div id="tbp-rows" class="file-list-items">
+                <div class="file-list-empty">Your selected files will appear here</div>
               </div>
             </div>
           </div>
@@ -411,188 +545,121 @@
       </div>
     </footer>
 
-    <script>window.TBP_AUTH_BASE='https://cramprep.onrender.com';</script>
     <script src="index.js"></script>
     <script src="login.js?v=1.0"></script>
     <script>
       (function(){
-        const examSelect = document.getElementById('examSelect');
-        const customInput = document.getElementById('examCustomInput');
-        const addBtn = document.getElementById('examAddBtn');
-        if (!examSelect) return;
-
+        const examInput = document.getElementById('examInput');
+        const examOptionsList = document.getElementById('examOptions');
+        if (!examInput || !examOptionsList) return;
+        const examEventMap = new Map();
         let loaded = false;
         let loading = false;
 
-        function notify(message, type) {
-          if (typeof showNotification === 'function') {
-            showNotification(message, type || 'info', type === 'success' ? 3800 : 2600);
-          } else {
-            if (type === 'error') console.error(message);
-            else console.log(message);
-          }
-        }
+        examInput.addEventListener('input', function(){
+          const value = (examInput.value || '').trim();
+          const record = value ? examEventMap.get(value.toLowerCase()) : null;
+          examInput.dataset.examDate = record ? record.date || '' : '';
+        });
 
-        function setPlaceholder(message, opts) {
+        function setPlaceholder(message, opts){
           opts = opts || {};
-          examSelect.innerHTML = '';
-          const placeholder = new Option(message, '');
-          placeholder.disabled = true;
-          placeholder.selected = true;
-          examSelect.appendChild(placeholder);
-          if (typeof opts.disabled !== 'undefined') {
-            examSelect.disabled = !!opts.disabled;
+          examInput.placeholder = message;
+          if (typeof opts.disabled !== 'undefined'){
+            examInput.disabled = !!opts.disabled;
+            if (examInput.disabled) examInput.value = '';
           }
+          examInput.dataset.examDate = '';
         }
 
-        function ensureDefaultOption() {
-          if (examSelect.options.length === 0 || examSelect.options[0].value !== '') {
-            const opt = new Option('Select exam or quiz', '');
-            opt.disabled = true;
-            opt.selected = true;
-            examSelect.insertBefore(opt, examSelect.firstChild);
-          }
-        }
-
-        function handleCustomAdd() {
-          if (!customInput) return;
-          const text = customInput.value.trim();
-          if (!text) {
-            notify('Please enter a title before adding.', 'error');
-            return;
-          }
-          const existing = Array.from(examSelect.options).find(opt => !opt.disabled && opt.value === text);
-          let target = existing;
-          if (!existing) {
-            const option = new Option(text, text, true, true);
-            option.dataset.examDate = '';
-            examSelect.appendChild(option);
-            target = option;
-          } else {
-            existing.selected = true;
-          }
-          examSelect.disabled = false;
-          if (target) target.selected = true;
-          examSelect.dispatchEvent(new Event('change', { bubbles: true }));
-          customInput.value = '';
-          notify('Custom exam added to the list.', 'success');
-        }
-
-        if (addBtn) addBtn.addEventListener('click', handleCustomAdd);
-        if (customInput) {
-          customInput.addEventListener('keydown', function(e){
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              handleCustomAdd();
-            }
-          });
-        }
-
-        function decodeIcsText(text) {
-          return String(text || '').replace(/\\n/g, '\n').replace(/\\,/g, ',').replace(/\\;/g, ';');
-        }
-
-        function icsToDate(raw) {
+        function decodeIcsText(text){ return String(text || '').replace(/\\n/g, '\n').replace(/\\,/g, ',').replace(/\\;/g, ';'); }
+        function icsToDate(raw){
           if (!raw) return null;
-          if (/^\d{8}$/.test(raw)) {
-            const y = Number(raw.slice(0, 4));
-            const m = Number(raw.slice(4, 6));
-            const d = Number(raw.slice(6, 8));
-            return new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+          if (/^\d{8}$/.test(raw)){
+            const y = Number(raw.slice(0,4));
+            const m = Number(raw.slice(4,6));
+            const d = Number(raw.slice(6,8));
+            return new Date(Date.UTC(y, m-1, d, 12, 0, 0));
           }
-          if (/^\d{8}T\d{6}Z$/.test(raw)) {
-            const y = Number(raw.slice(0, 4));
-            const m = Number(raw.slice(4, 6));
-            const d = Number(raw.slice(6, 8));
-            const hh = Number(raw.slice(9, 11));
-            const mm = Number(raw.slice(11, 13));
-            const ss = Number(raw.slice(13, 15));
-            return new Date(Date.UTC(y, m - 1, d, hh, mm, ss));
+          if (/^\d{8}T\d{6}Z$/.test(raw)){
+            const y = Number(raw.slice(0,4));
+            const m = Number(raw.slice(4,6));
+            const d = Number(raw.slice(6,8));
+            const hh = Number(raw.slice(9,11));
+            const mm = Number(raw.slice(11,13));
+            const ss = Number(raw.slice(13,15));
+            return new Date(Date.UTC(y, m-1, d, hh, mm, ss));
           }
           const dt = new Date(raw);
           return isNaN(dt.getTime()) ? null : dt;
         }
-
-        function parseIcs(text) {
+        function parseIcs(text){
           const events = [];
           if (!text) return events;
           const lines = text.split(/\r?\n/);
           const unfolded = [];
-          for (let i = 0; i < lines.length; i++) {
+          for (let i=0;i<lines.length;i++){
             const line = lines[i];
-            if (/^\s/.test(line) && unfolded.length) {
+            if (/^\s/.test(line) && unfolded.length){
               unfolded[unfolded.length - 1] += line.trim();
             } else {
               unfolded.push(line);
             }
           }
           let current = null;
-          for (const raw of unfolded) {
+          for (const raw of unfolded){
             const line = raw.trim();
-            if (line === 'BEGIN:VEVENT') {
-              current = {};
-              continue;
-            }
-            if (line === 'END:VEVENT') {
-              if (current) {
-                events.push(current);
-                current = null;
-              }
+            if (line === 'BEGIN:VEVENT'){ current = {}; continue; }
+            if (line === 'END:VEVENT'){
+              if (current){ events.push(current); current = null; }
               continue;
             }
             if (!current) continue;
             const idx = line.indexOf(':');
             if (idx < 0) continue;
             const keyPart = line.slice(0, idx);
-            const val = line.slice(idx + 1);
+            const value = decodeIcsText(line.slice(idx+1));
             const key = keyPart.split(';')[0];
-            if (key === 'DTSTART' || key.startsWith('DTSTART')) current.DTSTART = val;
-            else if (key === 'DTEND' || key.startsWith('DTEND')) current.DTEND = val;
-            else if (key === 'SUMMARY') current.SUMMARY = decodeIcsText(val);
-            else if (key === 'DESCRIPTION') current.DESCRIPTION = decodeIcsText(val);
+            current[key] = value;
           }
-          return events.map(ev => ({
-            title: ev.SUMMARY || 'Assessment',
-            description: ev.DESCRIPTION || '',
-            start: icsToDate(ev.DTSTART),
-            end: icsToDate(ev.DTEND || ev.DTSTART)
-          })).filter(ev => !!ev.start);
+          return events.map(ev => {
+            const start = icsToDate(ev.DTSTART || ev['DTSTART;VALUE=DATE']);
+            const title = (ev.SUMMARY || '').trim();
+            return { raw: ev, start, title };
+          }).filter(ev => ev.start && ev.title);
         }
-
-        function isAssessmentEvent(ev) {
-          const text = `${ev.title || ''}\n${ev.description || ''}`.toLowerCase();
+        function isAssessmentEvent(ev){
+          if (!ev || !ev.title) return false;
+          const text = ev.title.toLowerCase();
           return /\b(exam|test|assessment|quiz)\b/.test(text);
         }
-
-        function dedupeEvents(events) {
-          const map = new Map();
+        function dedupeEvents(events){
+          const seen = new Map();
           events.forEach(ev => {
-            const key = `${(ev.title || '').trim().toLowerCase()}|${ev.start ? ev.start.toISOString().slice(0, 10) : ''}`;
-            if (!map.has(key)) map.set(key, ev);
+            const key = `${ev.title.toLowerCase()}|${ev.start ? ev.start.toISOString().slice(0,10) : ''}`;
+            if (!seen.has(key)) seen.set(key, ev);
           });
-          return Array.from(map.values()).sort((a, b) => {
-            const aTime = a.start ? a.start.getTime() : 0;
-            const bTime = b.start ? b.start.getTime() : 0;
-            return aTime - bTime;
-          });
+          return Array.from(seen.values());
         }
-
-        function formatExamLabel(ev) {
-          const title = ev.title || 'Assessment';
-          if (!ev.start) return title;
-          const formatter = new Intl.DateTimeFormat(undefined, { weekday:'long', month:'short', day:'numeric' });
+        function formatExamLabel(ev){
+          if (!ev || !ev.start) return (ev && ev.title) || 'Exam';
+          const formatter = new Intl.DateTimeFormat('en-US', { month:'short', day:'numeric' });
+          const title = (ev.title || '').trim();
           return `${formatter.format(ev.start)} — ${title}`;
         }
 
-        async function loadExamOptions() {
+        async function loadExamOptions(){
           if (loading || loaded) return;
           loading = true;
           setPlaceholder('Loading exams…', { disabled: true });
+          examOptionsList.innerHTML = '';
+          examEventMap.clear();
           try {
             let token = null;
             try { token = localStorage.getItem('tbp_token'); } catch {}
-            if (!token) {
+            if (!token){
               setPlaceholder('Please log in to access exams.', { disabled: true });
+              loading = false;
               return;
             }
             const base = (window.TBP_AUTH_BASE || '').replace(/\/$/, '');
@@ -600,39 +667,47 @@
             const profileJson = await profileRes.json().catch(() => ({}));
             const profile = profileRes.ok && profileJson && profileJson.profile ? profileJson.profile : null;
             const icsUrl = profile && profile.icsUrl ? String(profile.icsUrl).trim() : '';
-            if (!icsUrl) {
-              setPlaceholder('Please fill out the iCal (ics) URL in settings.', { disabled: false });
-              examSelect.disabled = false;
+            if (!icsUrl){
+              setPlaceholder('Add an iCal URL in settings or type a custom exam.', { disabled: false });
+              examInput.disabled = false;
               loaded = true;
+              loading = false;
               return;
             }
             const icsRes = await fetch(`${base}/auth/ics?url=${encodeURIComponent(icsUrl)}`, { headers: { 'Authorization': `Bearer ${token}` } });
             if (!icsRes.ok) throw new Error('ics_fetch_failed');
             const icsText = await icsRes.text();
             const allAssessments = parseIcs(icsText).filter(isAssessmentEvent);
-            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const today = new Date(); today.setHours(0,0,0,0);
             const upcoming = allAssessments.filter(ev => ev.start && ev.start >= today);
             const events = dedupeEvents(upcoming);
-            if (!events.length) {
-              setPlaceholder('No upcoming exams found. Add your own below.', { disabled: false });
-              examSelect.disabled = false;
+            if (!events.length){
+              setPlaceholder('No upcoming exams found. Enter a custom name.', { disabled: false });
+              examInput.disabled = false;
               loaded = true;
+              loading = false;
               return;
             }
-            examSelect.innerHTML = '';
-            ensureDefaultOption();
+            examOptionsList.innerHTML = '';
+            examEventMap.clear();
             events.forEach(ev => {
-              const value = (ev.title || '').trim() || formatExamLabel(ev);
-              const option = new Option(formatExamLabel(ev), value);
-              option.dataset.examDate = ev.start ? ev.start.toISOString() : '';
-              examSelect.appendChild(option);
+              const label = formatExamLabel(ev);
+              const option = document.createElement('option');
+              option.value = label;
+              examOptionsList.appendChild(option);
+              examEventMap.set(label.toLowerCase(), {
+                date: ev.start ? ev.start.toISOString() : '',
+                raw: ev
+              });
             });
-            examSelect.disabled = false;
+            examInput.disabled = false;
+            examInput.placeholder = 'Select or type exam name…';
+            examInput.dataset.examDate = '';
             loaded = true;
-          } catch (err) {
+          } catch (err){
             console.warn('Failed to load exam options', err);
-            setPlaceholder('Unable to load exams. Add your own below.', { disabled: false });
-            examSelect.disabled = false;
+            setPlaceholder('Unable to load exams. Type a custom name.', { disabled: false });
+            examInput.disabled = false;
             loaded = true;
           } finally {
             loading = false;
@@ -646,6 +721,17 @@
         });
 
         loadExamOptions();
+        window.__jarvisExamField = {
+          input: examInput,
+          getValue(){
+            const title = (examInput.value || '').trim();
+            const record = title ? examEventMap.get(title.toLowerCase()) : null;
+            return {
+              title,
+              date: record ? record.date || '' : ''
+            };
+          }
+        };
       })();
     </script>
     <script>
@@ -668,43 +754,61 @@
         let items = [];
         let currentSlug = '';
 
-        function fmtBytes(bytes){ if (bytes===0) return '0 B'; const k=1024; const sizes=['B','KB','MB','GB']; const i=Math.floor(Math.log(bytes)/Math.log(k)); return `${(bytes/Math.pow(k,i)).toFixed(i===0?0:2)} ${sizes[i]}`; }
-        function setDragging(on){ els.drop.style.background = on ? '#eff6ff' : '#f8fafb'; }
+        function fmtBytes(bytes){
+          if (bytes===0) return '0 B';
+          const k=1024;
+          const sizes=['B','KB','MB','GB'];
+          const i=Math.floor(Math.log(bytes)/Math.log(k));
+          return `${(bytes/Math.pow(k,i)).toFixed(i===0?0:2)} ${sizes[i]}`;
+        }
+        function setDragging(on){
+          if (!els.drop) return;
+          els.drop.style.background = on ? '#eff6ff' : '#f8fafb';
+          if (on) els.drop.classList.add('is-dragover');
+          else els.drop.classList.remove('is-dragover');
+        }
         function dedupeKey(f){ return f.name + '|' + f.size; }
 
         function render(){
-          els.list.style.display = items.length ? 'block' : 'none';
+          if (els.list){
+            els.list.style.visibility = items.length ? 'visible' : 'hidden';
+            els.list.style.pointerEvents = items.length ? 'auto' : 'none';
+          }
+          if (items.length === 0 && els.rows){
+            els.rows.innerHTML = '<div class="file-list-empty">Your selected files will appear here</div>';
+          }
           els.count.textContent = `${items.length} file${items.length>1?'s':''} selected`;
           els.upload.disabled = !items.some(x => x.status==='ready');
+          if (!els.rows) return;
+          if (!items.length) return;
           els.rows.innerHTML = items.map(it => {
             const badge = it.file.type.includes('pdf')? 'PDF' : (it.file.type.includes('png')?'PNG':'JPG');
             const barColor = it.status==='error'? '#ef4444' : '#0ea5e9';
             const showBar = it.status !== 'ready';
             return `
-              <div class=\"flex items-start justify-between gap-4 py-3\" style=\"display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:12px 0;border-top:1px solid #e5e7eb;\">
-                <div class=\"min-w-0 flex-1\" style=\"min-width:0;flex:1;\">
-                  <div class=\"flex items-center gap-2\" style=\"display:flex;align-items:center;gap:8px;\">
-                    <span class=\"inline-flex h-8 w-8 items-center justify-content-center rounded-xl bg-slate-100 text-slate-600\" style=\"display:inline-flex;height:32px;width:32px;border-radius:12px;background:#f1f5f9;color:#475569;align-items:center;justify-content:center;\">${badge}</span>
-                    <div class=\"min-w-0\" style=\"min-width:0;\">
-                      <p class=\"truncate text-sm font-medium text-slate-900\" style=\"margin:0;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">${it.file.name}</p>
-                      <p class=\"text-xs text-slate-500\" style=\"margin:2px 0 0;color:#6b7280;font-size:12px;\">${fmtBytes(it.file.size)}</p>
-                    </div>
-                  </div>
-                  ${showBar?`
-                    <div class=\"mt-2\" style=\"margin-top:8px;\">
-                      <div class=\"h-2 w-full overflow-hidden rounded-full bg-slate-100\" style=\"height:8px;border-radius:9999px;background:#f1f5f9;\">
-                        <div style=\"height:8px;border-radius:9999px;background:${barColor};width:${it.progress||0}%;\"></div>
+              <div class="file-row">
+                <div class="file-meta">
+                  <span class="file-badge">${badge}</span>
+                  <div class="min-w-0">
+                    <p class="file-name">${it.file.name}</p>
+                    <p class="file-size">${fmtBytes(it.file.size)}</p>
+                    ${showBar?`
+                      <div class="file-progress">
+                        <div class="file-progress-bar"><span style="width:${it.progress||0}%;"></span></div>
+                        <p class="file-progress-text">
+                          ${it.status==='uploading'?`Uploading… ${Math.round(it.progress||0)}%`
+                            : it.status==='done' ? 'Uploaded'
+                            : it.status==='error' ? (it.error || 'Upload failed')
+                            : 'Ready'}
+                        </p>
                       </div>
-                      <p class=\"mt-1 text-xs text-slate-500\" style=\"margin-top:4px;color:#64748b;font-size:12px;\">
-                        ${it.status==='uploading'?`Uploading… ${Math.round(it.progress||0)}%`: it.status==='done'?'Uploaded': it.status==='error'?(it.error||'Upload failed') : 'Ready'}
-                      </p>
-                    </div>
-                  `:''}
+                    `:''}
+                  </div>
                 </div>
-                <button type=\"button\" data-id=\"${it.id}\" class=\"btn\" style=\"border:1px solid #e5e7eb;border-radius:12px;padding:6px 12px;font-size:12px;\" aria-label=\"Remove ${it.file.name}\">Remove</button>
+                <button type="button" data-id="${it.id}" class="btn btn-secondary" style="padding:8px 14px;font-size:0.85rem;">Remove</button>
               </div>
-            `; }).join('');
-
+            `;
+          }).join('');
           els.rows.querySelectorAll('button[data-id]').forEach(btn => {
             btn.addEventListener('click', function(){
               const id = this.getAttribute('data-id');
@@ -716,12 +820,15 @@
 
         function addFiles(fileList){
           if (!fileList) return;
-          if (items.length >= MAX_FILES){ alert(`You can upload up to ${MAX_FILES} files.`); return; }
+          if (items.length >= MAX_FILES){
+            alert(`You can upload up to ${MAX_FILES} files.`);
+            return;
+          }
           Array.from(fileList).forEach(file => {
-            if (!ACCEPT.includes(file.type) && !/\.pdf$/i.test(file.name) && !/\.png$/i.test(file.name) && !/\.jpe?g$/i.test(file.name)) {
+            if (!ACCEPT.includes(file.type) && !/\.pdf$/i.test(file.name) && !/\.png$/i.test(file.name) && !/\.jpe?g$/i.test(file.name)){
               return;
             }
-            if (file.size > MAX_BYTES) {
+            if (file.size > MAX_BYTES){
               alert(`${file.name} is larger than ${MAX_MB}MB.`);
               return;
             }
@@ -731,8 +838,8 @@
               id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
               key,
               file,
-              progress: 0,
-              status: 'ready'
+              progress:0,
+              status:'ready'
             });
           });
           render();
@@ -758,184 +865,75 @@
           }
         }
 
-        function storeGuideMetadata(guide){
-          const guides = loadStoredGuides().filter(g => g.slug !== guide.slug);
-          guides.unshift(guide);
-          localStorage.setItem('jarvisGuides', JSON.stringify(guides.slice(0, 50)));
-          localStorage.setItem('jarvisLatestGuide', guide.slug);
-          try { window.dispatchEvent(new CustomEvent('tbp:jarvis:guides-updated')); } catch {}
-        }
-
-        function getAuthToken(){
-          try { return localStorage.getItem('tbp_token') || ''; } catch { return ''; }
-        }
-
-        async function fetchProfile(){
-          const token = getAuthToken();
-          if (!token) return null;
-          const base = (window.TBP_AUTH_BASE || '').replace(/\/$/, '');
+        function saveGuideMetadata(meta){
           try {
-            const res = await fetch(`${base}/auth/profile`, { headers: { 'Authorization': `Bearer ${token}` } });
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok || !data || !data.profile) return null;
-            return data.profile;
-          } catch { return null; }
+            const guides = loadStoredGuides();
+            guides.unshift({ slug: meta.slug, title: meta.title, examDate: meta.examDate||'', createdAt: new Date().toISOString() });
+            const trimmed = guides.slice(0, 25);
+            localStorage.setItem('jarvisGuides', JSON.stringify(trimmed));
+            localStorage.setItem('jarvisLatestGuide', meta.slug);
+          } catch {}
         }
 
-        async function saveSchoolProfile(value){
-          const token = getAuthToken();
-          if (!token) return;
-          const base = (window.TBP_AUTH_BASE || '').replace(/\/$/, '');
-          try {
-            await fetch(`${base}/auth/profile`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-              body: JSON.stringify({ school: value || null })
-            });
-          } catch (err) { console.warn('Failed to save school preference', err); }
+        function ensureSlug(){
+          if (!currentSlug) currentSlug = `jarvis-${Date.now()}`;
+          return currentSlug;
         }
-
-        function escapeCss(val){
-          if (window.CSS && typeof CSS.escape === 'function') return CSS.escape(val);
-          return String(val || '').replace(/[\"\\]/g, '\\$&');
-        }
-
-        async function loadSchools(){
-          const base = (window.TBP_AUTH_BASE || '').replace(/\/$/, '');
-          try {
-            const res = await fetch(`${base}/ai/schools`);
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok || !data || !Array.isArray(data.schools)) return [];
-            return data.schools;
-          } catch { return []; }
-        }
-
-        async function populateSchoolSelect(){
-          const select = document.getElementById('schoolInput');
-          if (!select) return;
-          const schools = await loadSchools();
-          select.innerHTML = '<option value="">Select school</option>';
-          schools.forEach(name => {
-            const opt = document.createElement('option');
-            opt.value = name;
-            opt.textContent = name;
-            select.appendChild(opt);
-          });
-
-          const token = getAuthToken();
-          if (!token){
-            select.disabled = true;
-            return;
-          }
-          select.disabled = false;
-
-          const profile = await fetchProfile();
-          if (profile && profile.school){
-            const existing = select.querySelector(`option[value="${escapeCss(profile.school)}"]`);
-            if (!existing){
-              const opt = document.createElement('option');
-              opt.value = profile.school;
-              opt.textContent = profile.school;
-              select.appendChild(opt);
-            }
-            select.value = profile.school;
-          }
-
-          if (!select.dataset.bound){
-            select.addEventListener('change', () => { saveSchoolProfile(select.value); });
-            select.dataset.bound = '1';
-          }
-        }
+        ensureSlug();
 
         function getStoredUser(){
           try {
             const raw = localStorage.getItem('tbp_user');
-            if (!raw) return {};
-            const parsed = JSON.parse(raw);
-            return parsed && typeof parsed === 'object' ? parsed : {};
+            if (!raw) return null;
+            const user = JSON.parse(raw);
+            return user;
           } catch {
-            return {};
+            return null;
           }
         }
 
-        async function runWorksheetPipeline(opts){
+        function runWorksheetPipeline(opts){
           const { fileUrl, images, meta } = opts || {};
-          if (!meta || !meta.slug || !fileUrl) return { processed:false, extracted:false, error:'missing_metadata' };
-          const base = (window.TBP_AUTH_BASE || '').replace(/\/$/, '');
-          const headers = { 'Content-Type': 'application/json' };
-          let token = null;
-          try { token = localStorage.getItem('tbp_token'); } catch {}
-          if (token) headers['Authorization'] = `Bearer ${token}`;
-
-          let processed = false;
-          let extracted = false;
-          let errorMessage = '';
-
-          try {
-            const rsp = await fetch(`${base}/ai/worksheet/process`, {
-              method: 'POST',
-              headers,
-              body: JSON.stringify({ url: fileUrl, lessonSlug: meta.slug, lessonTitle: meta.guideTitle || meta.slug })
-            });
-            processed = rsp.ok;
-            if (!rsp.ok) console.warn('Worksheet process failed', rsp.status);
-            if (!rsp.ok){
-              try {
-                const text = await rsp.text();
-                errorMessage = text || `process_failed_${rsp.status}`;
-              } catch { errorMessage = `process_failed_${rsp.status}`; }
-            }
-          } catch (err) {
-            console.warn('Worksheet process exception', err);
-            errorMessage = (err && err.message) || 'process_exception';
-          }
-
-          if (Array.isArray(images) && images.length){
-            const payload = {
+          if (!fileUrl || !Array.isArray(images) || !images.length) return Promise.resolve({ processed:false, extracted:false });
+          const base = (window.TBP_AUTH_BASE||'').replace(/\/$/, '');
+          return fetch(`${base}/ai/worksheet/process`, {
+            method:'POST',
+            headers:{ 'Content-Type':'application/json' },
+            body: JSON.stringify({
+              url: fileUrl,
               lessonSlug: meta.slug,
-              title: meta.guideTitle || meta.slug,
-              school: meta.school || '',
-              teacher: meta.teacher || '',
-              worksheetType: meta.worksheetType || meta.course || '',
-              images,
-              studentFullName: meta.studentFullName || '',
-              studentEmail: meta.studentEmail || '',
-              examTitle: meta.examTitle || '',
-              examDate: meta.examDate || ''
-            };
-            try {
-              const rsp = await fetch(`${base}/ai/worksheet/extract`, {
-                method: 'POST',
-                headers,
-                body: JSON.stringify(payload)
-              });
-              extracted = rsp.ok;
-              if (!rsp.ok) console.warn('Worksheet extract failed', rsp.status);
-              if (!rsp.ok){
-                try {
-                  const text = await rsp.text();
-                  errorMessage = text || `extract_failed_${rsp.status}`;
-                } catch { errorMessage = `extract_failed_${rsp.status}`; }
-              }
-            } catch (err) {
-              console.warn('Worksheet extract exception', err);
-              errorMessage = (err && err.message) || 'extract_exception';
+              lessonTitle: meta.course || meta.guideTitle || meta.slug
+            })
+          }).then(r=>r.json()).then(resp => {
+            if (!resp || !resp.ok){
+              return { processed:false, extracted:false, error:'preprocess_failed' };
             }
-          } else if (!errorMessage){
-            errorMessage = 'no_images_for_extraction';
-          }
-
-          return { processed, extracted, error: errorMessage };
+            return fetch(`${base}/ai/worksheet/extract`, {
+              method:'POST',
+              headers:{ 'Content-Type':'application/json' },
+              body: JSON.stringify({
+                lessonSlug: meta.slug,
+                title: meta.guideTitle,
+                school: meta.school,
+                teacher: meta.teacher,
+                worksheetType: meta.course,
+                studentFullName: meta.studentFullName,
+                studentEmail: meta.studentEmail,
+                examTitle: meta.examTitle,
+                examDate: meta.examDate,
+                images: images
+              })
+            }).then(ex=>ex.json()).then(ex=>{
+              if (!ex || !ex.ok){
+                return { processed:true, extracted:false, error:'extract_failed' };
+              }
+              return { processed:true, extracted:true };
+            });
+          }).catch(err => {
+            console.error('pipeline error', err);
+            return { processed:false, extracted:false, error:String(err&&err.message||err) };
+          });
         }
-
-        function ensureSlug(){
-          if (!currentSlug) {
-            currentSlug = `jarvis-${Date.now()}`;
-          }
-          return currentSlug;
-        }
-
-        ensureSlug();
 
         els.upload.addEventListener('click', async function(){
           if (!items.length){
@@ -946,9 +944,9 @@
           const school = (document.getElementById('schoolInput').value||'').trim();
           const course = (document.getElementById('courseSelect').value||'').trim();
           const teacher = (document.getElementById('teacherInput').value||'').trim();
-          const selected = examSelect && examSelect.options[examSelect.selectedIndex];
-          const examTitle = selected && !selected.disabled ? (selected.value || selected.textContent || '').trim() : '';
-          const examDate = selected && selected.dataset ? selected.dataset.examDate || '' : '';
+          const examState = window.__jarvisExamField ? window.__jarvisExamField.getValue() : { title:'', date:'' };
+          const examTitle = examState.title || '';
+          const examDate = examState.date || '';
           const guideTitle = examTitle || (course ? `${course} Study Guide` : slug);
           const storedUser = getStoredUser();
           const pipelineMeta = {
@@ -1031,8 +1029,7 @@
                         render();
                         reject(new Error(it.error));
                       }
-                    }
-                    catch(e){
+                    } catch(e){
                       it.status='error';
                       it.error='Invalid server response';
                       render();
@@ -1080,7 +1077,7 @@
             return;
           }
 
-          storeGuideMetadata({
+          saveGuideMetadata({
             slug,
             title: guideTitle,
             examDate,
@@ -1092,13 +1089,29 @@
           window.location.href = `jarvis.html?guide=${encodeURIComponent(slug)}`;
         });
 
+        function populateSchoolSelect(){
+          const select = document.getElementById('schoolInput');
+          if (!select) return;
+          const schools = (window && window.TBP_SCHOOLS) ? window.TBP_SCHOOLS : [];
+          if (!schools.length){
+            select.innerHTML = '<option value="">Select school</option>';
+            return;
+          }
+          const stored = getStoredUser();
+          const preferred = stored && stored.school ? stored.school : '';
+          select.innerHTML = '<option value="">Select school</option>' + schools.map(name => `<option${preferred===name?' selected':''}>${name}</option>`).join('');
+          select.addEventListener('change', () => { saveSchoolProfile(select.value); });
+        }
+
+        function saveSchoolProfile(school){
+          try { localStorage.setItem('tbp_school', school); } catch {}
+        }
+
         populateSchoolSelect();
         window.addEventListener('tbp:auth:login', populateSchoolSelect);
         window.addEventListener('storage', function(e){
           if (!e) return;
-          if (e.key === 'tbp_token' || e.key === 'tbp_user') {
-            populateSchoolSelect();
-          }
+          if (e.key === 'tbp_token' || e.key === 'tbp_user') populateSchoolSelect();
         });
 
         render();

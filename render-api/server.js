@@ -72,6 +72,15 @@ async function bootstrap() {
   const SESS_DB = process.env.MONGODB_DATABASE_SESSIONS || 'thinkpod';
   const SESS_COL = process.env.MONGODB_COLLECTION_SESSIONS || 'sessiontime';
   const sessionsCol = client.db(SESS_DB).collection(SESS_COL);
+  const ASSIGN_DB = process.env.MONGODB_DATABASE_ASSIGNMENTS || process.env.MONGODB_DATABASE || STUD_DB || 'thinkpod';
+  const ASSIGN_COL = process.env.MONGODB_COLLECTION_ASSIGNMENTS || 'assignments';
+  const assignmentsCol = client.db(ASSIGN_DB).collection(ASSIGN_COL);
+  try {
+    await assignmentsCol.createIndex({ studentId: 1, dueDate: 1 });
+    await assignmentsCol.createIndex({ studentId: 1, icalId: 1 }, { unique: true, sparse: true });
+  } catch (err) {
+    console.error('[assignments] index creation failed', err);
+  }
   const assetsDir = path.resolve(__dirname, '../assets_ingest');
   try { fs.mkdirSync(assetsDir, { recursive: true }); } catch {}
   // Teachers collection helper
@@ -82,6 +91,43 @@ async function bootstrap() {
   async function getSchoolsCollection(mongoClient){ return mongoClient.db(SCHOOLS_DB).collection(SCHOOLS_COL); }
   // Serve preprocessed assets
   app.use('/tmp/uploads', express.static(path.resolve(__dirname, '../tmp_uploads')));
+
+  const VALID_ASSIGNMENT_STATUSES = new Set(['todo', 'in-progress', 'completed']);
+
+  function getAuthPayload(req) {
+    const auth = req.headers.authorization || '';
+    const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+    if (!token) return null;
+    const payload = verifyJwt(token, JWT_SECRET);
+    if (!payload || !payload.sub) return null;
+    return { token, payload };
+  }
+
+  function serializeAssignment(doc) {
+    if (!doc) return null;
+    return {
+      id: doc._id ? doc._id.toString() : undefined,
+      title: doc.title || '',
+      subject: doc.subject || '',
+      status: doc.status || 'todo',
+      dueDate: doc.dueDate instanceof Date ? doc.dueDate.toISOString() : (doc.dueDate || null),
+      details: doc.details || '',
+      allDay: doc.allDay === undefined ? true : !!doc.allDay,
+      timeLabel: doc.timeLabel || '',
+      url: doc.url || '',
+      createdAt: doc.createdAt instanceof Date ? doc.createdAt.toISOString() : (doc.createdAt || null),
+      updatedAt: doc.updatedAt instanceof Date ? doc.updatedAt.toISOString() : (doc.updatedAt || null),
+      source: doc.source || 'manual',
+      icalId: doc.icalId || null,
+    };
+  }
+
+  function parseDueDate(value) {
+    if (!value) return null;
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+    return date;
+  }
 
   app.get('/auth/ping', (req, res) => res.json({ ok: true, ts: Date.now() }));
 
@@ -528,6 +574,176 @@ async function bootstrap() {
       } });
     } catch (e) {
       console.error(e); res.status(500).json({ error: 'Internal error' });
+    }
+  });
+
+  app.get('/assignments', async (req, res) => {
+    try {
+      const auth = getAuthPayload(req);
+      if (!auth) return res.status(401).json({ error: 'Unauthorized' });
+      const docs = await assignmentsCol
+        .find({ studentId: auth.payload.sub })
+        .sort({ dueDate: 1, createdAt: -1 })
+        .toArray();
+      return res.json({ ok: true, assignments: docs.map(serializeAssignment) });
+    } catch (e) {
+      console.error('[assignments:get]', e);
+      return res.status(500).json({ error: 'Internal error' });
+    }
+  });
+
+  app.post('/assignments', async (req, res) => {
+    try {
+      const auth = getAuthPayload(req);
+      if (!auth) return res.status(401).json({ error: 'Unauthorized' });
+      const body = req.body || {};
+      const title = String(body.title || '').trim();
+      if (!title) return res.status(400).json({ error: 'Title is required' });
+      const subject = body.subject ? String(body.subject).trim() : '';
+      const status = VALID_ASSIGNMENT_STATUSES.has(body.status) ? body.status : 'todo';
+      const dueDate = parseDueDate(body.dueDate);
+      const details = body.details ? String(body.details).trim() : '';
+      const allDay = body.allDay === undefined ? true : !!body.allDay;
+      const now = new Date();
+      const doc = {
+        studentId: auth.payload.sub,
+        title,
+        subject,
+        status,
+        dueDate,
+        details,
+        allDay,
+        createdAt: now,
+        updatedAt: now,
+        source: 'manual',
+      };
+      if (body.timeLabel && typeof body.timeLabel === 'string') {
+        doc.timeLabel = body.timeLabel.trim();
+      }
+      const result = await assignmentsCol.insertOne(doc);
+      doc._id = result.insertedId;
+      return res.status(201).json({ ok: true, assignment: serializeAssignment(doc) });
+    } catch (e) {
+      console.error('[assignments:post]', e);
+      return res.status(500).json({ error: 'Internal error' });
+    }
+  });
+
+  app.patch('/assignments/:id', async (req, res) => {
+    try {
+      const auth = getAuthPayload(req);
+      if (!auth) return res.status(401).json({ error: 'Unauthorized' });
+      const { id } = req.params;
+      let objectId;
+      try {
+        objectId = new ObjectId(id);
+      } catch {
+        return res.status(400).json({ error: 'Invalid assignment id' });
+      }
+      const updates = {};
+      const body = req.body || {};
+      if (body.title !== undefined) {
+        const t = String(body.title).trim();
+        if (!t) return res.status(400).json({ error: 'Title cannot be empty' });
+        updates.title = t;
+      }
+      if (body.subject !== undefined) {
+        updates.subject = String(body.subject || '').trim();
+      }
+      if (body.status !== undefined) {
+        if (!VALID_ASSIGNMENT_STATUSES.has(body.status)) {
+          return res.status(400).json({ error: 'Invalid status' });
+        }
+        updates.status = body.status;
+      }
+      if (body.dueDate !== undefined) {
+        const parsed = parseDueDate(body.dueDate);
+        updates.dueDate = parsed;
+      }
+      if (body.details !== undefined) {
+        updates.details = String(body.details || '').trim();
+      }
+      if (body.timeLabel !== undefined) {
+        updates.timeLabel = String(body.timeLabel || '').trim();
+      }
+      if (body.allDay !== undefined) {
+        updates.allDay = !!body.allDay;
+      }
+      if (!Object.keys(updates).length) {
+        return res.status(400).json({ error: 'No fields to update' });
+      }
+      updates.updatedAt = new Date();
+      const result = await assignmentsCol.findOneAndUpdate(
+        { _id: objectId, studentId: auth.payload.sub },
+        { $set: updates },
+        { returnDocument: 'after' }
+      );
+      if (!result.value) return res.status(404).json({ error: 'Assignment not found' });
+      return res.json({ ok: true, assignment: serializeAssignment(result.value) });
+    } catch (e) {
+      console.error('[assignments:patch]', e);
+      return res.status(500).json({ error: 'Internal error' });
+    }
+  });
+
+  app.put('/assignments/ical/:icalId', async (req, res) => {
+    try {
+      const auth = getAuthPayload(req);
+      if (!auth) return res.status(401).json({ error: 'Unauthorized' });
+      const icalIdRaw = String(req.params.icalId || '').trim();
+      if (!icalIdRaw) return res.status(400).json({ error: 'Invalid assignment id' });
+      const body = req.body || {};
+      const title = String(body.title || '').trim();
+      if (!title) return res.status(400).json({ error: 'Title is required' });
+      const subject = body.subject ? String(body.subject).trim() : '';
+      const status = VALID_ASSIGNMENT_STATUSES.has(body.status) ? body.status : 'todo';
+      const dueDate = parseDueDate(body.dueDate);
+      const details = body.details ? String(body.details).trim() : '';
+      const allDay = body.allDay === undefined ? true : !!body.allDay;
+      const timeLabel = body.timeLabel ? String(body.timeLabel).trim() : '';
+      const now = new Date();
+      const update = {
+        studentId: auth.payload.sub,
+        icalId: icalIdRaw,
+        source: 'override',
+        title,
+        subject,
+        status,
+        dueDate,
+        details,
+        allDay,
+        timeLabel,
+        updatedAt: now,
+      };
+      const result = await assignmentsCol.findOneAndUpdate(
+        { studentId: auth.payload.sub, icalId: icalIdRaw },
+        { $set: update, $setOnInsert: { createdAt: now } },
+        { returnDocument: 'after', upsert: true }
+      );
+      return res.json({ ok: true, assignment: serializeAssignment(result.value) });
+    } catch (e) {
+      console.error('[assignments:put-ical]', e);
+      return res.status(500).json({ error: 'Internal error' });
+    }
+  });
+
+  app.delete('/assignments/:id', async (req, res) => {
+    try {
+      const auth = getAuthPayload(req);
+      if (!auth) return res.status(401).json({ error: 'Unauthorized' });
+      const { id } = req.params;
+      let objectId;
+      try {
+        objectId = new ObjectId(id);
+      } catch {
+        return res.status(400).json({ error: 'Invalid assignment id' });
+      }
+      const result = await assignmentsCol.deleteOne({ _id: objectId, studentId: auth.payload.sub });
+      if (!result.deletedCount) return res.status(404).json({ error: 'Assignment not found' });
+      return res.json({ ok: true });
+    } catch (e) {
+      console.error('[assignments:delete]', e);
+      return res.status(500).json({ error: 'Internal error' });
     }
   });
 

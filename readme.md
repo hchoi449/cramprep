@@ -19,9 +19,22 @@ Required Cloudflare Pages environment variables:
 - `MONGODB_DATA_SOURCE` (e.g., Cluster0)
 - `MONGODB_DATABASE` (e.g., thinkbigprep)
 - `MONGODB_COLLECTION_USERS` (e.g., users)
+- `MONGODB_COLLECTION_ASSIGNMENTS` (e.g., assignments)
 - `JWT_SECRET` (strong random string)
 
 Enable Atlas Data API for your project/app in MongoDB Atlas.
+
+### Assignments API
+
+The assignments dashboard persists manual tasks and calendar overrides through Cloudflare Pages Functions:
+
+- `GET /api/assignments` — list saved tasks for the authenticated student
+- `POST /api/assignments` — create a manual task
+- `PATCH /api/assignments/:id` — update an existing task
+- `DELETE /api/assignments/:id` — remove a manual task
+- `PUT /api/assignments/ical/:icalId` — upsert overrides for calendar events
+
+Each request must include `Authorization: Bearer <jwt>` where the token is signed with `JWT_SECRET` (either by the Render service or the Cloudflare auth functions). Data is stored in the collection specified by `MONGODB_COLLECTION_ASSIGNMENTS`.
 
 ### Alternate Auth via Render (MongoDB URI)
 

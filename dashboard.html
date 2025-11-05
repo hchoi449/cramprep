@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>Dashboard - ThinkBigPrep</title>
+    <meta name="description" content="Track your ThinkBigPrep sessions, goals, and next steps from a single dashboard." />
+    <link rel="shortcut icon" href="assets/logo/thinkbigprep-icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="css/index.css?v=1.1" />
+    <link rel="stylesheet" href="css/login.css?v=1.0" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" />
+  </head>
+  <body class="dashboard-page">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-container">
+        <a href="index.html#home" class="logo" aria-label="ThinkBigPrep Logo" style="text-decoration:none;color:inherit;">
+          <img src="./assets/logo/thinkbigprep-logo.svg" alt="ThinkBigPrep" />
+        </a>
+        <nav class="nav-desktop">
+          <a href="index.html#home">Home</a>
+          <a href="dashboard.html" class="active">Dashboard</a>
+          <a href="timetable.html">Timetable</a>
+          <a href="index.html#courses">Plans</a>
+          <a href="index.html#coaches">Available Tutors</a>
+          <a href="about.html">About Us</a>
+          <a href="jarvis.html">Jarvis</a>
+          <a href="ai-curriculum.html">AI Curriculum</a>
+          <a href="problem-sets.html">Think Lab <span class="new-tag">NEW</span></a>
+          <a href="login.html" class="student-login-link">Student Login</a>
+        </nav>
+        <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+          <i class="bi bi-list"></i>
+        </button>
+      </div>
+      <nav class="nav-mobile" id="mobile-menu">
+        <a href="index.html#home">Home</a>
+        <a href="dashboard.html" class="active">Dashboard</a>
+        <a href="timetable.html">Timetable</a>
+        <a href="index.html#courses">Plans</a>
+        <a href="index.html#coaches">Available Tutors</a>
+        <a href="about.html">About Us</a>
+        <a href="jarvis.html">Jarvis</a>
+        <a href="ai-curriculum.html">AI Curriculum</a>
+        <a href="problem-sets.html">Think Lab <span class="new-tag">NEW</span></a>
+        <a href="login.html">Student Login</a>
+      </nav>
+    </header>
+
+    <main class="dashboard-main">
+      <section class="assignment-board">
+        <div class="container assignment-board-container">
+          <div class="assignment-board-header">
+            <h1 class="assignment-board-title">Assignments Dashboard</h1>
+            <div class="assignment-board-actions">
+              <button type="button" class="btn btn-primary assignment-add-btn">+ New Assignment</button>
+            </div>
+          </div>
+          <div class="assignment-board-status" role="status" aria-live="polite"></div>
+          <div class="assignment-columns">
+            <div class="assignment-column" data-status="todo">
+              <div class="assignment-column-header">
+                <span class="column-icon column-icon-todo"><i class="bi bi-list-check"></i></span>
+                <div>
+                  <h2>To Do</h2>
+                </div>
+              </div>
+              <div class="assignment-loading-indicator" aria-hidden="true">
+                <span class="assignment-spinner"></span>
+              </div>
+              <div class="assignment-list" data-status="todo" aria-live="polite"></div>
+              <p class="assignment-empty" data-status="todo">All clear. New assignments will show up here.</p>
+            </div>
+
+            <div class="assignment-column" data-status="in-progress">
+              <div class="assignment-column-header">
+                <span class="column-icon column-icon-progress"><i class="bi bi-lightning-charge"></i></span>
+                <div>
+                  <h2>In Progress</h2>
+                </div>
+              </div>
+              <div class="assignment-loading-indicator" aria-hidden="true">
+                <span class="assignment-spinner"></span>
+              </div>
+              <div class="assignment-list" data-status="in-progress" aria-live="polite"></div>
+              <p class="assignment-empty" data-status="in-progress">Drag assignments here once you’ve started them.</p>
+            </div>
+
+            <div class="assignment-column" data-status="completed">
+              <div class="assignment-column-header">
+                <span class="column-icon column-icon-completed"><i class="bi bi-check-circle"></i></span>
+                <div>
+                  <h2>Completed</h2>
+                </div>
+              </div>
+              <div class="assignment-loading-indicator" aria-hidden="true">
+                <span class="assignment-spinner"></span>
+              </div>
+              <div class="assignment-list" data-status="completed" aria-live="polite"></div>
+              <p class="assignment-empty" data-status="completed">Completed assignments will land here automatically.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div class="assignment-modal" id="assignmentModal" aria-hidden="true">
+      <div class="assignment-modal-overlay" data-close-modal></div>
+      <div class="assignment-modal-content" role="dialog" aria-modal="true" aria-labelledby="assignmentModalTitle">
+        <button type="button" class="assignment-modal-close" data-close-modal aria-label="Close">&times;</button>
+        <h2 id="assignmentModalTitle">Add Task</h2>
+        <p class="assignment-modal-subtitle">Create a quick reminder for homework, projects, or study blocks.</p>
+        <form id="assignmentForm">
+          <div class="assignment-form-field">
+            <label for="assignmentTitle">Task name <span aria-hidden="true">*</span></label>
+            <input id="assignmentTitle" name="title" type="text" required maxlength="160" placeholder="e.g., Finish lab report" />
+            <small class="assignment-field-hint">Give your task a short, specific name.</small>
+          </div>
+          <div class="assignment-form-field">
+            <label for="assignmentSubject">Subject / Class</label>
+            <input id="assignmentSubject" name="subject" type="text" maxlength="80" placeholder="e.g., AP Chemistry" />
+          </div>
+          <div class="assignment-form-inline">
+            <div class="assignment-form-field">
+              <label for="assignmentDate">Due date</label>
+              <input id="assignmentDate" name="dueDate" type="date" />
+            </div>
+            <div class="assignment-form-field">
+              <label for="assignmentTime">Time</label>
+              <input id="assignmentTime" name="dueTime" type="time" />
+            </div>
+          </div>
+          <div class="assignment-form-field">
+            <label for="assignmentNotes">Notes</label>
+            <textarea id="assignmentNotes" name="details" rows="3" maxlength="600" placeholder="Add quick details, links, or next steps."></textarea>
+          </div>
+          <div class="assignment-form-actions">
+            <button type="button" class="btn btn-secondary" data-close-modal>Cancel</button>
+            <button type="submit" class="btn btn-primary">Add Task</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="assignment-modal" id="assignmentEditModal" aria-hidden="true">
+      <div class="assignment-modal-overlay" data-close-edit></div>
+      <div class="assignment-modal-content" role="dialog" aria-modal="true" aria-labelledby="assignmentEditTitle">
+        <button type="button" class="assignment-modal-close" data-close-edit aria-label="Close">&times;</button>
+        <h2 id="assignmentEditTitle">Edit Task</h2>
+        <p class="assignment-edit-info" id="assignmentEditInfo"></p>
+        <form id="assignmentEditForm">
+          <input type="hidden" id="assignmentEditId" name="id" />
+          <div class="assignment-form-field">
+            <label for="assignmentEditTitleInput">Task name <span aria-hidden="true">*</span></label>
+            <input id="assignmentEditTitleInput" name="title" type="text" required maxlength="160" />
+          </div>
+          <div class="assignment-form-field">
+            <label for="assignmentEditSubject">Subject / Class</label>
+            <input id="assignmentEditSubject" name="subject" type="text" maxlength="80" />
+          </div>
+          <div class="assignment-form-inline">
+            <div class="assignment-form-field">
+              <label for="assignmentEditDate">Due date</label>
+              <input id="assignmentEditDate" name="dueDate" type="date" />
+            </div>
+            <div class="assignment-form-field">
+              <label for="assignmentEditTime">Time</label>
+              <input id="assignmentEditTime" name="dueTime" type="time" />
+            </div>
+          </div>
+          <div class="assignment-form-field">
+            <label for="assignmentEditNotes">Notes</label>
+            <textarea id="assignmentEditNotes" name="details" rows="3" maxlength="600"></textarea>
+          </div>
+          <div class="assignment-form-field">
+            <label for="assignmentEditStatus">Status</label>
+            <select id="assignmentEditStatus" name="status">
+              <option value="todo">To Do</option>
+              <option value="in-progress">In Progress</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+          <div class="assignment-form-actions">
+            <button type="button" class="btn btn-secondary" data-close-edit>Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-content">
+          <div class="footer-section">
+            <div class="footer-logo">
+              <img src="./assets/logo/thinkbigprep-logo.svg" alt="ThinkBigPrep" />
+              <span>ThinkBigPrep</span>
+            </div>
+          </div>
+          <div class="footer-section">
+            <h4>SEE ALSO</h4>
+            <ul>
+              <li><a href="index.html#home">Home</a></li>
+              <li><a href="dashboard.html">Dashboard</a></li>
+              <li><a href="timetable.html">Timetable</a></li>
+              <li><a href="index.html#courses">Plans</a></li>
+              <li><a href="ai-curriculum.html">AI Curriculum</a></li>
+            </ul>
+          </div>
+          <div class="footer-section">
+            <h4>CONTACT US</h4>
+            <p>Phone: 201-665-0123</p>
+            <p>Email: info@thinkbigprep.com</p>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <p>ThinkBigPrep © 2025</p>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      window.TBP_AUTH_BASE = 'https://cramprep.onrender.com';
+      window.TBP_ASSIGNMENTS_BASE = '/api';
+    </script>
+    <script src="index.js"></script>
+    <script src="dashboard.js"></script>
+    <script src="login.js?v=1.0"></script>
+  </body>
+</html>

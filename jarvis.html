@@ -8,7 +8,6 @@
     <meta name="description" content="Jarvis: your AI study assistant at ThinkBigPrep." />
     <link rel="shortcut icon" href="assets/logo/thinkbigprep-icon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="css/index.css?v=1.1" />
-    <link rel="stylesheet" href="assets/mathlive/mathlive.min.css" />
     <link rel="stylesheet" href="css/login.css?v=1.0" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
@@ -314,31 +313,45 @@
       }
       .ps-breadcrumb{
         color: #7c674d;
-        font-size: .9rem;
+        font-size: 2.25rem;
         text-transform: uppercase;
-        letter-spacing: .08em;
+        letter-spacing: .1em;
       }
       .ps-title{
-        font-size: 1.75rem;
-        font-weight: 800;
+        font-size: 2.2rem;
+        font-weight: 700;
         color: #2f1c08;
         margin: 0;
+      }
+      .ps-title.ps-title-main{
+        font-size: 3.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
       }
       .ps-body{
         line-height: 1.7;
         color: #2f1c08;
       }
-      .ps-question-stem{
-        font-size: 1.25rem;
+      .ps-question-title{
+        font-size: 1.4rem;
         font-weight: 700;
-        margin: 0 0 12px;
+        margin: 0 0 10px;
+        color: #2f1c08;
+        text-align: center;
+      }
+      .ps-question-stem{
+        font-size: 1.15rem;
+        font-weight: 600;
+        margin: 24px 0 12px;
         color: #3f2a11;
+        text-align: center;
       }
       .ps-instruction{
         font-size: 1rem;
         color: #4b4b4b;
-        margin: 0 0 12px;
+        margin: 0 0 75px;
         white-space: pre-wrap;
+        font-weight: 600;
       }
       .ps-opts{
         display: flex;
@@ -433,7 +446,7 @@
         color: #4b5563;
       }
       .ps-answer-input{
-        margin-top: 20px;
+        margin-top: 150px;
         display: flex;
         flex-direction: column;
         gap: 12px;
@@ -443,23 +456,58 @@
         color: #6b3410;
         font-size: .95rem;
       }
-      .ml-input,
-      .ml-fallback-input{
+      .ps-answer-field{
+        position: relative;
         display: block;
         width: 100%;
         border: 1px solid rgba(139,69,19,0.2);
         border-radius: 12px;
-        padding: 10px 12px;
-        min-height: 52px;
-        font-size: 1.1rem;
-        line-height: 1.4;
+        padding: 12px 14px;
+        min-height: 56px;
         background: #fff;
+        transition: border-color .18s ease, box-shadow .18s ease;
+        cursor: text;
       }
-      .ml-input:focus-within,
-      .ml-fallback-input:focus{
+      .ps-answer-field.has-warning{
+        border-color: #b45309;
+        box-shadow: 0 0 0 1px rgba(180,83,9,0.25);
+      }
+      .ps-answer-editor{
+        position: absolute;
+        inset: 12px 14px;
+        font-size: 1.05rem;
+        line-height: 1.45;
         outline: none;
-        border-color: rgba(139,69,19,0.55);
-        box-shadow: 0 0 0 3px rgba(139,69,19,0.18);
+        white-space: pre-wrap;
+        word-break: break-word;
+        color: transparent;
+        caret-color: #8B4513;
+        background: transparent;
+        z-index: 1;
+      }
+      .ps-answer-render{
+        pointer-events: none;
+        font-size: 1.05rem;
+        line-height: 1.45;
+        color: #1f2937;
+        min-height: 28px;
+        padding-right: 80px;
+      }
+      .ps-answer-warning{
+        position: absolute;
+        top: 6px;
+        right: 10px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #b45309;
+        display: none;
+        pointer-events: none;
+      }
+      .ps-answer-field.has-warning .ps-answer-warning{
+        display: block;
+      }
+      .ps-answer-field.has-warning .ps-answer-render{
+        color: #b45309;
       }
       @media (max-width: 1100px){
         .jarvis-shell{
@@ -529,6 +577,7 @@
         </a>
         <nav class="nav-desktop">
           <a href="index.html#home">Home</a>
+          <a href="dashboard.html">Dashboard</a>
           <a href="timetable.html">Timetable</a>
           <a href="index.html#courses">Plans</a>
           <a href="index.html#coaches">Available Tutors</a>
@@ -542,6 +591,7 @@
       </div>
       <nav class="nav-mobile" id="mobile-menu">
         <a href="index.html#home">Home</a>
+        <a href="dashboard.html">Dashboard</a>
         <a href="timetable.html">Timetable</a>
         <a href="index.html#courses">Plans</a>
         <a href="index.html#coaches">Available Tutors</a>
@@ -609,7 +659,7 @@
           </aside>
           <section class="ps-content">
             <div class="ps-breadcrumb" id="jarvisResultBreadcrumb">Your Study Guides</div>
-            <h2 class="ps-title" id="jarvisResultTitle">No problems yet</h2>
+            <h2 class="ps-title ps-title-main" id="jarvisResultTitle"></h2>
             <div class="ps-body" id="jarvisResultBody">
               <p class="ps-instruction">Upload a worksheet to generate tailored problems. They will appear here once ready.</p>
             </div>
@@ -642,7 +692,6 @@
     <script>window.TBP_AUTH_BASE='https://cramprep.onrender.com';</script>
     <script src="index.js"></script>
     <script src="login.js?v=1.0"></script>
-    <script src="assets/mathlive/mathlive.min.js"></script>
     <script>
       (function(){
         const makeGuideBtn = document.getElementById('jarvisMakeGuideBtn');
@@ -766,7 +815,6 @@
           const dateLabel = formatExamDateLabel(guide.examDate);
           if (resultsExamTitle) resultsExamTitle.textContent = title;
           if (resultsBreadcrumb) resultsBreadcrumb.textContent = title;
-          if (resultsTitle) resultsTitle.textContent = title;
           if (resultsExamDate) {
             if (dateLabel) {
               resultsExamDate.textContent = dateLabel;
@@ -875,6 +923,28 @@
 
         const MATH_FUNCTIONS = new Set(['sqrt','sin','cos','tan','ln','log','abs','root','frac']);
 
+        const BP = Object.freeze({
+          GROUP: 90,
+          CALL: 80,
+          UNARY: 80,
+          IMPLICIT_CALL: 75,
+          EXP: 70,
+          IMPL_MULT: 65,
+          MULT: 60,
+          ADD: 50,
+          COMPARE: 40
+        });
+
+        const CMP_LATEX = Object.freeze({
+          '<': '<',
+          '>': '>',
+          '<=': '\\\\leq',
+          '>=': '\\\\geq',
+          '=': '=',
+          '==': '=',
+          '!=': '\\\\ne'
+        });
+
         function tokenizeMath(input){
           const tokens = [];
           let i = 0;
@@ -882,139 +952,194 @@
             const ch = input[i];
             if (/\s/.test(ch)){ i++; continue; }
             if (/[0-9.]/.test(ch)){
-              let start = i;
+              const start = i;
               while (i < input.length && /[0-9.]/.test(input[i])) i++;
               tokens.push({ type:'number', value: input.slice(start, i) });
               continue;
             }
             if (/[a-zA-Z]/.test(ch)){
-              let start = i;
+              const start = i;
               while (i < input.length && /[a-zA-Z0-9_]/.test(input[i])) i++;
               tokens.push({ type:'ident', value: input.slice(start, i) });
               continue;
             }
             if (ch === '('){ tokens.push({ type:'lparen', value: ch }); i++; continue; }
             if (ch === ')'){ tokens.push({ type:'rparen', value: ch }); i++; continue; }
+            if (ch === '{'){ tokens.push({ type:'lbrace', value: ch }); i++; continue; }
+            if (ch === '}'){ tokens.push({ type:'rbrace', value: ch }); i++; continue; }
             if (ch === ','){ tokens.push({ type:'comma', value: ch }); i++; continue; }
+            if (ch === '|'){ tokens.push({ type:'bar', value: ch }); i++; continue; }
+            if (ch === '<' || ch === '>' || ch === '=' || ch === '!'){
+              const two = input.slice(i, i + 2);
+              if (two === '<=' || two === '>=' || two === '==' || two === '!='){
+                tokens.push({ type:'cmp', value: two });
+                i += 2;
+                continue;
+              }
+              tokens.push({ type:'cmp', value: ch });
+              i++;
+              continue;
+            }
             if ('+-*/^'.includes(ch)){
               tokens.push({ type:'op', value: ch });
               i++;
               continue;
             }
-            if (ch === '|'){
-              tokens.push({ type:'abs', value: ch });
-              i++;
-              continue;
-            }
-            // unsupported symbol
             throw new Error(`Unexpected character: ${ch}`);
           }
           tokens.push({ type:'eof', value:'' });
           return tokens;
         }
 
+        function startsPrimary(tok){
+          if (!tok) return false;
+          return tok.type === 'number' ||
+            tok.type === 'ident' ||
+            tok.type === 'lparen' ||
+            tok.type === 'lbrace' ||
+            tok.type === 'bar';
+        }
+
         function parseUserMath(str){
           const tokens = tokenizeMath(str);
           let pos = 0;
-          function peek(){ return tokens[pos]; }
-          function consume(){ return tokens[pos++]; }
-          function expect(type){
-            const tok = peek();
-            if (tok.type !== type) throw new Error(`Expected ${type}`);
-            pos++;
-            return tok;
+
+          const peek = (offset = 0) => tokens[Math.min(pos + offset, tokens.length - 1)];
+          const consume = () => tokens[pos++];
+
+          function cloneStop(stop){
+            return stop ? new Set(stop) : null;
           }
 
-          function parseExpression(){ return parseAddSub(); }
-
-          function parseAddSub(){
-            let node = parseMulDiv();
-            while (true){
-              const tok = peek();
-              if (tok.type === 'op' && (tok.value === '+' || tok.value === '-')){
+          function nud(stopSet){
+            const tok = consume();
+            switch (tok.type){
+              case 'number':
+                return { type:'Number', value: tok.value };
+              case 'ident':
+                return { type:'Symbol', name: tok.value };
+              case 'lparen': {
+                const expr = parseExpr(0, stopSet);
+                if (peek().type !== 'rparen') throw new Error('Expected )');
                 consume();
-                const right = parseMulDiv();
-                node = { type:'Binary', op: tok.value, left: node, right };
-              } else break;
-            }
-            return node;
-          }
-
-          function parseMulDiv(){
-            let node = parsePow();
-            while (true){
-              const tok = peek();
-              if (tok.type === 'op' && (tok.value === '*' || tok.value === '/')){
-                consume();
-                const right = parsePow();
-                node = { type:'Binary', op: tok.value, left: node, right };
-              } else break;
-            }
-            return node;
-          }
-
-          function parsePow(){
-            let node = parseUnary();
-            const tok = peek();
-            if (tok.type === 'op' && tok.value === '^'){
-              consume();
-              const right = parsePow();
-              node = { type:'Binary', op: '^', left: node, right };
-            }
-            return node;
-          }
-
-          function parseUnary(){
-            const tok = peek();
-            if (tok.type === 'op' && (tok.value === '-' || tok.value === '+')){
-              consume();
-              const arg = parseUnary();
-              return { type:'Unary', op: tok.value, arg };
-            }
-            if (tok.type === 'abs'){
-              consume();
-              const expr = parseAddSub();
-              if (peek().type !== 'abs') throw new Error('Unmatched |');
-              consume();
-              return { type:'Call', fn:'abs', args:[ expr ] };
-            }
-            return parsePrimary();
-          }
-
-          function parsePrimary(){
-            const tok = peek();
-            if (tok.type === 'number'){
-              consume();
-              return { type:'Number', value: tok.value };
-            }
-            if (tok.type === 'ident'){
-              consume();
-              const ident = tok.value;
-              if (peek().type === 'lparen'){
-                consume();
-                const args = [];
-                if (peek().type !== 'rparen'){
-                  while (true){
-                    args.push(parseExpression());
-                    if (peek().type === 'comma'){ consume(); continue; }
-                    break;
-                  }
-                }
-                expect('rparen');
-                return { type:'Call', fn: ident, args };
+                return { type:'Group', expr };
               }
-              return { type:'Symbol', name: ident };
-            }
-            if (tok.type === 'lparen'){
-              consume();
-              const expr = parseExpression();
-              expect('rparen');
-              return { type:'Group', expr };
+              case 'lbrace': {
+                const expr = parseExpr(0, stopSet);
+                if (peek().type !== 'rbrace') throw new Error('Expected }');
+                consume();
+                return { type:'Group', expr };
+              }
+              case 'bar': {
+                const nextStop = cloneStop(stopSet) || new Set();
+                nextStop.add('bar');
+                const expr = parseExpr(0, nextStop);
+                if (peek().type !== 'bar') throw new Error('Unmatched |');
+                consume();
+                return { type:'Abs', expr };
+              }
+              case 'op':
+                if (tok.value === '-' || tok.value === '+'){
+                  const arg = parseExpr(BP.EXP - 1, stopSet);
+                  return { type:'Unary', op: tok.value, arg };
+                }
+                break;
+              default:
+                break;
             }
             throw new Error('Unexpected token');
           }
 
-          const ast = parseExpression();
+          function lbp(op){
+            switch (op){
+              case '^': return BP.EXP;
+              case '*':
+              case '/': return BP.MULT;
+              case '+':
+              case '-': return BP.ADD;
+              default: return 0;
+            }
+          }
+
+          function parseComparisonChain(head, stopSet){
+            const chain = [];
+            while (true){
+              const next = peek();
+              if (next.type !== 'cmp') break;
+              consume();
+              const right = parseExpr(BP.COMPARE + 1, stopSet);
+              chain.push({ op: next.value, right });
+            }
+            if (!chain.length) return head;
+            return { type:'CompareChain', head, chain };
+          }
+
+          function parseExpr(minBP, stopSet){
+            let left = nud(stopSet);
+
+            while (true){
+              const t = peek();
+              if (stopSet && stopSet.has(t.type)) break;
+
+              if (t.type === 'lparen' && left.type === 'Symbol'){
+                if (BP.CALL < minBP) break;
+                consume();
+                const args = [];
+                if (peek().type !== 'rparen'){
+                  while (true){
+                    args.push(parseExpr(0, stopSet));
+                    if (peek().type === 'comma'){ consume(); continue; }
+                    break;
+                  }
+                }
+                if (peek().type !== 'rparen') throw new Error('Expected )');
+                consume();
+                left = { type:'Call', fn: left.name, args };
+                continue;
+              }
+
+              if (left.type === 'Symbol' && MATH_FUNCTIONS.has(left.name.toLowerCase()) && startsPrimary(t)){
+                if (BP.IMPLICIT_CALL < minBP) break;
+                const arg = parseExpr(BP.MULT, stopSet);
+                left = { type:'Call', fn: left.name, args:[ arg ], implicit:true };
+                continue;
+              }
+
+              if (t.type === 'cmp'){
+                if (BP.COMPARE < minBP) break;
+                left = parseComparisonChain(left, stopSet);
+                continue;
+              }
+
+              if (startsPrimary(t)){
+                if (BP.IMPL_MULT < minBP) break;
+                const right = parseExpr(BP.IMPL_MULT, stopSet);
+                left = { type:'Binary', op:'*', left, right };
+                continue;
+              }
+
+              if (t.type !== 'op') break;
+
+              const op = t.value;
+              let bpL;
+              let bpR;
+              if (op === '^'){
+                bpL = BP.EXP;
+                bpR = BP.EXP - 1;
+              } else {
+                bpL = lbp(op);
+                bpR = lbp(op);
+              }
+              if (bpL < minBP) break;
+              consume();
+              const right = parseExpr(bpR, stopSet);
+              left = { type:'Binary', op, left, right };
+            }
+
+            return left;
+          }
+
+          const ast = parseExpr(0, null);
           if (peek().type !== 'eof') throw new Error('Unexpected input');
           return ast;
         }
@@ -1033,6 +1158,16 @@
               return binaryToLatex(node);
             case 'Group':
               return `\\left(${astToLatex(node.expr)}\\right)`;
+            case 'Abs':
+              return `\\left|${astToLatex(node.expr)}\\right|`;
+            case 'CompareChain': {
+              const parts = [astToLatex(node.head)];
+              for (const entry of node.chain){
+                const latexOp = CMP_LATEX[entry.op] || entry.op;
+                parts.push(`${latexOp} ${astToLatex(entry.right)}`);
+              }
+              return parts.join(' ');
+            }
             case 'Call':
               return callToLatex(node);
             default:
@@ -1041,7 +1176,8 @@
         }
 
         function needsGroup(node){
-          return node.type === 'Binary' && (node.op === '+' || node.op === '-' || node.op === '*');
+          return (node.type === 'Binary' && (node.op === '+' || node.op === '-' || node.op === '*')) ||
+            node.type === 'CompareChain';
         }
 
         function wrapForPower(node){
@@ -1078,7 +1214,8 @@
 
         function callToLatex(node){
           const args = node.args || [];
-          switch (node.fn){
+          const fnLower = typeof node.fn === 'string' ? node.fn.toLowerCase() : node.fn;
+          switch (fnLower){
             case 'sqrt':
               return `\\sqrt{${astToLatex(args[0] || { type:'Number', value:'0' })}}`;
             case 'root':
@@ -1093,15 +1230,13 @@
               if (args.length === 2) return `\\log_{${astToLatex(args[1])}}{${astToLatex(args[0])}}`;
               return `\\log\\left(${astToLatex(args[0] || { type:'Number', value:'0' })}\\right)`;
             default:
-              if (MATH_FUNCTIONS.has(node.fn)){
-                return `\\${node.fn}\\left(${astToLatex(args[0] || { type:'Number', value:'0' })}\\right)`;
+              if (typeof fnLower === 'string' && MATH_FUNCTIONS.has(fnLower)){
+                return `\\${fnLower}\\left(${astToLatex(args[0] || { type:'Number', value:'0' })}\\right)`;
               }
               return `${node.fn}\\left(${args.map(astToLatex).join(', ')}\\right)`;
           }
           return astToLatex(args[0] || { type:'Number', value:'0' });
         }
-
-        function renderAnswerPreview(){}
 
         function renderGuideList(){
           if (!resultsOutline) return;
@@ -1123,7 +1258,7 @@
             if (resultsExamDate) resultsExamDate.style.display = 'none';
             if (resultsExamDetails) resultsExamDetails.style.display = 'none';
             if (resultsBreadcrumb) resultsBreadcrumb.textContent = 'Your Study Guides';
-            if (resultsTitle) resultsTitle.textContent = 'No problems yet';
+            if (resultsTitle) resultsTitle.textContent = '';
             if (resultsBody) {
               resultsBody.innerHTML = '<p class="ps-instruction">Upload a worksheet to generate tailored problems. They will appear here once ready.</p>';
             }
@@ -1315,9 +1450,9 @@
             const stemText = maybeWrapLatex(stemTextRaw, true);
             if (stemText){
               const stem = document.createElement('p');
-              stem.className = 'ps-instruction';
-              stem.style.fontWeight = '600';
+              stem.className = 'ps-question-stem';
               stem.textContent = stemText;
+              stem.style.textAlign = 'center';
               card.appendChild(stem);
             }
 
@@ -1381,50 +1516,138 @@
             answerWrap.appendChild(answerLabel);
             card.appendChild(answerWrap);
 
+            const fieldShell = document.createElement('div');
+            fieldShell.className = 'ps-answer-field';
+            fieldShell.tabIndex = 0;
+            fieldShell.setAttribute('role', 'group');
+            fieldShell.setAttribute('aria-label', 'Answer input');
+            fieldShell.setAttribute('aria-invalid', 'false');
+
+            const editor = document.createElement('div');
+            editor.className = 'ps-answer-editor';
+            editor.contentEditable = 'true';
+            editor.setAttribute('role', 'textbox');
+            editor.setAttribute('aria-multiline', 'false');
+            editor.setAttribute('aria-label', 'Answer input editor');
+
+            const renderView = document.createElement('div');
+            renderView.className = 'ps-answer-render';
+            renderView.setAttribute('aria-live', 'polite');
+
+            const warning = document.createElement('span');
+            warning.className = 'ps-answer-warning';
+
+            fieldShell.appendChild(editor);
+            fieldShell.appendChild(renderView);
+            fieldShell.appendChild(warning);
+            answerWrap.appendChild(fieldShell);
+
             const hiddenLatex = document.createElement('input');
             hiddenLatex.type = 'hidden';
             hiddenLatex.name = `answerLatex-${guide.slug}-${index}`;
             answerWrap.appendChild(hiddenLatex);
 
-            let mathfieldInstance = null;
-            let answerField = null;
-            let fallbackInput = null;
-            const initMathLive = () => {
-              if (window.MathLive && typeof window.MathLive.mathfield === 'function'){
-                answerField = document.createElement('div');
-                answerField.className = 'ml-input';
-                answerWrap.appendChild(answerField);
-                mathfieldInstance = window.MathLive.mathfield(answerField, {
-                  smartMode: true,
-                  virtualKeyboardMode: 'manual',
-                  onContentDidChange: (mf) => {
-                    hiddenLatex.value = mf.getValue('latex') || '';
-                  }
-                });
-                hiddenLatex.value = mathfieldInstance.getValue('latex') || '';
-                answerField.addEventListener('keydown', (ev) => {
-                  if (ev.key === '/' && !ev.ctrlKey && !ev.metaKey){
-                    ev.preventDefault();
-                    try { mathfieldInstance.executeCommand('insertFraction'); } catch {}
-                  }
-                });
-              } else {
-                fallbackInput = document.createElement('input');
-                fallbackInput.type = 'text';
-                fallbackInput.className = 'ml-fallback-input';
-                fallbackInput.placeholder = 'Type your answer';
-                fallbackInput.addEventListener('input', () => {
-                  hiddenLatex.value = fallbackInput.value || '';
-                });
-                hiddenLatex.value = '';
-                answerWrap.appendChild(fallbackInput);
-              }
-            };
-            if (document.readyState === 'loading') {
-              document.addEventListener('DOMContentLoaded', initMathLive);
-            } else {
-              initMathLive();
+            const hiddenRaw = document.createElement('input');
+            hiddenRaw.type = 'hidden';
+            hiddenRaw.name = `answerRaw-${guide.slug}-${index}`;
+            answerWrap.appendChild(hiddenRaw);
+
+            let rawValue = '';
+
+            function placeCaretToEnd(el){
+              try {
+                const range = document.createRange();
+                range.selectNodeContents(el);
+                range.collapse(false);
+                const sel = window.getSelection();
+                if (sel){
+                  sel.removeAllRanges();
+                  sel.addRange(range);
+                }
+              } catch {}
             }
+
+            function normaliseRaw(str){
+              return String(str || '').replace(/\u00A0/g, ' ');
+            }
+
+            function updateRenderedState(){
+              const trimmed = (rawValue || '').trim();
+              hiddenRaw.value = rawValue;
+              if (!trimmed){
+                hiddenLatex.value = '';
+                renderView.innerHTML = '';
+                fieldShell.classList.remove('has-warning');
+                warning.textContent = '';
+                fieldShell.setAttribute('aria-invalid', 'false');
+                if (document.activeElement === editor) placeCaretToEnd(editor);
+                return;
+              }
+              try {
+                const ast = parseUserMath(trimmed);
+                const latex = astToLatex(ast);
+                hiddenLatex.value = latex;
+                renderView.innerHTML = `\\(${latex}\\)`;
+                applyMath(renderView);
+                fieldShell.classList.remove('has-warning');
+                warning.textContent = '';
+                fieldShell.setAttribute('aria-invalid', 'false');
+              } catch (err){
+                hiddenLatex.value = '';
+                renderView.textContent = trimmed;
+                warning.textContent = 'Unrecognized character';
+                fieldShell.classList.add('has-warning');
+                fieldShell.setAttribute('aria-invalid', 'true');
+              }
+              if (document.activeElement === editor) placeCaretToEnd(editor);
+            }
+
+            function enterEditing(){
+              editor.textContent = rawValue;
+              setTimeout(() => {
+                editor.focus({ preventScroll: false });
+                placeCaretToEnd(editor);
+              }, 0);
+            }
+
+            function exitEditing(){
+              rawValue = normaliseRaw(editor.textContent || '').replace(/\s+/g, ' ').trim();
+              updateRenderedState();
+            }
+
+            fieldShell.addEventListener('focus', () => {
+              enterEditing();
+            });
+
+            fieldShell.addEventListener('click', (event) => {
+              if (document.activeElement !== editor){
+                event.preventDefault();
+                enterEditing();
+              }
+            });
+
+            editor.addEventListener('input', () => {
+              rawValue = normaliseRaw(editor.textContent || '');
+              hiddenRaw.value = rawValue;
+              updateRenderedState();
+            });
+
+            editor.addEventListener('keydown', (event) => {
+              if (event.key === 'Enter'){
+                event.preventDefault();
+                editor.blur();
+              } else if (event.key === 'Escape'){
+                event.preventDefault();
+                editor.textContent = rawValue;
+                editor.blur();
+              }
+            });
+
+            editor.addEventListener('blur', () => {
+              exitEditing();
+            });
+
+            updateRenderedState();
 
             const actions = document.createElement('div');
             actions.className = 'ps-q-actions';
@@ -1452,13 +1675,6 @@
             answerLine.className = 'ps-answer';
             solutionBox.appendChild(answerLine);
             card.appendChild(solutionBox);
-
-            if (mathfieldInstance){
-              hiddenLatex.value = mathfieldInstance.getValue('latex') || '';
-            } else if (fallbackInput){
-              hiddenLatex.value = fallbackInput.value || '';
-            }
-
             const correctIndex = Number.isInteger(question.correct) ? Number(question.correct) :
               Number.isInteger(question.answer_index) ? Number(question.answer_index) :
               (Array.isArray(options) ? 0 : -1);
@@ -1474,7 +1690,7 @@
                 solBody.style.display = 'none';
               }
               if (answerText){
-                answerLine.textContent = `Answer: ${answerText}`;
+                answerLine.innerHTML = `Answer: ${answerText}`;
                 answerLine.style.display = '';
               } else {
                 answerLine.textContent = '';
