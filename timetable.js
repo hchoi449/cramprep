@@ -7,16 +7,16 @@ let currentMonth = new Date(currentDate);
 
 // Types (JSDoc for type-safety in JS)
 /** @typedef {('Algebra II'|'Geometry'|'Calculus'|'Chemistry'|'Physics'|'Biology')} Subject */
-/** @typedef {{ id:string, title:string, school:string, tutorName:string, subject:Subject, start:string, end:string, meetLink?:string, comments?:string, createdBy:'owner'|'system' }} CalendarEvent */
+/** @typedef {{ id:string, title:string, school:string, tutorName:string, subject:Subject, meetingType?:string, start:string, end:string, meetLink?:string, comments?:string, createdBy:'owner'|'system' }} CalendarEvent */
 
 // Color map (single source of truth)
 const SUBJECT_COLOR_MAP = {
-    'Algebra II': { bg: getComputedStyle(document.documentElement).getPropertyValue('--subject-algebra-bg').trim() || '#8B4513', text:'#ffffff' },
-    'Geometry': { bg: getComputedStyle(document.documentElement).getPropertyValue('--subject-geometry-bg').trim() || '#6b3410', text:'#ffffff' },
-    'Calculus': { bg: getComputedStyle(document.documentElement).getPropertyValue('--subject-calculus-bg').trim() || '#a0522d', text:'#ffffff' },
-    'Chemistry': { bg: getComputedStyle(document.documentElement).getPropertyValue('--subject-chemistry-bg').trim() || '#a86a3d', text:'#ffffff' },
-    'Physics': { bg: getComputedStyle(document.documentElement).getPropertyValue('--subject-physics-bg').trim() || '#b07d53', text:'#ffffff' },
-    'Biology': { bg: getComputedStyle(document.documentElement).getPropertyValue('--subject-biology-bg').trim() || '#c4946b', text:'#ffffff' }
+    'Algebra II': { accent: '#8B4513', bg: 'rgba(139, 69, 19, 0.18)', text: '#3f230e' },
+    'Geometry': { accent: '#a86a3d', bg: 'rgba(168, 106, 61, 0.16)', text: '#3b2312' },
+    'Calculus': { accent: '#c4946b', bg: 'rgba(196, 148, 107, 0.2)', text: '#3a2010' },
+    'Chemistry': { accent: '#d9b38c', bg: 'rgba(217, 179, 140, 0.22)', text: '#4a2e18' },
+    'Physics': { accent: '#b07d53', bg: 'rgba(176, 125, 83, 0.2)', text: '#402412' },
+    'Biology': { accent: '#9d7046', bg: 'rgba(157, 112, 70, 0.2)', text: '#331b0a' }
 };
 
 // RBAC (client hint only; server is source of truth)
@@ -24,6 +24,10 @@ const CURRENT_ROLE = 'user'; // change to 'owner' to expose owner-only controls
 
 // Lightweight cache for events
 let EVENTS_CACHE = { data: /** @type {CalendarEvent[]} */([]), fetchedAt: 0 };
+const MEETING_FILTERS = ['exam-cram', 'learn', 'sat-act'];
+let currentMeetingFilter = 'exam-cram';
+let currentCalendarView = 'week';
+let calendarShellElement = null;
 
 async function fetchEvents() {
     if (Date.now() - EVENTS_CACHE.fetchedAt < 60_000 && EVENTS_CACHE.data.length) return EVENTS_CACHE.data;
@@ -44,6 +48,36 @@ async function fetchEvents() {
     }
 }
 
+function normalizeMeetingType(value) {
+    if (!value) return 'learn';
+    const raw = String(value).trim().toLowerCase();
+    if (!raw) return 'learn';
+    if (raw.includes('exam') || raw.includes('cram')) return 'exam-cram';
+    if (raw.includes('sat') || raw.includes('act')) return 'sat-act';
+    if (raw.includes('learn')) return 'learn';
+    if (raw.replace(/[^a-z]/g, '') === 'satact') return 'sat-act';
+    return 'learn';
+}
+
+function meetingTypeMatchesFilter(meetingType) {
+    if (!meetingType) return currentMeetingFilter === 'learn';
+    if (!currentMeetingFilter || currentMeetingFilter === 'all') return true;
+    return meetingType === currentMeetingFilter;
+}
+
+function applyMeetingTypeFilter() {
+    const monday = getWeekStart(currentWeek);
+    renderWeekEvents(monday);
+    generateMonthView();
+}
+
+function setCalendarPeriodLabel(text) {
+    const el = document.getElementById('calendar-period');
+    if (el && typeof text === 'string') {
+        el.textContent = text;
+    }
+}
+
 function ensureBanner(){
     let b = document.getElementById('events-banner');
     if (!b) {
@@ -59,13 +93,18 @@ function ensureBanner(){
 function showBanner(b, msg){ b.textContent = msg; b.style.display = 'block'; }
 function hideBanner(b){ if(b){ b.style.display = 'none'; } }
 
-function getMonday(date){
+function getWeekStart(date){
     const d = new Date(date);
-    const day = d.getDay();
-    const diffToMonday = (day === 0 ? -6 : 1 - day);
-    d.setDate(d.getDate() + diffToMonday);
+    const day = d.getDay(); // 0=Sun .. 6=Sat
+    d.setDate(d.getDate() - day);
     d.setHours(0,0,0,0);
     return d;
+}
+
+function formatMonthYear(date){
+    const month = date.toLocaleString('en-US', { month: 'long' });
+    const year = date.getFullYear();
+    return `${month}, ${year}`;
 }
 
 function toEst(date){
@@ -105,12 +144,15 @@ function renderWeekEvents(startOfWeek){
         const evYmd = `${sp.year}-${sp.month}-${sp.day}`;
         const dayIndex = weekDaysYmd.indexOf(evYmd);
         if (dayIndex < 0) return; // Not in displayed week (EST)
+        const meetingType = normalizeMeetingType(ev.meetingType);
+        if (!meetingTypeMatchesFilter(meetingType)) return;
         const hour = Number(sp.hour);
         const targetCol = daySlots[dayIndex];
         const slot = document.createElement('div');
         const subjSafe = (ev.subject && String(ev.subject).toLowerCase().replace(/\s+/g,'-')) || 'general';
         slot.className = `class-slot autogen ${subjSafe}`;
         if (ev.subject) slot.setAttribute('data-subject', ev.subject);
+        slot.setAttribute('data-meeting-type', meetingType);
         slot.setAttribute('tabindex','0');
         slot.setAttribute('role','button');
         // Position mapping (EST): 12:00 => 0px, each hour => +75px (with minute precision)
@@ -138,7 +180,11 @@ function renderWeekEvents(startOfWeek){
             if (t) t.textContent = fixed.replace(/[^APM\d: \-]/gi, '');
         } catch {}
         const c = SUBJECT_COLOR_MAP[ev.subject];
-        if (c) { slot.style.background = c.bg; slot.style.color = c.text; }
+        if (c) {
+            if (c.bg) slot.style.setProperty('--event-bg', c.bg);
+            if (c.accent) slot.style.setProperty('--event-accent', c.accent);
+            if (c.text) slot.style.setProperty('--event-text', c.text);
+        }
         const open = (e_)=>{ e_ && e_.preventDefault(); showEventDetails(ev); };
         slot.addEventListener('click', open);
         slot.addEventListener('keydown', function(e_){ if(e_.key==='Enter'||e_.key===' '){ open(e_);} });
@@ -148,13 +194,14 @@ function renderWeekEvents(startOfWeek){
 
 // Initialize the page
 document.addEventListener('DOMContentLoaded', function() {
+    calendarShellElement = document.querySelector('.calendar-shell');
+    if (calendarShellElement) {
+        calendarShellElement.setAttribute('data-view', currentCalendarView);
+    }
     initializeTimetable();
     setupEventListeners();
     updateWeekDisplay();
-    fetchEvents().then(()=>{
-        const monday = getMonday(currentWeek);
-        renderWeekEvents(monday);
-    });
+    fetchEvents().then(()=> applyMeetingTypeFilter());
     updateMonthDisplay();
 
     // AI chat UI removed; button retained for future integration
@@ -178,11 +225,21 @@ function initializeTimetable() {
         const timeText = slot.querySelector('.time').textContent;
         const startTime = timeText.split(' - ')[0];
         slot.setAttribute('data-time', startTime);
+        if (!slot.hasAttribute('data-meeting-type')) {
+            slot.setAttribute('data-meeting-type', 'learn');
+        }
     });
 }
 
 // Setup event listeners
 function setupEventListeners() {
+    const prevBtn = document.getElementById('calendar-prev');
+    if (prevBtn) prevBtn.addEventListener('click', calendarPrev);
+    const nextBtn = document.getElementById('calendar-next');
+    if (nextBtn) nextBtn.addEventListener('click', calendarNext);
+    const todayBtn = document.getElementById('calendar-today');
+    if (todayBtn) todayBtn.addEventListener('click', goToToday);
+
     // View toggle buttons
     const toggleBtns = document.querySelectorAll('.toggle-btn');
     toggleBtns.forEach(btn => {
@@ -191,6 +248,31 @@ function setupEventListeners() {
             switchView(view);
         });
     });
+
+    // Meeting type chips
+    const filterChips = document.querySelectorAll('.quick-filter-chips .chip');
+    if (filterChips.length) {
+        filterChips.forEach(chip => {
+            const filterValue = chip.getAttribute('data-filter') || 'learn';
+            chip.setAttribute('aria-pressed', chip.classList.contains('is-active') ? 'true' : 'false');
+            chip.addEventListener('click', function() {
+                const selected = this.getAttribute('data-filter') || 'learn';
+                if (selected === currentMeetingFilter) return;
+                filterChips.forEach(button => {
+                    button.classList.remove('is-active');
+                    button.setAttribute('aria-pressed', 'false');
+                });
+                this.classList.add('is-active');
+                this.setAttribute('aria-pressed', 'true');
+                currentMeetingFilter = selected;
+                applyMeetingTypeFilter();
+            });
+        });
+        const activeChip = Array.from(filterChips).find(chip => chip.classList.contains('is-active'));
+        if (activeChip) {
+            currentMeetingFilter = activeChip.getAttribute('data-filter') || 'learn';
+        }
+    }
 
     // Book buttons
     const bookBtns = document.querySelectorAll('.book-btn');
@@ -234,15 +316,50 @@ function switchView(view) {
             btn.classList.add('active');
         }
     });
+
+    currentCalendarView = view || 'week';
+    if (calendarShellElement) {
+        calendarShellElement.setAttribute('data-view', currentCalendarView);
+    }
     
     // Show/hide views
     if (view === 'week') {
         weekView.style.display = 'block';
         monthView.style.display = 'none';
+        updateWeekDisplay();
     } else {
         weekView.style.display = 'none';
         monthView.style.display = 'block';
         generateMonthView();
+        setCalendarPeriodLabel(formatMonthYear(currentMonth));
+    }
+}
+
+function calendarPrev() {
+    if (currentCalendarView === 'month') {
+        previousMonth();
+    } else {
+        previousWeek();
+    }
+}
+
+function calendarNext() {
+    if (currentCalendarView === 'month') {
+        nextMonth();
+    } else {
+        nextWeek();
+    }
+}
+
+function goToToday() {
+    currentDate = new Date();
+    currentWeek = new Date(currentDate);
+    currentMonth = new Date(currentDate);
+    updateWeekDisplay();
+    updateMonthDisplay();
+    generateMonthView();
+    if (currentCalendarView === 'month') {
+        setCalendarPeriodLabel(formatMonthYear(currentMonth));
     }
 }
 
@@ -263,21 +380,24 @@ function previousMonth() {
     currentMonth.setMonth(currentMonth.getMonth() - 1);
     updateMonthDisplay();
     generateMonthView();
+    if (currentCalendarView === 'month') {
+        setCalendarPeriodLabel(formatMonthYear(currentMonth));
+    }
 }
 
 function nextMonth() {
     currentMonth.setMonth(currentMonth.getMonth() + 1);
     updateMonthDisplay();
     generateMonthView();
+    if (currentCalendarView === 'month') {
+        setCalendarPeriodLabel(formatMonthYear(currentMonth));
+    }
 }
 
 // Update week display
 function updateWeekDisplay() {
     // Compute Monday as the first day of the week (ISO week)
-    const startOfWeek = new Date(currentWeek);
-    const day = startOfWeek.getDay(); // 0 (Sun) .. 6 (Sat)
-    const diffToMonday = (day === 0 ? -6 : 1 - day); // if Sun, go back 6; else 1 - day
-    startOfWeek.setDate(startOfWeek.getDate() + diffToMonday);
+    const startOfWeek = getWeekStart(currentWeek);
 
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 6);
@@ -286,12 +406,13 @@ function updateWeekDisplay() {
     const startStr = startOfWeek.toLocaleDateString('en-US', options);
     const endStr = endOfWeek.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     
-    document.getElementById('current-week').textContent = `${startStr} - ${endStr}`;
+    setCalendarPeriodLabel(`${startStr} - ${endStr}`);
 
     // Populate dates under each day header (Mon..Sun) based on Monday start
-    const dayHeaders = document.querySelectorAll('.week-grid .day-column .day-header');
+    const dayHeaders = document.querySelectorAll('.week-grid .day-heading .day-header');
+    const dayHeadingCells = document.querySelectorAll('.week-grid .day-heading');
     const dayColumns = document.querySelectorAll('.week-grid .day-column');
-    const dayNames = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     if (dayHeaders.length === 7) {
         for (let i = 0; i < 7; i++) {
             const dateForCol = new Date(startOfWeek);
@@ -304,6 +425,9 @@ function updateWeekDisplay() {
                 const todayParts = new Intl.DateTimeFormat('en-US',{ timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(new Date()).reduce((a,p)=> (a[p.type]=p.value,a),{});
                 const colParts = new Intl.DateTimeFormat('en-US',{ timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(dateForCol).reduce((a,p)=> (a[p.type]=p.value,a),{});
                 const isToday = todayParts.year===colParts.year && todayParts.month===colParts.month && todayParts.day===colParts.day;
+                if (dayHeadingCells[i]) {
+                    if (isToday) dayHeadingCells[i].classList.add('is-today'); else dayHeadingCells[i].classList.remove('is-today');
+                }
                 if (dayColumns[i]) {
                     if (isToday) dayColumns[i].classList.add('is-today'); else dayColumns[i].classList.remove('is-today');
                 }
@@ -365,9 +489,9 @@ async function fileToDataURL(file){
 
 // Update month display
 function updateMonthDisplay() {
-    const options = { month: 'long', year: 'numeric' };
-    const monthStr = currentMonth.toLocaleDateString('en-US', options);
-    document.getElementById('current-month').textContent = monthStr;
+    if (currentCalendarView === 'month') {
+        setCalendarPeriodLabel(formatMonthYear(currentMonth));
+    }
 }
 
 // Generate month view calendar
@@ -389,7 +513,7 @@ function generateMonthView() {
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     dayNames.forEach(day => {
         const dayHeader = document.createElement('div');
-        dayHeader.className = 'month-day-header';
+        dayHeader.className = 'month-grid-day-name';
         dayHeader.textContent = day;
         monthGrid.appendChild(dayHeader);
     });
@@ -410,10 +534,10 @@ function generateMonthView() {
         if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
             dayElement.classList.add('today');
         }
-        const dayHeader = document.createElement('div');
-        dayHeader.className = 'month-day-header';
-        dayHeader.textContent = day;
-        dayElement.appendChild(dayHeader);
+        const dateBadge = document.createElement('div');
+        dateBadge.className = 'month-day-date';
+        dateBadge.textContent = day;
+        dayElement.appendChild(dateBadge);
         monthGrid.appendChild(dayElement);
         dayCells.push(dayElement);
     }
@@ -438,12 +562,15 @@ function generateMonthView() {
             if (y !== year || m !== month) return;
             const cell = dayCells[dayNum - 1];
             if (!cell) return;
+            const meetingType = normalizeMeetingType(ev.meetingType);
+            if (!meetingTypeMatchesFilter(meetingType)) return;
             const pill = document.createElement('div');
             const subjSlug = String(ev.subject || '').toLowerCase().replace(/\s+/g,'-');
             pill.className = `month-class ${subjSlug}`;
             const startStr = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour:'numeric', minute:'2-digit' }).format(d0);
             pill.textContent = `${ev.title || ev.subject || 'Class'} • ${startStr}`;
             pill.title = `${ev.subject} with ${ev.tutorName}`;
+            pill.setAttribute('data-meeting-type', meetingType);
             cell.appendChild(pill);
         });
     } catch {}

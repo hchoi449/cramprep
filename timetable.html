@@ -64,19 +64,35 @@
         <!-- Timetable Hero Section -->
         <section class="timetable-hero">
             <div class="container">
-                <h1 class="timetable-title">Class Timetable</h1>
-                <p class="timetable-subtitle">View available sessions and book your preferred time slots</p>
-                
-                <!-- View Toggle -->
-                <div class="view-toggle">
-                    <button class="toggle-btn active" data-view="week">
-                        <i class="bi bi-calendar-week"></i>
-                        Week View
-                    </button>
-                    <button class="toggle-btn" data-view="month">
-                        <i class="bi bi-calendar-month"></i>
-                        Month View
-                    </button>
+                <div class="timetable-hero-content">
+                    <div class="hero-copy">
+                        <h1 class="timetable-title">Class Timetable</h1>
+                        <p class="timetable-subtitle">See what is coming up next, stay ahead on assignments, and grab the sessions that fit your week.</p>
+                        <div class="hero-actions">
+                            <div class="quick-filter-chips" aria-label="Meeting type filters">
+                                <button type="button" class="chip is-active" data-filter="exam-cram">Exam Cram</button>
+                                <button type="button" class="chip" data-filter="learn">Learn</button>
+                                <button type="button" class="chip" data-filter="sat-act">SAT / ACT</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <aside class="hero-card" aria-label="Upcoming session highlight">
+                        <div class="hero-card-heading">
+                            <span class="badge badge-pill">Next up</span>
+                            <span class="hero-card-day">Wednesday, 7:30 PM ET</span>
+                        </div>
+                        <h3 class="hero-card-title">AP Calculus Sprint</h3>
+                        <p class="hero-card-description">Targeted review on FRQ patterns and pacing. Perfect for the final push before exams.</p>
+                        <ul class="hero-card-meta">
+                            <li><i class="bi bi-people"></i>Group session · 8 seats</li>
+                            <li><i class="bi bi-camera-video"></i>Live virtual classroom</li>
+                        </ul>
+                        <button type="button" class="hero-card-cta">
+                            Reserve a seat
+                            <i class="bi bi-arrow-up-right"></i>
+                        </button>
+                    </aside>
                 </div>
             </div>
         </section>
@@ -84,93 +100,133 @@
         <!-- Timetable Content -->
         <section class="timetable-content">
             <div class="container">
-                <!-- Week View -->
-                <div class="timetable-view" id="week-view">
-                    <div class="week-header">
-                        <button class="nav-btn" onclick="previousWeek()">
-                            <i class="bi bi-chevron-left"></i>
-                        </button>
-                        <h2 class="current-week" id="current-week">August 26 - September 1, 2025</h2>
-                        <button class="nav-btn" onclick="nextWeek()">
-                            <i class="bi bi-chevron-right"></i>
-                        </button>
-                    </div>
-                    
-                    <div class="week-grid">
-                        <div class="time-column">
-                            <div class="time-header">Time (EST)</div>
-                            <div class="time-slots">
-                                <div class="time-slot">12:00 PM</div>
-                                <div class="time-slot">1:00 PM</div>
-                                <div class="time-slot">2:00 PM</div>
-                                <div class="time-slot">3:00 PM</div>
-                                <div class="time-slot">4:00 PM</div>
-                                <div class="time-slot">5:00 PM</div>
-                                <div class="time-slot">6:00 PM</div>
-                                <div class="time-slot">7:00 PM</div>
-                                <div class="time-slot">8:00 PM</div>
-                                <div class="time-slot">9:00 PM</div>
-                                <div class="time-slot">10:00 PM</div>
-                                <div class="time-slot">11:00 PM</div>
-                                <div class="time-slot">12:00 AM</div>
+                <div class="calendar-shell" data-view="week">
+                    <div class="calendar-toolbar">
+                        <div class="toolbar-left">
+                            <button type="button" class="toolbar-today" id="calendar-today">Today</button>
+                            <div class="toolbar-nav">
+                                <button type="button" class="toolbar-nav-btn" id="calendar-prev" aria-label="Previous period">
+                                    <i class="bi bi-chevron-left"></i>
+                                </button>
+                                <button type="button" class="toolbar-nav-btn" id="calendar-next" aria-label="Next period">
+                                    <i class="bi bi-chevron-right"></i>
+                                </button>
+                            </div>
+                            <span class="toolbar-date" id="calendar-period">August 26 - September 1, 2025</span>
+                        </div>
+                        <div class="toolbar-right">
+                            <div class="view-toggle" role="tablist" aria-label="Timetable view">
+                                <button class="toggle-btn active" data-view="week" role="tab" aria-selected="true">
+                                    <i class="bi bi-calendar-week"></i>
+                                    Week
+                                </button>
+                                <button class="toggle-btn" data-view="month" role="tab" aria-selected="false">
+                                    <i class="bi bi-calendar-month"></i>
+                                    Month
+                                </button>
                             </div>
                         </div>
-                        
-                        <div class="day-column">
-                            <div class="day-header">Monday</div>
-                            <div class="day-slots"></div>
+                    </div>
+
+                    <div class="calendar-meta">
+                        <div class="week-legend" aria-hidden="true">
+                            <span class="legend-item legend-algebra">Algebra</span>
+                            <span class="legend-item legend-geometry">Geometry</span>
+                            <span class="legend-item legend-calculus">Calculus</span>
+                            <span class="legend-item legend-chemistry">Chemistry</span>
+                            <span class="legend-item legend-physics">Physics</span>
+                            <span class="legend-item legend-biology">Biology</span>
                         </div>
-                        
-                        <div class="day-column">
-                            <div class="day-header">Tuesday</div>
-                            <div class="day-slots"></div>
+                        <div class="month-legend" aria-hidden="true">
+                            <span class="legend-item legend-algebra">Algebra</span>
+                            <span class="legend-item legend-geometry">Geometry</span>
+                            <span class="legend-item legend-calculus">Calculus</span>
+                            <span class="legend-item legend-chemistry">Chemistry</span>
+                            <span class="legend-item legend-physics">Physics</span>
+                            <span class="legend-item legend-biology">Biology</span>
                         </div>
-                        
-                        <div class="day-column">
-                            <div class="day-header">Wednesday</div>
-                            <div class="day-slots"></div>
+                    </div>
+
+                    <div class="calendar-views">
+                        <!-- Week View -->
+                        <div class="timetable-view" id="week-view">
+                            <div class="week-grid-wrapper">
+                                <div class="week-grid">
+                                    <div class="week-grid-cell time-heading">
+                                        <div class="time-header">Time (ET)</div>
+                                    </div>
+                                <div class="week-grid-cell day-heading" data-day-index="0">
+                                    <div class="day-header">Sunday<div class="day-date"></div></div>
+                                </div>
+                                <div class="week-grid-cell day-heading" data-day-index="1">
+                                    <div class="day-header">Monday<div class="day-date"></div></div>
+                                </div>
+                                <div class="week-grid-cell day-heading" data-day-index="2">
+                                    <div class="day-header">Tuesday<div class="day-date"></div></div>
+                                </div>
+                                <div class="week-grid-cell day-heading" data-day-index="3">
+                                    <div class="day-header">Wednesday<div class="day-date"></div></div>
+                                </div>
+                                <div class="week-grid-cell day-heading" data-day-index="4">
+                                    <div class="day-header">Thursday<div class="day-date"></div></div>
+                                </div>
+                                <div class="week-grid-cell day-heading" data-day-index="5">
+                                    <div class="day-header">Friday<div class="day-date"></div></div>
+                                </div>
+                                <div class="week-grid-cell day-heading" data-day-index="6">
+                                    <div class="day-header">Saturday<div class="day-date"></div></div>
+                                </div>
+
+                                <div class="week-grid-cell time-column">
+                                    <div class="time-slots">
+                                        <div class="time-slot"><span class="time-marker">12:00 PM</span></div>
+                                        <div class="time-slot"><span class="time-marker">1:00 PM</span></div>
+                                        <div class="time-slot"><span class="time-marker">2:00 PM</span></div>
+                                        <div class="time-slot"><span class="time-marker">3:00 PM</span></div>
+                                        <div class="time-slot"><span class="time-marker">4:00 PM</span></div>
+                                        <div class="time-slot"><span class="time-marker">5:00 PM</span></div>
+                                        <div class="time-slot"><span class="time-marker">6:00 PM</span></div>
+                                        <div class="time-slot"><span class="time-marker">7:00 PM</span></div>
+                                        <div class="time-slot"><span class="time-marker">8:00 PM</span></div>
+                                        <div class="time-slot"><span class="time-marker">9:00 PM</span></div>
+                                        <div class="time-slot"><span class="time-marker">10:00 PM</span></div>
+                                        <div class="time-slot"><span class="time-marker">11:00 PM</span></div>
+                                        <div class="time-slot"><span class="time-marker">12:00 AM</span></div>
+                                    </div>
+                                </div>
+                                <div class="week-grid-cell day-column" data-day-index="0">
+                                    <div class="day-slots"></div>
+                                </div>
+                                <div class="week-grid-cell day-column" data-day-index="1">
+                                    <div class="day-slots"></div>
+                                </div>
+                                <div class="week-grid-cell day-column" data-day-index="2">
+                                    <div class="day-slots"></div>
+                                </div>
+                                <div class="week-grid-cell day-column" data-day-index="3">
+                                    <div class="day-slots"></div>
+                                </div>
+                                <div class="week-grid-cell day-column" data-day-index="4">
+                                    <div class="day-slots"></div>
+                                </div>
+                                <div class="week-grid-cell day-column" data-day-index="5">
+                                    <div class="day-slots"></div>
+                                </div>
+                                <div class="week-grid-cell day-column" data-day-index="6">
+                                    <div class="day-slots"></div>
+                                </div>
+                                </div>
+                            </div>
                         </div>
-                        
-                        <div class="day-column">
-                            <div class="day-header">Thursday</div>
-                            <div class="day-slots"></div>
-                        </div>
-                        
-                        <div class="day-column">
-                            <div class="day-header">Friday</div>
-                            <div class="day-slots"></div>
-                        </div>
-                        
-                        <div class="day-column">
-                            <div class="day-header">Saturday</div>
-                            <div class="day-slots"></div>
-                        </div>
-                        
-                        <div class="day-column">
-                            <div class="day-header">Sunday</div>
-                            <div class="day-slots"></div>
+
+                        <!-- Month View -->
+                        <div class="timetable-view" id="month-view" style="display: none;">
+                            <div class="month-grid" id="month-grid">
+                                <!-- Month grid will be populated by JavaScript -->
+                            </div>
                         </div>
                     </div>
                 </div>
-
-                <!-- Month View -->
-                <div class="timetable-view" id="month-view" style="display: none;">
-                    <div class="month-header">
-                        <button class="nav-btn" onclick="previousMonth()">
-                            <i class="bi bi-chevron-left"></i>
-                        </button>
-                        <h2 class="current-month" id="current-month">August 2025</h2>
-                        <button class="nav-btn" onclick="nextMonth()">
-                            <i class="bi bi-chevron-right"></i>
-                        </button>
-                    </div>
-                    
-                    <div class="month-grid" id="month-grid">
-                        <!-- Month grid will be populated by JavaScript -->
-                    </div>
-                </div>
-
-                
             </div>
         </section>
 
