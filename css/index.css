@@ -2842,6 +2842,185 @@ body.drawer-open #assignments-tab { transform: translate(calc(-360px), -50%); }
     font-weight: 600;
 }
 
+[data-view-section][hidden] {
+    display: none !important;
+}
+
+/* Homework / Exam toggle */
+.assignment-view-tabs {
+    display: inline-flex;
+    border: 1px solid rgba(107, 52, 16, 0.25);
+    border-radius: 999px;
+    overflow: hidden;
+    margin: 16px 0 32px;
+    background: #fffdf9;
+    box-shadow: 0 8px 24px -20px rgba(0, 0, 0, 0.4);
+}
+
+.assignment-view-tab {
+    border: none;
+    padding: 10px 24px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #6b3410;
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.assignment-view-tab.is-active {
+    background: #6b3410;
+    color: #fff;
+}
+
+.assignment-view-tab:not(.is-active):hover {
+    background: rgba(107, 52, 16, 0.08);
+}
+
+/* Exam view */
+.exam-view {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+.exam-columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.exam-column {
+    background: #ffffff;
+    border-radius: 22px;
+    border: 1px solid rgba(139, 69, 19, 0.1);
+    padding: 20px;
+    box-shadow: 0 24px 60px -45px rgba(48, 32, 15, 0.5);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.exam-column-header {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    border-bottom: 1px solid rgba(139, 69, 19, 0.15);
+    padding-bottom: 12px;
+}
+
+.exam-column-header .column-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(139, 69, 19, 0.12);
+    color: #6b3410;
+    font-size: 1.2rem;
+}
+
+.exam-column-header h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #3c2918;
+}
+
+.exam-column-header p {
+    margin: 2px 0 0;
+    color: #85705b;
+    font-size: 0.92rem;
+}
+
+.exam-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.exam-card {
+    background: #fffaf4;
+    border-radius: 16px;
+    padding: 16px;
+    border: 1px solid rgba(139, 69, 19, 0.12);
+    box-shadow: 0 12px 32px -28px rgba(48, 32, 15, 0.4);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.exam-card header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.exam-card h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: #3c2918;
+}
+
+.exam-subject {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #a07048;
+}
+
+.exam-meta p {
+    margin: 2px 0;
+    color: #5b4634;
+    font-size: 0.92rem;
+}
+
+.exam-action {
+    align-self: flex-start;
+    border: none;
+    border-radius: 14px;
+    background: #6b3410;
+    color: #fff;
+    font-weight: 600;
+    padding: 8px 18px;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.exam-action:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 24px -18px rgba(107, 52, 16, 0.65);
+}
+
+.view-fade-in {
+    animation: viewFade 0.25s ease-out;
+}
+
+@keyframes viewFade {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 600px) {
+    .assignment-view-tabs {
+        width: 100%;
+    }
+
+    .assignment-view-tab {
+        flex: 1;
+        text-align: center;
+    }
+
+    .exam-columns {
+        grid-template-columns: 1fr;
+    }
+}
+
 .assignment-board-status {
     margin-bottom: 16px;
     color: #7a6a57;

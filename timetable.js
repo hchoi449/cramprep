@@ -203,6 +203,7 @@ document.addEventListener('DOMContentLoaded', function() {
     updateWeekDisplay();
     fetchEvents().then(()=> applyMeetingTypeFilter());
     updateMonthDisplay();
+    loadToolbarSchool();
 
     // AI chat UI removed; button retained for future integration
     try { setupAssignmentsDrawer(); } catch {}
@@ -491,6 +492,18 @@ async function fileToDataURL(file){
 function updateMonthDisplay() {
     if (currentCalendarView === 'month') {
         setCalendarPeriodLabel(formatMonthYear(currentMonth));
+    }
+}
+
+async function loadToolbarSchool(){
+    const label = document.getElementById('calendar-school');
+    if (!label) return;
+    try {
+        const profile = await fetchProfile();
+        const schoolName = (profile && (profile.schoolName || profile.school || profile.school_name)) || '';
+        label.textContent = schoolName ? `School: ${schoolName}` : 'School: Not set';
+    } catch {
+        label.textContent = 'School: Not set';
     }
 }
 

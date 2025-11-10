@@ -58,7 +58,14 @@
             </div>
           </div>
           <div class="assignment-board-status" role="status" aria-live="polite"></div>
-          <div class="assignment-columns">
+          <!-- View toggle tabs -->
+          <div class="assignment-view-tabs" role="tablist" aria-label="Assignment view selector">
+            <button class="assignment-view-tab" data-view="exams" role="tab" aria-selected="false">Exams</button>
+            <button class="assignment-view-tab is-active" data-view="homework" role="tab" aria-selected="true">Homework</button>
+          </div>
+
+          <!-- Homework Columns -->
+          <div class="assignment-columns" data-view-section="homework">
             <div class="assignment-column" data-status="todo">
               <div class="assignment-column-header">
                 <span class="column-icon column-icon-todo"><i class="bi bi-list-check"></i></span>
@@ -99,6 +106,35 @@
               </div>
               <div class="assignment-list" data-status="completed" aria-live="polite"></div>
               <p class="assignment-empty" data-status="completed">Completed assignments will land here automatically.</p>
+            </div>
+          </div>
+
+          <!-- Exam View -->
+          <div class="exam-view" data-view-section="exams" hidden>
+            <div class="exam-columns">
+              <!-- Upcoming Exams -->
+              <div class="exam-column">
+                <div class="exam-column-header">
+                  <span class="column-icon"><i class="bi bi-calendar-event"></i></span>
+                  <div>
+                    <h2>Upcoming Exams</h2>
+                    <p>Plan ahead and keep goals on track.</p>
+                  </div>
+                </div>
+                <div class="exam-card-list" id="upcoming-exams"></div>
+              </div>
+
+              <!-- Past Exams -->
+              <div class="exam-column">
+                <div class="exam-column-header">
+                  <span class="column-icon"><i class="bi bi-journal-check"></i></span>
+                  <div>
+                    <h2>Past Exams</h2>
+                    <p>Review scores and note takeaways.</p>
+                  </div>
+                </div>
+                <div class="exam-card-list" id="past-exams"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -224,6 +260,99 @@
     <script>
       window.TBP_AUTH_BASE = 'https://cramprep.onrender.com';
       window.TBP_ASSIGNMENTS_BASE = '/api';
+
+      /* Placeholder exam data for the Exam View */
+      const TBP_EXAMS = {
+        upcoming: [
+          {
+            name: "AP Physics 1 – Dynamics Test",
+            subject: "Physics",
+            date: "Tue Nov 11",
+            weight: "20% of grade",
+            goal: "Goal: A (90%) – Need ≥ 92%",
+            action: true
+          },
+          {
+            name: "SAT Math Drill",
+            subject: "Math",
+            date: "Sat Nov 16",
+            weight: "Practice Exam",
+            goal: "Goal: 760 – Need ≥ 720 on this run",
+            action: true
+          }
+        ],
+        past: [
+          { name: "APUSH DBQ Assessment", subject: "History", date: "Mon Oct 28", score: "Scored 87%" },
+          { name: "Chemistry Stoichiometry Quiz", subject: "Chemistry", date: "Thu Oct 24", score: "Scored 93%" }
+        ]
+      };
+
+      const renderExamCard = exam => {
+        const card = document.createElement("article");
+        card.className = "exam-card";
+        card.innerHTML = `
+          <header>
+            <h3>${exam.name}</h3>
+            <span class="exam-subject">${exam.subject || ""}</span>
+          </header>
+          <div class="exam-meta">
+            <p><strong>Date:</strong> ${exam.date}</p>
+            ${exam.weight ? `<p><strong>Weight:</strong> ${exam.weight}</p>` : ""}
+            ${exam.goal ? `<p><strong>Goal:</strong> ${exam.goal}</p>` : ""}
+            ${exam.score ? `<p><strong>Result:</strong> ${exam.score}</p>` : ""}
+          </div>
+          ${exam.action ? `<button class="exam-action">Start Review</button>` : ""}
+        `;
+        return card;
+      };
+
+      function hydrateExamView() {
+        const upcoming = document.getElementById("upcoming-exams");
+        const past = document.getElementById("past-exams");
+        if (!upcoming || !past) return;
+        upcoming.innerHTML = "";
+        past.innerHTML = "";
+        TBP_EXAMS.upcoming.forEach(exam => upcoming.appendChild(renderExamCard(exam)));
+        TBP_EXAMS.past.forEach(exam => past.appendChild(renderExamCard(exam)));
+      }
+
+      function setupAssignmentViewToggle() {
+        const tabs = document.querySelectorAll(".assignment-view-tab");
+        const sections = document.querySelectorAll("[data-view-section]");
+        if (!tabs.length || !sections.length) return;
+
+        const setView = view => {
+          tabs.forEach(btn => {
+            const isActive = btn.dataset.view === view;
+            btn.classList.toggle("is-active", isActive);
+            btn.setAttribute("aria-selected", String(isActive));
+          });
+
+          sections.forEach(section => {
+            const isMatch = section.dataset.viewSection === view;
+            section.hidden = !isMatch;
+          });
+        };
+
+        tabs.forEach(tab => {
+          tab.addEventListener("click", () => {
+            const target = tab.dataset.view;
+            const activeSection = Array.from(sections).find(section => section.dataset.viewSection === target);
+            sections.forEach(section => section.classList.remove("view-fade-in"));
+            setView(target);
+            requestAnimationFrame(() => {
+              if (activeSection) activeSection.classList.add("view-fade-in");
+            });
+          });
+        });
+
+        setView("exams");
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        hydrateExamView();
+        setupAssignmentViewToggle();
+      });
     </script>
     <script src="index.js"></script>
     <script src="dashboard.js"></script>

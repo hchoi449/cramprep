@@ -127,6 +127,19 @@ body.timetable .nav-desktop a {
     margin: 0;
 }
 
+.timetable-school {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #6b563f;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: rgba(139, 69, 19, 0.08);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+}
+
 .hero-actions {
     display: flex;
     flex-direction: column;
@@ -413,6 +426,15 @@ body.timetable .nav-desktop a {
     font-weight: 700;
     color: #3c2918;
     min-width: 240px;
+}
+
+.toolbar-school {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #6b563f;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: rgba(139, 69, 19, 0.08);
 }
 
 .calendar-meta {
