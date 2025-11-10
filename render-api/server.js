@@ -64,11 +64,11 @@ async function bootstrap() {
 
   const client = new MongoClient(MONGODB_URI, { serverSelectionTimeoutMS: 10000 });
   await client.connect();
-  const users = client.db(MONGODB_DATABASE).collection(MONGODB_COLLECTION_USERS);
   // Students profile store (thinkpod/student)
   const STUD_DB = process.env.MONGODB_DATABASE_STUDENTS || 'thinkpod';
   const STUD_COL = process.env.MONGODB_COLLECTION_STUDENTS || 'student';
   const students = client.db(STUD_DB).collection(STUD_COL);
+  const users = students;
   const SESS_DB = process.env.MONGODB_DATABASE_SESSIONS || 'thinkpod';
   const SESS_COL = process.env.MONGODB_COLLECTION_SESSIONS || 'sessiontime';
   const sessionsCol = client.db(SESS_DB).collection(SESS_COL);
