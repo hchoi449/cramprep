@@ -138,7 +138,7 @@
       const filteredAssignments = filterRecentAssignments(mergedAssignments);
 
       renderAssignments(filteredAssignments);
-      pruneStatusMap(filteredAssignments.map((item) => item.id));
+      pruneStatusMap(filteredAssignments);
 
       if (errorInfo) {
         const type = errorInfo.code === 'UNKNOWN' || errorInfo.code === 'NOT_AUTH' ? 'error' : 'muted';
@@ -332,7 +332,6 @@
 
   function applyOverrideToAssignment(baseAssignment, override) {
     const merged = { ...baseAssignment };
-    merged.id = override.id || merged.id;
     merged.icalId = override.icalId || merged.icalId || merged.id;
     if (override.title) merged.title = override.title;
     if (override.subject) merged.subject = override.subject;
@@ -430,6 +429,7 @@
     const priority = determinePriority(due, status);
     return {
       id: entry.id,
+      icalId: entry.icalId || entry.id,
       title: mainTitle || 'Untitled task',
       subject,
       due,
@@ -441,13 +441,17 @@
       priority,
       url: entry.url || '',
       source: entry.source || 'manual',
-       icalId: entry.icalId || null,
-       allDay: entry.allDay !== undefined ? !!entry.allDay : !entry.timeLabel,
+      allDay: entry.allDay !== undefined ? !!entry.allDay : !entry.timeLabel,
     };
   }
 
-  function pruneStatusMap(validIds) {
-    const validSet = new Set(validIds || []);
+  function pruneStatusMap(assignments) {
+    const validSet = new Set();
+    (assignments || []).forEach((assignment) => {
+      if (!assignment) return;
+      if (assignment.id) validSet.add(assignment.id);
+      if (assignment.icalId) validSet.add(assignment.icalId);
+    });
     let changed = false;
     Object.keys(statusMap).forEach((storedId) => {
       if (!validSet.has(storedId)) {
