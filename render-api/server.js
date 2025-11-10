@@ -751,17 +751,22 @@ async function bootstrap() {
         'assignments.$[item].updatedAt': now,
       };
 
-      const updateExisting = await users.findOneAndUpdate(
-        { ...filter, 'assignments.icalId': icalIdRaw },
-        { $set: setPayload },
-        {
-          arrayFilters: [{ 'item.icalId': icalIdRaw }],
-          projection: { assignments: { $elemMatch: { icalId: icalIdRaw } } },
-          returnDocument: 'after',
-        }
-      );
+      let assignmentDoc = null;
+      try {
+        const updateExisting = await users.findOneAndUpdate(
+          { ...filter, 'assignments.icalId': icalIdRaw },
+          { $set: setPayload },
+          {
+            arrayFilters: [{ 'item.icalId': icalIdRaw }],
+            projection: { assignments: { $elemMatch: { icalId: icalIdRaw } } },
+            returnDocument: 'after',
+          }
+        );
+        assignmentDoc = updateExisting.value?.assignments && updateExisting.value.assignments[0];
+      } catch (err) {
+        console.error('[assignments:put-ical:update]', err);
+      }
 
-      let assignmentDoc = updateExisting.value?.assignments && updateExisting.value.assignments[0];
       if (!assignmentDoc) {
         const newDoc = {
           _id: new ObjectId().toHexString(),
@@ -778,11 +783,7 @@ async function bootstrap() {
           createdAt: now,
           updatedAt: now,
         };
-        const pushResult = await users.updateOne(
-          filter,
-          { $push: { assignments: newDoc } },
-          { arrayFilters: [], upsert: true }
-        );
+        const pushResult = await users.updateOne(filter, { $push: { assignments: newDoc } });
         if (!pushResult.matchedCount) {
           return res.status(404).json({ error: 'Student record not found' });
         }
