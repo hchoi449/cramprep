@@ -352,18 +352,6 @@ function calendarNext() {
     }
 }
 
-function goToToday() {
-    currentDate = new Date();
-    currentWeek = new Date(currentDate);
-    currentMonth = new Date(currentDate);
-    updateWeekDisplay();
-    updateMonthDisplay();
-    generateMonthView();
-    if (currentCalendarView === 'month') {
-        setCalendarPeriodLabel(formatMonthYear(currentMonth));
-    }
-}
-
 // Navigation functions
 function previousWeek() {
     currentWeek.setDate(currentWeek.getDate() - 7);

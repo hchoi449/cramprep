@@ -35,26 +35,6 @@ body.timetable .header-container {
     padding: 12px clamp(24px, 4vw, 72px);
 }
 
-body.timetable .logo {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 18px;
-    font-weight: 600;
-}
-
-body.timetable .logo img {
-    height: 40px;
-    width: auto;
-}
-
-body.timetable .nav-desktop a {
-    font-size: 0.95rem;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    white-space: nowrap;
-}
-
 /* Timetable Hero Section */
 .timetable-hero {
     position: relative;
