@@ -53,6 +53,7 @@ export const onRequestGet: PagesFunction<BaseEnv> = async (context) => {
   if (!payload) return unauthorized();
 
   try {
+    console.log('Assignments GET – DATA API URL:', env.MONGODB_DATA_API_URL, 'Database:', env.MONGODB_DATABASE);
     const usersCollection = getUsersCollection(env);
     const filter = buildStudentFilter(payload.sub);
     const result = await dataApiFetch<{ document?: Record<string, unknown> | null }>(env, 'findOne', {
