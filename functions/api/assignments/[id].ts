@@ -5,7 +5,8 @@ import {
   dataApiFetch,
   verifyJwt,
   serializeAssignment,
-  getAssignmentsCollection,
+  getUsersCollection,
+  buildStudentFilter,
   nowIso,
   parseDueDate,
   validateStatus,
@@ -16,6 +17,7 @@ const REQUIRED_ENV: (keyof BaseEnv)[] = [
   'MONGODB_DATA_API_KEY',
   'MONGODB_DATA_SOURCE',
   'MONGODB_DATABASE',
+  'MONGODB_COLLECTION_USERS',
   'JWT_SECRET',
 ];
 
@@ -51,8 +53,8 @@ async function authenticate(request: Request, env: BaseEnv): Promise<AuthPayload
 
 function normalizeId(id: unknown): string | null {
   const value = typeof id === 'string' ? id.trim() : '';
-  if (!value || !/^[a-fA-F0-9]{24}$/.test(value)) return null;
-  return value.toLowerCase();
+  if (!value) return null;
+  return value;
 }
 
 interface PatchBody {
@@ -116,19 +118,24 @@ export const onRequestPatch: PagesFunction<BaseEnv> = async (context) => {
     }
     updates.updatedAt = nowIso();
 
-    const collection = getAssignmentsCollection(env);
-    const filter = {
-      _id: { $oid: id },
-      studentId: payload.sub,
-    };
+    const usersCollection = getUsersCollection(env);
+    const filter = buildStudentFilter(payload.sub);
+
+    const setPayload: Record<string, unknown> = {};
+    Object.entries(updates).forEach(([key, value]) => {
+      setPayload[`assignments.$[item].${key}`] = value;
+    });
+    setPayload['assignments.$[item].updatedAt'] = updates.updatedAt;
 
     const updateResult = await dataApiFetch<{ matchedCount?: number; modifiedCount?: number }>(env, 'updateOne', {
       dataSource: env.MONGODB_DATA_SOURCE,
       database: env.MONGODB_DATABASE,
-      collection,
+      collection: usersCollection,
       filter,
-      update: { $set: updates },
+      update: { $set: setPayload },
+      arrayFilters: [{ 'item._id': id }],
     });
+
     if (!updateResult.matchedCount) {
       return notFound();
     }
@@ -136,13 +143,18 @@ export const onRequestPatch: PagesFunction<BaseEnv> = async (context) => {
     const findResult = await dataApiFetch<{ document?: Record<string, unknown> | null }>(env, 'findOne', {
       dataSource: env.MONGODB_DATA_SOURCE,
       database: env.MONGODB_DATABASE,
-      collection,
-      filter,
+      collection: usersCollection,
+      filter: {
+        ...filter,
+        'assignments._id': id,
+      },
+      projection: { assignments: { $elemMatch: { _id: id } } },
     });
-    if (!findResult.document) {
-      return notFound();
-    }
-    const assignment = serializeAssignment(findResult.document);
+    const doc = findResult.document;
+    const assignmentDoc = Array.isArray(doc?.assignments) && doc.assignments.length ? doc.assignments[0] : null;
+    if (!assignmentDoc) return notFound();
+
+    const assignment = serializeAssignment(assignmentDoc as Record<string, unknown>);
     return jsonResponse({ ok: true, assignment });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
@@ -163,14 +175,15 @@ export const onRequestDelete: PagesFunction<BaseEnv> = async (context) => {
   if (!id) return badRequest('Invalid assignment id.');
 
   try {
-    const collection = getAssignmentsCollection(env);
-    const result = await dataApiFetch<{ deletedCount?: number }>(env, 'deleteOne', {
+    const usersCollection = getUsersCollection(env);
+    const result = await dataApiFetch<{ matchedCount?: number; modifiedCount?: number }>(env, 'updateOne', {
       dataSource: env.MONGODB_DATA_SOURCE,
       database: env.MONGODB_DATABASE,
-      collection,
-      filter: { _id: { $oid: id }, studentId: payload.sub },
+      collection: usersCollection,
+      filter: buildStudentFilter(payload.sub),
+      update: { $pull: { assignments: { _id: id } } },
     });
-    if (!result.deletedCount) {
+    if (!result.matchedCount || !result.modifiedCount) {
       return notFound();
     }
     return jsonResponse({ ok: true });

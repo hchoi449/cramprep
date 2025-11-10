@@ -8,6 +8,7 @@ export type BaseEnv = {
   MONGODB_DATA_SOURCE: string;
   MONGODB_DATABASE: string;
   MONGODB_COLLECTION_ASSIGNMENTS?: string;
+  MONGODB_COLLECTION_USERS?: string;
   JWT_SECRET: string;
 };
 
@@ -168,6 +169,41 @@ export function serializeAssignment(doc: Record<string, unknown>): SerializedAss
 
 export function getAssignmentsCollection(env: BaseEnv): string {
   return env.MONGODB_COLLECTION_ASSIGNMENTS?.trim() || 'assignments';
+}
+
+export function getUsersCollection(env: BaseEnv): string {
+  return env.MONGODB_COLLECTION_USERS?.trim() || 'users';
+}
+
+function isObjectIdLike(value: string): boolean {
+  return /^[a-fA-F0-9]{24}$/.test(value);
+}
+
+export function buildStudentFilter(studentId: string): Record<string, unknown> {
+  const trimmed = (studentId || '').trim();
+  const filters: Record<string, unknown>[] = [];
+  const addFilter = (key: string, value: unknown) => {
+    if (!value) return;
+    filters.push({ [key]: value });
+  };
+  if (trimmed) {
+    addFilter('_id', trimmed);
+    addFilter('studentId', trimmed);
+    addFilter('email', trimmed);
+    if (isObjectIdLike(trimmed)) {
+      filters.push({ _id: { $oid: trimmed } });
+    }
+  }
+  if (!filters.length) {
+    return { studentId: '__unknown__' };
+  }
+  if (filters.length === 1) return filters[0];
+  return { $or: filters };
+}
+
+export function generateAssignmentId(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(12));
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 export function nowIso(): string {

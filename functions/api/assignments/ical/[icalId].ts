@@ -5,7 +5,9 @@ import {
   dataApiFetch,
   verifyJwt,
   serializeAssignment,
-  getAssignmentsCollection,
+  getUsersCollection,
+  buildStudentFilter,
+  generateAssignmentId,
   nowIso,
   parseDueDate,
   validateStatus,
@@ -16,6 +18,7 @@ const REQUIRED_ENV: (keyof BaseEnv)[] = [
   'MONGODB_DATA_API_KEY',
   'MONGODB_DATA_SOURCE',
   'MONGODB_DATABASE',
+  'MONGODB_COLLECTION_USERS',
   'JWT_SECRET',
 ];
 
@@ -82,10 +85,38 @@ export const onRequestPut: PagesFunction<BaseEnv> = async (context) => {
     const url = body.url ? String(body.url).trim() : '';
 
     const now = nowIso();
-    const collection = getAssignmentsCollection(env);
-    const filter = { studentId: payload.sub, icalId };
-    const update = {
-      $set: {
+    const usersCollection = getUsersCollection(env);
+    const filter = buildStudentFilter(payload.sub);
+
+    const setPayload: Record<string, unknown> = {
+      'assignments.$[item].title': title,
+      'assignments.$[item].subject': subject,
+      'assignments.$[item].status': status,
+      'assignments.$[item].dueDate': dueIso,
+      'assignments.$[item].details': details,
+      'assignments.$[item].allDay': allDay,
+      'assignments.$[item].timeLabel': timeLabel,
+      'assignments.$[item].url': url,
+      'assignments.$[item].source': 'override',
+      'assignments.$[item].updatedAt': now,
+    };
+
+    const updateExisting = await dataApiFetch<{ matchedCount?: number; modifiedCount?: number }>(env, 'updateOne', {
+      dataSource: env.MONGODB_DATA_SOURCE,
+      database: env.MONGODB_DATABASE,
+      collection: usersCollection,
+      filter: {
+        ...filter,
+        'assignments.icalId': icalId,
+      },
+      update: { $set: setPayload },
+      arrayFilters: [{ 'item.icalId': icalId }],
+    });
+
+    let assignmentDoc: Record<string, unknown> | null = null;
+    if (!updateExisting.matchedCount) {
+      const newAssignment = {
+        _id: generateAssignmentId(),
         title,
         subject,
         status,
@@ -95,34 +126,42 @@ export const onRequestPut: PagesFunction<BaseEnv> = async (context) => {
         timeLabel,
         url,
         source: 'override',
-        updatedAt: now,
-      },
-      $setOnInsert: {
-        studentId: payload.sub,
         icalId,
         createdAt: now,
-      },
-    };
+        updatedAt: now,
+      };
+      const pushResult = await dataApiFetch<{ matchedCount?: number }>(env, 'updateOne', {
+        dataSource: env.MONGODB_DATA_SOURCE,
+        database: env.MONGODB_DATABASE,
+        collection: usersCollection,
+        filter,
+        update: { $push: { assignments: newAssignment } },
+      });
+      if (!pushResult.matchedCount) {
+        return jsonResponse({ error: 'Student record not found.' }, 404);
+      }
+      assignmentDoc = newAssignment;
+    } else {
+      const findResult = await dataApiFetch<{ document?: Record<string, unknown> | null }>(env, 'findOne', {
+        dataSource: env.MONGODB_DATA_SOURCE,
+        database: env.MONGODB_DATABASE,
+        collection: usersCollection,
+        filter: {
+          ...filter,
+          'assignments.icalId': icalId,
+        },
+        projection: { assignments: { $elemMatch: { icalId } } },
+      });
+      if (Array.isArray(findResult.document?.assignments) && findResult.document.assignments.length) {
+        assignmentDoc = findResult.document.assignments[0] as Record<string, unknown>;
+      }
+    }
 
-    await dataApiFetch(env, 'updateOne', {
-      dataSource: env.MONGODB_DATA_SOURCE,
-      database: env.MONGODB_DATABASE,
-      collection,
-      filter,
-      update,
-      upsert: true,
-    });
-
-    const findResult = await dataApiFetch<{ document?: Record<string, unknown> | null }>(env, 'findOne', {
-      dataSource: env.MONGODB_DATA_SOURCE,
-      database: env.MONGODB_DATABASE,
-      collection,
-      filter,
-    });
-    if (!findResult.document) {
+    if (!assignmentDoc) {
       return jsonResponse({ error: 'Unable to load assignment.' }, 500);
     }
-    const assignment = serializeAssignment(findResult.document);
+
+    const assignment = serializeAssignment(assignmentDoc);
     return jsonResponse({ ok: true, assignment });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';

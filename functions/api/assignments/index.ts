@@ -5,7 +5,9 @@ import {
   dataApiFetch,
   verifyJwt,
   serializeAssignment,
-  getAssignmentsCollection,
+  getUsersCollection,
+  buildStudentFilter,
+  generateAssignmentId,
   nowIso,
   parseDueDate,
   validateStatus,
@@ -16,6 +18,7 @@ const REQUIRED_ENV: (keyof BaseEnv)[] = [
   'MONGODB_DATA_API_KEY',
   'MONGODB_DATA_SOURCE',
   'MONGODB_DATABASE',
+  'MONGODB_COLLECTION_USERS',
   'JWT_SECRET',
 ];
 
@@ -50,17 +53,27 @@ export const onRequestGet: PagesFunction<BaseEnv> = async (context) => {
   if (!payload) return unauthorized();
 
   try {
-    const collection = getAssignmentsCollection(env);
-    const result = await dataApiFetch<{ documents?: Record<string, unknown>[] }>(env, 'find', {
+    const usersCollection = getUsersCollection(env);
+    const filter = buildStudentFilter(payload.sub);
+    const result = await dataApiFetch<{ document?: Record<string, unknown> | null }>(env, 'findOne', {
       dataSource: env.MONGODB_DATA_SOURCE,
       database: env.MONGODB_DATABASE,
-      collection,
-      filter: { studentId: payload.sub },
-      sort: { dueDate: 1, createdAt: -1 },
-      limit: 200,
+      collection: usersCollection,
+      filter,
+      projection: { assignments: 1 },
     });
-    const docs = Array.isArray(result.documents) ? result.documents : [];
-    const assignments = docs.map(serializeAssignment);
+    const assignmentsArray = Array.isArray(result.document?.assignments)
+      ? (result.document?.assignments as Record<string, unknown>[])
+      : [];
+    assignmentsArray.sort((a, b) => {
+      const aDue = typeof a.dueDate === 'string' ? new Date(a.dueDate).getTime() : Infinity;
+      const bDue = typeof b.dueDate === 'string' ? new Date(b.dueDate).getTime() : Infinity;
+      if (aDue !== bDue) return aDue - bDue;
+      const aCreated = typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : 0;
+      const bCreated = typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : 0;
+      return bCreated - aCreated;
+    });
+    const assignments = assignmentsArray.map(serializeAssignment);
     return jsonResponse({ ok: true, assignments });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
@@ -117,17 +130,24 @@ export const onRequestPost: PagesFunction<BaseEnv> = async (context) => {
       updatedAt: now,
     };
 
-    const collection = getAssignmentsCollection(env);
-    const insertResult = await dataApiFetch<{ insertedId?: Record<string, unknown> }>(env, 'insertOne', {
+    const assignmentId = generateAssignmentId();
+    const assignmentDoc = { ...document, _id: assignmentId };
+
+    const usersCollection = getUsersCollection(env);
+    const userFilter = buildStudentFilter(payload.sub);
+    const updateResult = await dataApiFetch<{ matchedCount?: number; modifiedCount?: number }>(env, 'updateOne', {
       dataSource: env.MONGODB_DATA_SOURCE,
       database: env.MONGODB_DATABASE,
-      collection,
-      document,
+      collection: usersCollection,
+      filter: userFilter,
+      update: { $push: { assignments: assignmentDoc } },
     });
-    const assignment = serializeAssignment({
-      ...document,
-      _id: insertResult.insertedId,
-    });
+
+    if (!updateResult.matchedCount) {
+      return jsonResponse({ error: 'Student record not found.' }, 404);
+    }
+
+    const assignment = serializeAssignment(assignmentDoc);
     return jsonResponse({ ok: true, assignment }, 201);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
