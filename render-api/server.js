@@ -737,8 +737,8 @@ async function bootstrap() {
       const allDay = body.allDay === undefined ? true : !!body.allDay;
       const timeLabel = body.timeLabel ? String(body.timeLabel).trim() : '';
       const now = new Date();
-      const filter = buildUserFilter(auth.payload.sub);
-      const setPayload = {
+  const filter = buildUserFilter(auth.payload.sub);
+  const setPayload = {
         'assignments.$[item].title': title,
         'assignments.$[item].subject': subject,
         'assignments.$[item].status': status,
@@ -778,7 +778,11 @@ async function bootstrap() {
           createdAt: now,
           updatedAt: now,
         };
-        const pushResult = await users.updateOne(filter, { $push: { assignments: newDoc } });
+        const pushResult = await users.updateOne(
+          filter,
+          { $push: { assignments: newDoc } },
+          { arrayFilters: [], upsert: true }
+        );
         if (!pushResult.matchedCount) {
           return res.status(404).json({ error: 'Student record not found' });
         }
