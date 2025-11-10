@@ -72,15 +72,6 @@ async function bootstrap() {
   const SESS_DB = process.env.MONGODB_DATABASE_SESSIONS || 'thinkpod';
   const SESS_COL = process.env.MONGODB_COLLECTION_SESSIONS || 'sessiontime';
   const sessionsCol = client.db(SESS_DB).collection(SESS_COL);
-  const ASSIGN_DB = process.env.MONGODB_DATABASE_ASSIGNMENTS || process.env.MONGODB_DATABASE || STUD_DB || 'thinkpod';
-  const ASSIGN_COL = process.env.MONGODB_COLLECTION_ASSIGNMENTS || 'assignments';
-  const assignmentsCol = client.db(ASSIGN_DB).collection(ASSIGN_COL);
-  try {
-    await assignmentsCol.createIndex({ studentId: 1, dueDate: 1 });
-    await assignmentsCol.createIndex({ studentId: 1, icalId: 1 }, { unique: true, sparse: true });
-  } catch (err) {
-    console.error('[assignments] index creation failed', err);
-  }
   const assetsDir = path.resolve(__dirname, '../assets_ingest');
   try { fs.mkdirSync(assetsDir, { recursive: true }); } catch {}
   // Teachers collection helper
@@ -121,6 +112,11 @@ async function bootstrap() {
       icalId: doc.icalId || null,
     };
   }
+
+  const normalizeAssignmentId = (id) => {
+    if (!id) return null;
+    return String(id).trim();
+  };
 
   function parseDueDate(value) {
     if (!value) return null;
@@ -577,15 +573,35 @@ async function bootstrap() {
     }
   });
 
+  const buildUserFilter = (studentId) => {
+    const trimmed = String(studentId || '').trim();
+    if (!trimmed) return { email: '__unknown__' };
+    const filters = [{ email: trimmed }, { studentId: trimmed }];
+    if (ObjectId.isValid(trimmed)) {
+      filters.push({ _id: new ObjectId(trimmed) });
+    } else {
+      filters.push({ _id: trimmed });
+    }
+    return { $or: filters };
+  };
+
   app.get('/assignments', async (req, res) => {
     try {
       const auth = getAuthPayload(req);
       if (!auth) return res.status(401).json({ error: 'Unauthorized' });
-      const docs = await assignmentsCol
-        .find({ studentId: auth.payload.sub })
-        .sort({ dueDate: 1, createdAt: -1 })
-        .toArray();
-      return res.json({ ok: true, assignments: docs.map(serializeAssignment) });
+      const filter = buildUserFilter(auth.payload.sub);
+      const userDoc = await users.findOne(filter, { projection: { assignments: 1 } });
+      const assignments = Array.isArray(userDoc?.assignments)
+        ? userDoc.assignments.map(serializeAssignment).sort((a, b) => {
+            const aDue = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+            const bDue = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+            if (aDue !== bDue) return aDue - bDue;
+            const aCreated = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const bCreated = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return bCreated - aCreated;
+          })
+        : [];
+      return res.json({ ok: true, assignments });
     } catch (e) {
       console.error('[assignments:get]', e);
       return res.status(500).json({ error: 'Internal error' });
@@ -606,7 +622,7 @@ async function bootstrap() {
       const allDay = body.allDay === undefined ? true : !!body.allDay;
       const now = new Date();
       const doc = {
-        studentId: auth.payload.sub,
+        _id: new ObjectId().toHexString(),
         title,
         subject,
         status,
@@ -620,8 +636,11 @@ async function bootstrap() {
       if (body.timeLabel && typeof body.timeLabel === 'string') {
         doc.timeLabel = body.timeLabel.trim();
       }
-      const result = await assignmentsCol.insertOne(doc);
-      doc._id = result.insertedId;
+      const filter = buildUserFilter(auth.payload.sub);
+      const updateResult = await users.updateOne(filter, { $push: { assignments: doc } });
+      if (!updateResult.matchedCount) {
+        return res.status(404).json({ error: 'Student record not found' });
+      }
       return res.status(201).json({ ok: true, assignment: serializeAssignment(doc) });
     } catch (e) {
       console.error('[assignments:post]', e);
@@ -634,12 +653,8 @@ async function bootstrap() {
       const auth = getAuthPayload(req);
       if (!auth) return res.status(401).json({ error: 'Unauthorized' });
       const { id } = req.params;
-      let objectId;
-      try {
-        objectId = new ObjectId(id);
-      } catch {
-        return res.status(400).json({ error: 'Invalid assignment id' });
-      }
+      const assignmentId = normalizeAssignmentId(id);
+      if (!assignmentId) return res.status(400).json({ error: 'Invalid assignment id' });
       const updates = {};
       const body = req.body || {};
       if (body.title !== undefined) {
@@ -673,13 +688,33 @@ async function bootstrap() {
         return res.status(400).json({ error: 'No fields to update' });
       }
       updates.updatedAt = new Date();
-      const result = await assignmentsCol.findOneAndUpdate(
-        { _id: objectId, studentId: auth.payload.sub },
-        { $set: updates },
-        { returnDocument: 'after' }
+      const possibleIds = [assignmentId];
+      if (ObjectId.isValid(assignmentId)) {
+        possibleIds.push(new ObjectId(assignmentId));
+      }
+      const filter = {
+        ...buildUserFilter(auth.payload.sub),
+        'assignments._id': possibleIds.length > 1 ? { $in: possibleIds } : assignmentId,
+      };
+      const setPayload = {};
+      Object.entries(updates).forEach(([key, value]) => {
+        setPayload[`assignments.$[item].${key}`] = value;
+      });
+      setPayload['assignments.$[item].updatedAt'] = updates.updatedAt;
+
+      const elemMatch = possibleIds.length > 1 ? { _id: { $in: possibleIds } } : { _id: assignmentId };
+      const result = await users.findOneAndUpdate(
+        filter,
+        { $set: setPayload },
+        {
+          arrayFilters: [{ 'item._id': possibleIds.length > 1 ? { $in: possibleIds } : assignmentId }],
+          projection: { assignments: { $elemMatch: elemMatch } },
+          returnDocument: 'after',
+        }
       );
-      if (!result.value) return res.status(404).json({ error: 'Assignment not found' });
-      return res.json({ ok: true, assignment: serializeAssignment(result.value) });
+      const assignmentDoc = result.value?.assignments && result.value.assignments[0];
+      if (!assignmentDoc) return res.status(404).json({ error: 'Assignment not found' });
+      return res.json({ ok: true, assignment: serializeAssignment(assignmentDoc) });
     } catch (e) {
       console.error('[assignments:patch]', e);
       return res.status(500).json({ error: 'Internal error' });
@@ -702,25 +737,55 @@ async function bootstrap() {
       const allDay = body.allDay === undefined ? true : !!body.allDay;
       const timeLabel = body.timeLabel ? String(body.timeLabel).trim() : '';
       const now = new Date();
-      const update = {
-        studentId: auth.payload.sub,
-        icalId: icalIdRaw,
-        source: 'override',
-        title,
-        subject,
-        status,
-        dueDate,
-        details,
-        allDay,
-        timeLabel,
-        updatedAt: now,
+      const filter = buildUserFilter(auth.payload.sub);
+      const setPayload = {
+        'assignments.$[item].title': title,
+        'assignments.$[item].subject': subject,
+        'assignments.$[item].status': status,
+        'assignments.$[item].dueDate': dueDate,
+        'assignments.$[item].details': details,
+        'assignments.$[item].allDay': allDay,
+        'assignments.$[item].timeLabel': timeLabel,
+        'assignments.$[item].url': body.url ? String(body.url).trim() : '',
+        'assignments.$[item].source': 'override',
+        'assignments.$[item].updatedAt': now,
       };
-      const result = await assignmentsCol.findOneAndUpdate(
-        { studentId: auth.payload.sub, icalId: icalIdRaw },
-        { $set: update, $setOnInsert: { createdAt: now } },
-        { returnDocument: 'after', upsert: true }
+
+      const updateExisting = await users.findOneAndUpdate(
+        { ...filter, 'assignments.icalId': icalIdRaw },
+        { $set: setPayload },
+        {
+          arrayFilters: [{ 'item.icalId': icalIdRaw }],
+          projection: { assignments: { $elemMatch: { icalId: icalIdRaw } } },
+          returnDocument: 'after',
+        }
       );
-      return res.json({ ok: true, assignment: serializeAssignment(result.value) });
+
+      let assignmentDoc = updateExisting.value?.assignments && updateExisting.value.assignments[0];
+      if (!assignmentDoc) {
+        const newDoc = {
+          _id: new ObjectId().toHexString(),
+          title,
+          subject,
+          status,
+          dueDate,
+          details,
+          allDay,
+          timeLabel,
+          url: body.url ? String(body.url).trim() : '',
+          source: 'override',
+          icalId: icalIdRaw,
+          createdAt: now,
+          updatedAt: now,
+        };
+        const pushResult = await users.updateOne(filter, { $push: { assignments: newDoc } });
+        if (!pushResult.matchedCount) {
+          return res.status(404).json({ error: 'Student record not found' });
+        }
+        assignmentDoc = newDoc;
+      }
+
+      return res.json({ ok: true, assignment: serializeAssignment(assignmentDoc) });
     } catch (e) {
       console.error('[assignments:put-ical]', e);
       return res.status(500).json({ error: 'Internal error' });
@@ -732,14 +797,17 @@ async function bootstrap() {
       const auth = getAuthPayload(req);
       if (!auth) return res.status(401).json({ error: 'Unauthorized' });
       const { id } = req.params;
-      let objectId;
-      try {
-        objectId = new ObjectId(id);
-      } catch {
-        return res.status(400).json({ error: 'Invalid assignment id' });
+      const assignmentId = normalizeAssignmentId(id);
+      if (!assignmentId) return res.status(400).json({ error: 'Invalid assignment id' });
+      const possibleIds = [assignmentId];
+      if (ObjectId.isValid(assignmentId)) {
+        possibleIds.push(new ObjectId(assignmentId));
       }
-      const result = await assignmentsCol.deleteOne({ _id: objectId, studentId: auth.payload.sub });
-      if (!result.deletedCount) return res.status(404).json({ error: 'Assignment not found' });
+      const result = await users.updateOne(
+        buildUserFilter(auth.payload.sub),
+        { $pull: { assignments: { _id: possibleIds.length > 1 ? { $in: possibleIds } : assignmentId } } }
+      );
+      if (!result.modifiedCount) return res.status(404).json({ error: 'Assignment not found' });
       return res.json({ ok: true });
     } catch (e) {
       console.error('[assignments:delete]', e);
