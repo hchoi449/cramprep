@@ -1175,6 +1175,11 @@
       assignment.source = saved.source || 'override';
       assignment.icalId = saved.icalId || icalId;
     }
+    const key = assignment.icalId || assignment.id;
+    if (key) {
+      statusMap[key] = assignment.status || status;
+      saveStatusMap();
+    }
   }
 
   async function handleEditSubmit(event) {
