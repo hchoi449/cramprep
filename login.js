@@ -304,6 +304,7 @@
                 // Notify listeners (e.g., chatbot) that login completed
                 try { window.dispatchEvent(new CustomEvent('tbp:auth:login', { detail: { user: resp.user || { email } } })); } catch {}
                 closeOverlay();
+                window.location.reload();
             } catch (err) {
                 const msg = (err && err.message ? String(err.message) : '').toLowerCase();
                 if (msg.includes('invalid credential')) {
@@ -349,5 +350,4 @@
         }
     });
 })();
-
 
