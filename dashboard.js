@@ -1340,13 +1340,8 @@
       submitButton.style.display = '';
     }
     if (info) {
-      if (normalizedSource === 'manual') {
-        info.textContent = '';
-        info.classList.remove('show');
-      } else {
-        info.textContent = 'Updates made here override the calendar event for your dashboard.';
-        info.classList.add('show');
-      }
+      info.textContent = '';
+      info.classList.remove('show');
     }
 
     document.body.style.overflow = 'hidden';
