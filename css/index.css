@@ -3031,10 +3031,7 @@ body.drawer-open #assignments-tab { transform: translate(calc(-360px), -50%); }
 }
 
 .assignment-board-status {
-    margin-bottom: 16px;
-    color: #7a6a57;
-    font-size: 0.95rem;
-    min-height: 1em;
+    display: none;
 }
 
 .assignment-board-status[data-status-type="error"] {
@@ -3479,6 +3476,14 @@ body.drawer-open #assignments-tab { transform: translate(calc(-360px), -50%); }
 
 .assignment-card footer i {
     color: #a28f7a;
+}
+
+.assignment-card .assignment-due-label {
+    color: #8a8374;
+}
+
+.assignment-card .assignment-due-label i {
+    color: #8a8374;
 }
 
 .assignment-card a.assignment-link {

@@ -41,6 +41,7 @@
   let manualAssignments = [];
   let dragCardId = null;
   let editModalConfig = null;
+  let hasShownLoginPopup = false;
   const editModalElements = {
     modal: null,
     form: null,
@@ -92,6 +93,19 @@
       el.setAttribute('data-status-type', type);
     } else {
       el.removeAttribute('data-status-type');
+    }
+
+    if (
+      !hasShownLoginPopup &&
+      typeof message === 'string' &&
+      message.toLowerCase().includes('log in to view your assignments dashboard')
+    ) {
+      if (typeof showNotification === 'function') {
+        showNotification(message, 'error', 4000);
+      } else if (typeof alert === 'function') {
+        alert(message);
+      }
+      hasShownLoginPopup = true;
     }
   }
 
@@ -540,6 +554,7 @@
 
     if (assignment.dueLabel) {
       const dueSpan = document.createElement('span');
+      dueSpan.className = 'assignment-due-label';
       const dueIcon = document.createElement('i');
       dueIcon.className = 'bi bi-calendar3';
       dueSpan.appendChild(dueIcon);
