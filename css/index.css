@@ -2916,9 +2916,18 @@ body.drawer-open #assignments-tab { transform: translate(calc(-360px), -50%); }
     width: 44px;
     height: 44px;
     border-radius: 12px;
-    background: rgba(139, 69, 19, 0.12);
-    color: #6b3410;
+    color: #fff;
     font-size: 1.2rem;
+}
+
+.column-icon-exam {
+    background: linear-gradient(135deg, #f59e0b, #ef4444);
+    box-shadow: 0 6px 16px -8px rgba(239, 68, 68, 0.55);
+}
+
+.column-icon-past {
+    background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+    box-shadow: 0 6px 16px -8px rgba(59, 130, 246, 0.55);
 }
 
 .exam-column-header h2 {
